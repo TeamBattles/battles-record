@@ -1,0 +1,6 @@
+# Ignore artifacts:
+build/
+.svelte-kit/
+dist/
+src-tauri/target
+package-lock.json
