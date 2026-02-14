@@ -1,0 +1,32 @@
+# Rust
+/target/
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+
+# Docker volumes (local development)
+/config/
+/recordings/
+
+# Local config
+br-config.toml
+
+# Temporary files
+*.tmp
+*.bak

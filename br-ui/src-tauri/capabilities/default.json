@@ -1,0 +1,54 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for the app",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-is-maximized",
+    "window-state:default",
+    "fs:default",
+    "fs:allow-app-read",
+    "fs:allow-app-write",
+    "fs:allow-app-read-recursive",
+    "fs:allow-app-write-recursive",
+    "shell:default",
+    "shell:allow-spawn",
+    "shell:allow-kill",
+    "shell:allow-open",
+    "process:allow-exit",
+    "dialog:default",
+    "dialog:allow-open",
+    "oauth:default",
+    "oauth:allow-start",
+    "oauth:allow-cancel",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "http://*/**" },
+        { "url": "http://*:*/**" },
+        { "url": "https://*/**" },
+        { "url": "https://*:*/**" }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "br-daemon",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
+  ]
+}

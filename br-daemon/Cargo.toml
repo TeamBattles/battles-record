@@ -1,0 +1,70 @@
+[package]
+name = "br-daemon"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = "0.10"
+async-trait = "0.1"
+
+axum = { version = "0.7", features = ["ws", "multipart"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+toml = "0.8"
+m3u8-rs = "6"
+jsonwebtoken = "9"
+bcrypt = "0.15"
+notify = "6"
+uuid = { version = "1", features = ["v4", "serde"] }
+bytes = "1"
+futures = "0.3"
+tokio-tungstenite = "0.21"
+parking_lot = "0.12"
+urlencoding = "2"
+serde_urlencoded = "0.7"
+rand = "0.8"
+sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.22"
+hex = "0.4"
+async-channel = "2"
+sysinfo = "0.31"
+image = "0.25"
+which = "6.0"
+zip = "2"
+
+# Image generation (rich thumbnails with text, gradients, colors)
+ab_glyph = "0.2"           # Font rendering
+tiny-skia = "0.11"         # 2D graphics with gradient support
+palette = "0.7"            # Color space conversions
+kmeans_colors = "0.6"      # Dominant color extraction from images
+
+[dev-dependencies]
+tempfile = "3"
+wiremock = "0.6"
+tokio-test = "0.4"
+tower = { version = "0.4", features = ["util"] }
+http-body-util = "0.1"
+br-daemon = { path = ".", features = ["test-utils"] }
+
+[features]
+default = []
+test-utils = []
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Threading"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tar = "0.4"
+xz2 = "0.1"

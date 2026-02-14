@@ -1,0 +1,20 @@
+[workspace]
+members = ["br-daemon"]
+resolver = "2"
+
+[workspace.package]
+version = "1.4.0"
+edition = "2021"
+license = "MIT"
+authors = ["TeamBattles"]
+repository = "https://github.com/TeamBattles/battles-record"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }

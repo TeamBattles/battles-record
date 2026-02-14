@@ -1,0 +1,155 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import '@fontsource/bebas-neue';
+
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+	--font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+	--font-display: 'Bebas Neue', ui-sans-serif, system-ui, sans-serif;
+
+	/* Light mode - Industrial/Utilitarian */
+	--background: oklch(0.985 0 0);
+	--background-deep: oklch(0.97 0 0);
+	--background-elevated: oklch(0.99 0 0);
+	--foreground: oklch(0.145 0.005 285);
+	--card: oklch(0.99 0 0);
+	--card-foreground: oklch(0.145 0.005 285);
+	--muted: oklch(0.93 0.005 265);
+	--muted-foreground: oklch(0.45 0.01 265);
+	--border: oklch(0.87 0.005 265);
+	--input: oklch(0.93 0.005 265);
+	--ring: oklch(0.55 0.01 265);
+
+	/* Zinc palette for light mode */
+	--zinc-50: oklch(0.985 0 0);
+	--zinc-100: oklch(0.97 0.002 265);
+	--zinc-200: oklch(0.92 0.004 265);
+	--zinc-300: oklch(0.87 0.006 265);
+	--zinc-400: oklch(0.55 0.01 265);
+	--zinc-500: oklch(0.45 0.01 265);
+	--zinc-600: oklch(0.35 0.01 265);
+	--zinc-700: oklch(0.28 0.01 265);
+	--zinc-800: oklch(0.2 0.01 265);
+	--zinc-900: oklch(0.14 0.008 265);
+
+	/* Accent colors */
+	--primary: oklch(0.637 0.237 25.331);
+	--primary-foreground: oklch(0.98 0.01 17);
+	--destructive: oklch(0.577 0.245 27.325);
+	--destructive-foreground: oklch(0.98 0.01 17);
+
+	/* Status colors */
+	--status-live: oklch(0.65 0.2 25);
+	--status-recording: oklch(0.65 0.2 25);
+	--status-online: oklch(0.72 0.17 142);
+	--status-offline: oklch(0.55 0.01 265);
+	--status-warning: oklch(0.8 0.15 85);
+	--status-info: oklch(0.7 0.15 250);
+}
+
+.dark {
+	--background: oklch(0.12 0.008 265);
+	--background-deep: oklch(0.09 0.008 265);
+	--background-elevated: oklch(0.14 0.008 265);
+	--foreground: oklch(0.95 0 0);
+	--card: oklch(0.14 0.008 265);
+	--card-foreground: oklch(0.95 0 0);
+	--muted: oklch(0.22 0.008 265);
+	--muted-foreground: oklch(0.55 0.01 265);
+	--border: oklch(0.28 0.01 265);
+	--input: oklch(0.18 0.008 265);
+	--ring: oklch(0.55 0.01 265);
+
+	/* Zinc palette for dark mode */
+	--zinc-50: oklch(0.985 0 0);
+	--zinc-100: oklch(0.97 0.002 265);
+	--zinc-200: oklch(0.92 0.004 265);
+	--zinc-300: oklch(0.87 0.006 265);
+	--zinc-400: oklch(0.7 0.01 265);
+	--zinc-500: oklch(0.55 0.01 265);
+	--zinc-600: oklch(0.45 0.01 265);
+	--zinc-700: oklch(0.28 0.01 265);
+	--zinc-800: oklch(0.2 0.01 265);
+	--zinc-900: oklch(0.14 0.008 265);
+
+	/* Status colors - slightly brighter for dark mode */
+	--status-live: oklch(0.7 0.2 25);
+	--status-recording: oklch(0.7 0.2 25);
+	--status-online: oklch(0.75 0.17 142);
+	--status-offline: oklch(0.45 0.01 265);
+	--status-warning: oklch(0.8 0.16 85);
+	--status-info: oklch(0.72 0.15 250);
+}
+
+@theme inline {
+	--font-family-sans: var(--font-sans);
+	--font-family-mono: var(--font-mono);
+	--font-family-display: var(--font-display);
+	--color-background: var(--background);
+	--color-background-deep: var(--background-deep);
+	--color-background-elevated: var(--background-elevated);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-zinc-50: var(--zinc-50);
+	--color-zinc-100: var(--zinc-100);
+	--color-zinc-200: var(--zinc-200);
+	--color-zinc-300: var(--zinc-300);
+	--color-zinc-400: var(--zinc-400);
+	--color-zinc-500: var(--zinc-500);
+	--color-zinc-600: var(--zinc-600);
+	--color-zinc-700: var(--zinc-700);
+	--color-zinc-800: var(--zinc-800);
+	--color-zinc-900: var(--zinc-900);
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+	body {
+		@apply bg-background-deep text-foreground antialiased;
+		font-family: var(--font-sans);
+	}
+}
+
+/* Industrial input focus states */
+input:focus,
+select:focus,
+textarea:focus {
+	outline: none;
+	border-color: var(--ring);
+	box-shadow: 0 0 0 1px var(--ring);
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+	background: var(--background-deep);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+	background: var(--zinc-700);
+	border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+	background: var(--zinc-600);
+}

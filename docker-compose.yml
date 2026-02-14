@@ -1,0 +1,158 @@
+# =============================================================================
+# Battles Record - Docker Compose
+# =============================================================================
+# Example deployment configuration.
+# Copy .env.example to .env and fill in your values before running.
+#
+# Usage:
+#   cp .env.example .env
+#   # Edit .env with your values
+#   docker-compose up -d
+#
+# After startup:
+#   - API available at http://localhost:8080
+#   - Login with your admin credentials
+#   - Add channels via API or connect br-ui
+
+services:
+  battles-record-daemon:
+    image: ghcr.io/teambattles/battles-record:latest
+    container_name: battles-record
+    restart: unless-stopped
+    ports:
+      - "${BR_PORT:-8080}:8080"
+    volumes:
+      # Raw .ts segments during recording
+      - ./recordings:/data/recordings
+      # Processed files, metadata, images (Jellyfin library)
+      - ./library:/data/library
+      # Channel profile/banner images
+      - ./images:/data/images
+      # Config storage (generated at startup)
+      - ./config:/config
+      # Downloaded VODs/clips
+      - ./downloads:/data/downloads
+    environment:
+      # =========================================================================
+      # Required
+      # =========================================================================
+      - BR_JWT_SECRET=${BR_JWT_SECRET}
+      - BR_ADMIN_USERNAME=${BR_ADMIN_USERNAME:-admin}
+      - BR_ADMIN_PASSWORD=${BR_ADMIN_PASSWORD}
+
+      # =========================================================================
+      # Daemon settings (optional)
+      # =========================================================================
+      # Note: BR_PORT only changes the HOST port. Inside the container,
+      # the daemon always listens on 8080.
+      - BR_HOST=${BR_HOST:-0.0.0.0}
+      - BR_LOG_LEVEL=${BR_LOG_LEVEL:-info}
+      - BR_CHECK_FOR_UPDATES=${BR_CHECK_FOR_UPDATES:-true}
+
+      # =========================================================================
+      # Storage (optional)
+      # =========================================================================
+      - BR_RECORDINGS_DIR=${BR_RECORDINGS_DIR:-/data/recordings}
+      - BR_LIBRARY_DIR=${BR_LIBRARY_DIR:-/data/library}
+      - BR_IMAGES_DIR=${BR_IMAGES_DIR:-/data/images}
+      - BR_DISK_WARNING_THRESHOLD=${BR_DISK_WARNING_THRESHOLD:-90}
+      # Channels config file (persists across container restarts)
+      - BR_CHANNELS_FILE=${BR_CHANNELS_FILE:-/config/channels.toml}
+
+      # =========================================================================
+      # Jellyfin integration (optional)
+      # =========================================================================
+      - BR_JELLYFIN_ENABLED=${BR_JELLYFIN_ENABLED:-false}
+      - BR_JELLYFIN_FETCH_IMAGES=${BR_JELLYFIN_FETCH_IMAGES:-true}
+      - BR_JELLYFIN_GENERATE_THUMBNAILS=${BR_JELLYFIN_GENERATE_THUMBNAILS:-true}
+
+      # =========================================================================
+      # Post-processing (optional)
+      # =========================================================================
+      - BR_PP_ENABLED=${BR_PP_ENABLED:-true}
+      - BR_PP_OUTPUT_FORMAT=${BR_PP_OUTPUT_FORMAT:-mp4_reencode}
+      - BR_PP_SEGMENT_HANDLING=${BR_PP_SEGMENT_HANDLING:-delete}
+      - BR_PP_MAX_CONCURRENT=${BR_PP_MAX_CONCURRENT:-2}
+      - BR_PP_CRF=${BR_PP_CRF:-20}
+      - BR_PP_PRESET=${BR_PP_PRESET:-medium}
+      - BR_PP_VIDEO_CODEC=${BR_PP_VIDEO_CODEC:-libx264}
+      - BR_PP_AUDIO_CODEC=${BR_PP_AUDIO_CODEC:-aac}
+      - BR_PP_AUDIO_BITRATE=${BR_PP_AUDIO_BITRATE:-128k}
+
+      # =========================================================================
+      # Platform authentication (optional)
+      # =========================================================================
+      # Twitch
+      - BR_TWITCH_ACCESS_TOKEN=${BR_TWITCH_ACCESS_TOKEN:-}
+      - BR_TWITCH_REFRESH_TOKEN=${BR_TWITCH_REFRESH_TOKEN:-}
+      - BR_TWITCH_USERNAME=${BR_TWITCH_USERNAME:-}
+
+      # YouTube
+      - BR_YOUTUBE_ACCESS_TOKEN=${BR_YOUTUBE_ACCESS_TOKEN:-}
+      - BR_YOUTUBE_REFRESH_TOKEN=${BR_YOUTUBE_REFRESH_TOKEN:-}
+      - BR_YOUTUBE_USERNAME=${BR_YOUTUBE_USERNAME:-}
+
+      # Kick
+      - BR_KICK_ACCESS_TOKEN=${BR_KICK_ACCESS_TOKEN:-}
+      - BR_KICK_REFRESH_TOKEN=${BR_KICK_REFRESH_TOKEN:-}
+      - BR_KICK_USERNAME=${BR_KICK_USERNAME:-}
+
+      # =========================================================================
+      # OAuth configuration (optional - for OAuth login flow)
+      # =========================================================================
+      # OAuth enables "Connect with Platform" buttons in the UI.
+      # Register OAuth apps at: Twitch Dev Console, Google Cloud Console
+      # - BR_OAUTH_TWITCH_CLIENT_ID=your-twitch-client-id
+      # - BR_OAUTH_TWITCH_CLIENT_SECRET=your-twitch-client-secret
+      # - BR_OAUTH_YOUTUBE_CLIENT_ID=your-google-client-id
+      # - BR_OAUTH_YOUTUBE_CLIENT_SECRET=your-google-client-secret
+
+      # =========================================================================
+      # Notifications (optional)
+      # =========================================================================
+      # Discord
+      - BR_DISCORD_WEBHOOK_URL=${BR_DISCORD_WEBHOOK_URL:-}
+      - BR_DISCORD_ON_START=${BR_DISCORD_ON_START:-true}
+      - BR_DISCORD_ON_END=${BR_DISCORD_ON_END:-true}
+      - BR_DISCORD_ON_ERROR=${BR_DISCORD_ON_ERROR:-false}
+
+      # Telegram
+      - BR_TELEGRAM_BOT_TOKEN=${BR_TELEGRAM_BOT_TOKEN:-}
+      - BR_TELEGRAM_CHAT_ID=${BR_TELEGRAM_CHAT_ID:-}
+      - BR_TELEGRAM_ON_START=${BR_TELEGRAM_ON_START:-true}
+      - BR_TELEGRAM_ON_END=${BR_TELEGRAM_ON_END:-true}
+      - BR_TELEGRAM_ON_ERROR=${BR_TELEGRAM_ON_ERROR:-false}
+
+      # Generic webhook
+      - BR_WEBHOOK_URL=${BR_WEBHOOK_URL:-}
+      - BR_WEBHOOK_ON_START=${BR_WEBHOOK_ON_START:-true}
+      - BR_WEBHOOK_ON_END=${BR_WEBHOOK_ON_END:-true}
+      - BR_WEBHOOK_ON_ERROR=${BR_WEBHOOK_ON_ERROR:-false}
+
+      # =========================================================================
+      # Extension (optional)
+      # =========================================================================
+      - BR_EXTENSION_ENABLED=${BR_EXTENSION_ENABLED:-false}
+      - BR_EXTENSION_PORT=${BR_EXTENSION_PORT:-9555}
+
+      # =========================================================================
+      # Downloads (optional)
+      # =========================================================================
+      - BR_DOWNLOADS_DIR=${BR_DOWNLOADS_DIR:-/data/downloads}
+      - BR_DOWNLOADS_MAX_CONCURRENT=${BR_DOWNLOADS_MAX_CONCURRENT:-3}
+      # - BR_DOWNLOADS_RETENTION_DAYS=${BR_DOWNLOADS_RETENTION_DAYS:-}
+      # - BR_DOWNLOADS_MAX_TOTAL_GB=${BR_DOWNLOADS_MAX_TOTAL_GB:-}
+
+      # =========================================================================
+      # Libraries (optional)
+      # =========================================================================
+      - BR_TOOLS_AUTO_UPDATE=${BR_TOOLS_AUTO_UPDATE:-false}
+
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities:
+    #             - gpu

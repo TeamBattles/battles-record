@@ -1,0 +1,229 @@
+name: Microsoft Store Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.3.1). Leave empty to extract from package.json.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  msstore-publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust build cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: br-ui/package-lock.json
+
+      - name: Install npm dependencies
+        run: |
+          cd br-ui
+          npm ci
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ inputs.version }}" -ne "") {
+            $semver = "${{ inputs.version }}"
+          } else {
+            $pkg = Get-Content br-ui/package.json | ConvertFrom-Json
+            $semver = $pkg.version
+          }
+          $msix_version = "$semver.0"
+          echo "semver=$semver" >> $env:GITHUB_OUTPUT
+          echo "msix=$msix_version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $semver -> MSIX: $msix_version"
+
+      - name: Build daemon sidecar
+        run: cargo build --release -p br-daemon --target x86_64-pc-windows-msvc
+
+      - name: Copy daemon to sidecar location
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path br-ui/src-tauri/binaries
+          Copy-Item "target/x86_64-pc-windows-msvc/release/br-daemon.exe" `
+                    "br-ui/src-tauri/binaries/br-daemon-x86_64-pc-windows-msvc.exe"
+
+      - name: Build Tauri app (Store variant)
+        shell: bash
+        run: |
+          cd br-ui
+          npx tauri build --target x86_64-pc-windows-msvc \
+            --config src-tauri/tauri.microsoftstore.conf.json
+
+      - name: Prepare MSIX package directory
+        shell: pwsh
+        run: |
+          # Create dist directory structure
+          New-Item -ItemType Directory -Force -Path dist/Assets
+
+          # Copy main binary
+          Copy-Item "br-ui/src-tauri/target/x86_64-pc-windows-msvc/release/br-ui.exe" "dist/"
+
+          # Copy sidecar daemon
+          Copy-Item "br-ui/src-tauri/binaries/br-daemon-x86_64-pc-windows-msvc.exe" "dist/"
+
+          # Copy MSIX icon assets
+          $icons = @(
+            "StoreLogo.png",
+            "Square44x44Logo.png",
+            "Square71x71Logo.png",
+            "Square150x150Logo.png",
+            "Square310x310Logo.png",
+            "Wide310x150Logo.png"
+          )
+          foreach ($icon in $icons) {
+            $src = "br-ui/src-tauri/icons/$icon"
+            if (Test-Path $src) {
+              Copy-Item $src "dist/Assets/"
+            } else {
+              Write-Error "Missing required icon: $icon"
+              exit 1
+            }
+          }
+
+          # Generate AppxManifest from template
+          $manifest = Get-Content "br-ui/src-tauri/AppxManifest.template.xml" -Raw
+          $manifest = $manifest -replace '\{\{VERSION\}\}', '${{ steps.version.outputs.msix }}'
+          Set-Content "dist/AppxManifest.xml" $manifest -Encoding UTF8
+
+          Write-Host "MSIX package directory contents:"
+          Get-ChildItem -Recurse dist/
+
+      - name: Package MSIX
+        shell: pwsh
+        run: |
+          # Find makeappx.exe from Windows SDK
+          $sdkPath = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1
+          if (-not $sdkPath) {
+            Write-Error "makeappx.exe not found in Windows SDK"
+            exit 1
+          }
+          $signtoolPath = $sdkPath.FullName -replace 'makeappx\.exe','signtool.exe'
+          Write-Host "Using makeappx: $($sdkPath.FullName)"
+
+          # Create MSIX package from dist directory
+          & $sdkPath.FullName pack /d dist /p TeamBattles.BattlesRecord.msix /nv
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          # Sign with dev certificate
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=AE416768-51C1-4614-BA69-6F59F2D18017" `
+            -KeyUsage DigitalSignature -FriendlyName "Battles Record Dev Cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $password = ConvertTo-SecureString -String "devcert123" -Force -AsPlainText
+          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
+            -FilePath ".\devcert.pfx" -Password $password | Out-Null
+
+          & $signtoolPath sign /fd SHA256 /a /f .\devcert.pfx /p "devcert123" TeamBattles.BattlesRecord.msix
+          if ($LASTEXITCODE -ne 0) { Write-Host "Warning: signing failed, but Store will re-sign anyway" }
+
+          $msix = Get-Item "TeamBattles.BattlesRecord.msix"
+          Write-Host "Created MSIX: $($msix.Name) ($([math]::Round($msix.Length / 1MB, 2)) MB)"
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: battles-record-${{ steps.version.outputs.semver }}-msix
+          path: '*.msix'
+          retention-days: 90
+
+      - name: Submit to Microsoft Store
+        shell: pwsh
+        env:
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          MSSTORE_APP_ID: ${{ secrets.MSSTORE_APP_ID }}
+        run: |
+          $msix = Get-ChildItem -Filter "*.msix" | Select-Object -First 1
+          Write-Host "Submitting $($msix.Name) to Microsoft Store..."
+
+          # Authenticate with Azure AD
+          $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $env:AZURE_AD_CLIENT_ID
+            client_secret = $env:AZURE_AD_CLIENT_SECRET
+            resource      = "https://manage.devcenter.microsoft.com"
+          }
+          $tokenResponse = Invoke-RestMethod -Method Post `
+            -Uri "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token" `
+            -Body $body
+          $token = $tokenResponse.access_token
+          Write-Host "Authenticated with Partner Center API"
+
+          $headers = @{
+            Authorization = "Bearer $token"
+            "Content-Type" = "application/json"
+          }
+          $appId = $env:MSSTORE_APP_ID
+
+          # Get the app to find the current submission
+          $app = Invoke-RestMethod -Method Get `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId" `
+            -Headers $headers
+          Write-Host "App: $($app.primaryName)"
+
+          # Delete pending submission if one exists
+          if ($app.pendingApplicationSubmission) {
+            $pendingId = $app.pendingApplicationSubmission.id
+            Write-Host "Deleting pending submission $pendingId..."
+            Invoke-RestMethod -Method Delete `
+              -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions/$pendingId" `
+              -Headers $headers
+          }
+
+          # Create a new submission
+          $submission = Invoke-RestMethod -Method Post `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions" `
+            -Headers $headers
+          $submissionId = $submission.id
+          Write-Host "Created submission: $submissionId"
+
+          # Upload the MSIX to the provided blob URL
+          $uploadUrl = $submission.fileUploadUrl
+          Write-Host "Uploading $($msix.Name)..."
+
+          # Create a zip containing the MSIX (required format)
+          $zipPath = "submission.zip"
+          Compress-Archive -Path $msix.FullName -DestinationPath $zipPath -Force
+
+          # Upload to Azure Blob Storage
+          $uploadHeaders = @{
+            "x-ms-blob-type" = "BlockBlob"
+          }
+          Invoke-RestMethod -Method Put -Uri $uploadUrl `
+            -InFile $zipPath -Headers $uploadHeaders `
+            -ContentType "application/octet-stream"
+          Write-Host "Upload complete"
+
+          # Commit the submission
+          Invoke-RestMethod -Method Post `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions/$submissionId/commit" `
+            -Headers $headers
+          Write-Host "Submission committed! Certification in progress."
+          Write-Host "Track status at: https://partner.microsoft.com/dashboard/apps-and-games/overview"

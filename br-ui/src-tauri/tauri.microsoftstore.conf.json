@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "publisher": "TeamBattles",
+    "targets": [],
+    "windows": {
+      "webviewInstallMode": { "type": "skip" }
+    }
+  }
+}
