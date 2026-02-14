@@ -5,13 +5,32 @@ use axum::{extract::State, Json};
 use serde::Serialize;
 use std::sync::Arc;
 
+/// Minimum client version required to connect to this daemon.
+/// Bump when making breaking API changes that older clients can't handle.
+const MIN_CLIENT_VERSION: &str = "1.0.0";
+
+/// Maximum client version this daemon supports.
+/// Bump when newer clients rely on features this daemon doesn't have.
+const MAX_CLIENT_VERSION: &str = "1.99.99";
+
 #[derive(Debug, Serialize)]
 pub struct StatusResponse {
     pub version: String,
     pub uptime_secs: u64,
+    pub min_client_version: String,
+    pub max_client_version: String,
+    pub update: Option<UpdateInfo>,
     pub disk: DiskStatus,
     pub channels: ChannelStats,
     pub processing_queue: ProcessingQueueStatus,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UpdateInfo {
+    pub latest_version: Option<String>,
+    pub update_available: bool,
+    pub release_url: Option<String>,
+    pub release_notes: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,9 +79,26 @@ pub async fn get_status(
         .filter(|c| c.status == crate::types::ChannelStatus::Live)
         .count();
 
+    let update = {
+        let info = state.version_checker.get_info();
+        if info.last_check.is_some() {
+            Some(UpdateInfo {
+                latest_version: info.latest_version,
+                update_available: info.update_available,
+                release_url: info.release_url,
+                release_notes: info.release_notes,
+            })
+        } else {
+            None
+        }
+    };
+
     Json(ApiResponse::new(StatusResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
         uptime_secs,
+        min_client_version: MIN_CLIENT_VERSION.to_string(),
+        max_client_version: MAX_CLIENT_VERSION.to_string(),
+        update,
         disk: DiskStatus {
             recordings_path,
             total_bytes,

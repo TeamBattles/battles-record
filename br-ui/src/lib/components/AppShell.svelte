@@ -3,6 +3,7 @@
 	import Titlebar from './Titlebar.svelte';
 	import StatusBar from './StatusBar.svelte';
 	import ReconnectBanner from './ReconnectBanner.svelte';
+	import UpdateBanner from './UpdateBanner.svelte';
 
 	interface Props {
 		children: import('svelte').Snippet;
@@ -16,6 +17,7 @@
 <div class="h-screen flex flex-col bg-background-deep">
 	<Titlebar {onAddServer} {onManageServers} />
 	<ReconnectBanner />
+	<UpdateBanner />
 	<div class="flex flex-1 overflow-hidden">
 		<Sidebar />
 		<main class="flex-1 overflow-auto p-4 lg:p-6 relative">

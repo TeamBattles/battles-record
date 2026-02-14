@@ -12,6 +12,7 @@ export { toastStore } from './stores/toast.svelte';
 export { activityStore } from './stores/activity.svelte';
 export { platformAuthStore } from './stores/platformAuth.svelte';
 export { storageStore } from './stores/storage.svelte';
+export { versionStore } from './stores/version.svelte';
 
 // Types
 export type { SavedServer, AppSettings } from './stores/settings.svelte';
@@ -47,3 +48,4 @@ export { default as LoadingScreen } from './components/LoadingScreen.svelte';
 export { default as LocalServiceOfflineDialog } from './components/LocalServiceOfflineDialog.svelte';
 export { default as SessionExpiredModal } from './components/SessionExpiredModal.svelte';
 export { default as DependencyInstaller } from './components/DependencyInstaller.svelte';
+export { default as UpdateBanner } from './components/UpdateBanner.svelte';

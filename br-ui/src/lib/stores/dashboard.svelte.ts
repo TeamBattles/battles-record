@@ -1,5 +1,6 @@
 import { api, wsClient } from '$lib/api';
 import type { DaemonStatus, Channel, Recording, WebSocketEvent } from '$lib/api';
+import { versionStore } from './version.svelte';
 
 class DashboardStore {
 	status = $state<DaemonStatus | null>(null);
@@ -22,6 +23,8 @@ class DashboardStore {
 			]);
 
 			this.status = status;
+			versionStore.checkCompatibility(status.min_client_version, status.max_client_version);
+			versionStore.setDaemonUpdateInfo(status.update);
 			this.channels = channels;
 			this.activeRecordings = recordings.filter((r) => r.status === 'recording');
 		} catch (e) {

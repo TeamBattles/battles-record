@@ -235,6 +235,8 @@ pub struct DaemonConfig {
      */
     #[serde(default = "default_channels_file")]
     pub channels_file: Option<PathBuf>,
+    #[serde(default = "default_true")]
+    pub check_for_updates: bool,
 }
 
 impl Default for DaemonConfig {
@@ -245,6 +247,7 @@ impl Default for DaemonConfig {
             log_level: default_log_level(),
             log_file: None,
             channels_file: None,
+            check_for_updates: true,
         }
     }
 }

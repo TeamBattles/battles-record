@@ -8,6 +8,7 @@ use br_daemon::platforms::{ChannelProfile, StreamPlatform, TwitchPlatform};
 use br_daemon::processing::{ProcessingEvent, ProcessingManager, ReconciliationWorker};
 use br_daemon::storage::StorageManager;
 use br_daemon::types::{Platform, QuotaStatus};
+use br_daemon::version_check::VersionChecker;
 use parking_lot::RwLock;
 use std::time::Instant;
 use std::{net::SocketAddr, path::PathBuf, sync::Arc};
@@ -589,6 +590,13 @@ async fn main() -> anyhow::Result<()> {
         manager_clone.run_polling_loop(shutdown_rx).await;
     });
 
+    // Create version checker
+    let version_checker = Arc::new(VersionChecker::new(
+        env!("CARGO_PKG_VERSION").to_string(),
+        config.read().daemon.check_for_updates,
+    ));
+    VersionChecker::spawn_background_task(version_checker.clone());
+
     // Create API shutdown channel (for graceful shutdown via API)
     let (api_shutdown_tx, mut api_shutdown_rx) = mpsc::channel::<()>(1);
 
@@ -600,6 +608,7 @@ async fn main() -> anyhow::Result<()> {
         channel_manager,
         processing_manager,
         storage_manager,
+        version_checker,
         event_tx,
         started_at: Instant::now(),
         session_store: Arc::new(br_daemon::api::users::SessionStore::new()),

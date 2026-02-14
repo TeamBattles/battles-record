@@ -27,6 +27,7 @@ pub fn create_test_config(temp_dir: &TempDir) -> Config {
             log_level: "warn".to_string(),
             log_file: None,
             channels_file: None,
+            check_for_updates: false,
         },
         auth: AuthConfig {
             jwt_secret: Some("test-secret-key".to_string()),

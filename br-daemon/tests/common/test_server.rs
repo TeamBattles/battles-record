@@ -107,6 +107,10 @@ impl TestServer {
             channel_manager,
             processing_manager,
             storage_manager,
+            version_checker: Arc::new(br_daemon::version_check::VersionChecker::new(
+                "0.1.0".to_string(),
+                false,
+            )),
             event_tx,
             started_at: Instant::now(),
             session_store: Arc::new(br_daemon::api::users::SessionStore::new()),

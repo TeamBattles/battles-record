@@ -54,7 +54,9 @@ export function createMockApiClient() {
 				active: null,
 				active_progress_percent: null,
 				queued: 0
-			}
+			},
+			min_client_version: '1.0.0',
+			max_client_version: '1.99.99'
 		} satisfies DaemonStatus),
 
 		// Channels

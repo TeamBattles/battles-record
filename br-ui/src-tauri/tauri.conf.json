@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Battles Record",
-  "version": "0.1.0",
+  "version": "1.2.0",
   "identifier": "com.battles.record",
   "build": {
     "frontendDist": "../build",
@@ -23,7 +23,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' http://localhost:* ws://localhost:*; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https:; connect-src 'self' ipc: http://ipc.localhost http://localhost:* ws://localhost:* http://* https://* ws://* wss://*",
+      "dangerousDisableAssetCspModification": true
     }
   },
   "bundle": {

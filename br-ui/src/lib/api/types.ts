@@ -103,9 +103,19 @@ export interface ProcessingQueueStatus {
 	queued: number;
 }
 
+export interface UpdateInfo {
+	latest_version: string | null;
+	update_available: boolean;
+	release_url: string | null;
+	release_notes: string | null;
+}
+
 export interface DaemonStatus {
 	version: string;
 	uptime_secs: number;
+	min_client_version: string;
+	max_client_version: string;
+	update?: UpdateInfo;
 	disk: DiskStatus;
 	channels: ChannelStats;
 	processing_queue: ProcessingQueueStatus;

@@ -58,13 +58,6 @@
 		}
 	}
 
-	async function startDrag(e: MouseEvent) {
-		if (appWindow && e.button === 0) {
-			e.preventDefault();
-			await appWindow.startDragging();
-		}
-	}
-
 	const isMac = $derived(browser && navigator.platform.includes('Mac'));
 </script>
 
@@ -84,10 +77,9 @@
 			</button>
 		{:else}
 			<!-- App Icon + Title -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class="h-full flex items-center gap-2 px-3 border-r border-border"
-				onmousedown={startDrag}
+				data-tauri-drag-region
 			>
 				<img src="/favicon.svg" alt="" class="size-4" />
 				<span class="font-mono text-xs uppercase tracking-wider text-zinc-500">
@@ -101,11 +93,9 @@
 	</div>
 
 	<!-- Center: Drag Region -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="flex-1 h-full"
 		data-tauri-drag-region
-		onmousedown={startDrag}
 	></div>
 
 	<!-- Right: Theme + Window Controls -->

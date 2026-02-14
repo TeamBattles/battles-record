@@ -1,7 +1,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Emitter, Manager,
 };
 
 use crate::daemon::{DaemonStateMutex, DaemonStatus};
@@ -58,16 +58,22 @@ pub fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
                 });
             }
             "exit" => {
-                let app_handle = app.clone();
-                tauri::async_runtime::spawn(async move {
-                    // Stop the daemon first
-                    let state = app_handle.state::<DaemonStateMutex>();
-                    if let Err(e) = crate::daemon::stop_local_daemon(app_handle.clone(), state).await {
-                        log::error!("Failed to stop daemon during exit: {}", e);
+                let state = app.state::<DaemonStateMutex>();
+                let daemon_running = state
+                    .lock()
+                    .map(|d| matches!(d.status, DaemonStatus::Running))
+                    .unwrap_or(false);
+
+                if daemon_running {
+                    // Same flow as the X button - show window and let frontend handle it
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                        let _ = window.emit("close-requested", ());
                     }
-                    // Then exit the app
-                    app_handle.exit(0);
-                });
+                } else {
+                    app.exit(0);
+                }
             }
             _ => {}
         })

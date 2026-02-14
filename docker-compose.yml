@@ -45,6 +45,7 @@ services:
       # the daemon always listens on 8080.
       - BR_HOST=${BR_HOST:-0.0.0.0}
       - BR_LOG_LEVEL=${BR_LOG_LEVEL:-info}
+      - BR_CHECK_FOR_UPDATES=${BR_CHECK_FOR_UPDATES:-true}
 
       # =========================================================================
       # Storage (optional)

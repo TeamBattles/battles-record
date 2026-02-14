@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-09
+
+### Added
+- Automatic update checking for daemon and desktop app via GitHub Releases API (every 6 hours)
+- Update notification banners in UI (dismissible, persisted across sessions)
+- Client-daemon compatibility validation with `min_client_version` and `max_client_version` fields
+- Incompatibility warning banner when client version is outside the supported range
+- `check_for_updates` daemon config option (default: true)
+- `BR_CHECK_FOR_UPDATES` Docker environment variable
+- `update` field in `/api/status` response with latest version info
+
+## [1.1.0] - 2026-02-09
+
+### Fixed
+- Buttons becoming non-interactable in release builds after using the server selector dropdown
+- CSP blocking inline styles in release builds, preventing bits-ui/Floating UI from positioning dropdowns and menus correctly
+- CSP blocking Tauri IPC protocol (`ipc.localhost`), forcing slower postMessage fallback
+- CSP blocking remote server health checks and data URI images
+- Titlebar drag region race condition caused by duplicate drag handlers (`data-tauri-drag-region` + manual `startDragging()`)
+
+### Changed
+- Tray icon "Exit" now uses the same close flow as the X button (instant UI hide, saved preference check, confirmation dialog)
+- Removed `DropdownMenu.Portal` from server selector to avoid WebView2 hit-test corruption on Windows
+- Added `select-none` to button base styles to prevent text selection on click
+- Updated CSP to properly allow inline styles, Tauri IPC, remote connections, and data URIs
+- Toast notifications overflowing when message contains long unbreakable strings (JSON errors, URLs)
+
 ## [1.0.0] - 2026-02-04
 
 ### Added

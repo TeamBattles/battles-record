@@ -16,6 +16,7 @@ use crate::config::Config;
 use crate::manager::{ChannelManager, ManagerEvent};
 use crate::processing::ProcessingManager;
 use crate::storage::StorageManager;
+use crate::version_check::VersionChecker;
 use auth::JwtSecret;
 use axum::{
     body::Body,
@@ -45,6 +46,7 @@ pub struct AppState {
     pub event_tx: broadcast::Sender<ManagerEvent>,
     pub started_at: Instant,
     pub session_store: Arc<SessionStore>,
+    pub version_checker: Arc<VersionChecker>,
     /** Channel to signal graceful shutdown from API. */
     pub shutdown_tx: mpsc::Sender<()>,
     /** In-memory storage for OAuth state tokens (CSRF protection). */

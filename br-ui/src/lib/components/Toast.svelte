@@ -50,7 +50,7 @@
 </script>
 
 <div
-	class="relative rounded border {style.border} {style.bg} p-3 pr-8 shadow-lg backdrop-blur-sm"
+	class="relative overflow-hidden rounded border {style.border} {style.bg} p-3 pr-8 shadow-lg backdrop-blur-sm"
 	role="alert"
 >
 	<!-- Corner brackets -->
@@ -59,12 +59,12 @@
 	<div class="absolute bottom-0 left-0 h-2 w-2 border-b border-l {style.border}"></div>
 	<div class="absolute bottom-0 right-0 h-2 w-2 border-b border-r {style.border}"></div>
 
-	<div class="flex items-start gap-2">
+	<div class="flex items-start gap-2 min-w-0">
 		<!-- Status dot -->
 		<div class="size-2 rounded-full {style.dot} mt-1 shrink-0"></div>
 
 		<!-- Message -->
-		<p class="font-mono text-xs {style.text} leading-relaxed">{message}</p>
+		<p class="font-mono text-xs {style.text} leading-relaxed break-all">{message}</p>
 	</div>
 
 	<!-- Dismiss button -->

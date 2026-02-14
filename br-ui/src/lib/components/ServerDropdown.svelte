@@ -316,15 +316,13 @@
 			{/snippet}
 		</DropdownMenu.Trigger>
 
-		<DropdownMenu.Portal>
-			<DropdownMenu.Content
-				class="z-50 min-w-[200px] rounded border border-zinc-700 bg-zinc-900 shadow-lg"
-				sideOffset={4}
-				align="start"
-			>
-				{@render serverList()}
-			</DropdownMenu.Content>
-		</DropdownMenu.Portal>
+		<DropdownMenu.Content
+			class="z-50 min-w-[200px] rounded border border-zinc-700 bg-zinc-900 shadow-lg"
+			sideOffset={4}
+			align="start"
+		>
+			{@render serverList()}
+		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {/if}
 

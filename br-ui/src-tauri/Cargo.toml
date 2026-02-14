@@ -2,7 +2,7 @@
 
 [package]
 name = "br-ui"
-version = "0.1.0"
+version = "1.2.0"
 description = "Battles Record desktop app"
 authors = ["TeamBattles"]
 license = "MIT"

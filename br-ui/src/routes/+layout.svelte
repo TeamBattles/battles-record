@@ -14,6 +14,7 @@
 		LoadingScreen,
 		SessionExpiredModal
 	} from '$lib';
+	import { versionStore } from '$lib/stores/version.svelte';
 	import CloseConfirmationDialog from '$lib/components/CloseConfirmationDialog.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -48,11 +49,13 @@
 		return () => {
 			cleanupBreakpoint?.();
 			cleanupTheme?.();
+			versionStore.destroy();
 		};
 	});
 
 	async function initializeApp() {
 		await settingsStore.init();
+		versionStore.init();
 
 		// Determine what to do on startup
 		if (settingsStore.hasStartupServer) {

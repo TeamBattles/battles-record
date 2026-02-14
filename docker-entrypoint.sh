@@ -26,6 +26,7 @@ BR_HOST="${BR_HOST:-0.0.0.0}"
 BR_LOG_LEVEL="${BR_LOG_LEVEL:-info}"
 # Channels are stored in a separate TOML file that persists across container restarts
 BR_CHANNELS_FILE="${BR_CHANNELS_FILE:-/config/channels.toml}"
+BR_CHECK_FOR_UPDATES="${BR_CHECK_FOR_UPDATES:-true}"
 
 # Storage
 BR_RECORDINGS_DIR="${BR_RECORDINGS_DIR:-/data/recordings}"
@@ -69,6 +70,7 @@ host = "$BR_HOST"
 port = 8080
 log_level = "$BR_LOG_LEVEL"
 channels_file = "$BR_CHANNELS_FILE"
+check_for_updates = $BR_CHECK_FOR_UPDATES
 
 [auth]
 jwt_secret = "$BR_JWT_SECRET"
