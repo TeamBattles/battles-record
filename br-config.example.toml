@@ -1,0 +1,166 @@
+# =============================================================================
+# Battles Record - Example Configuration
+# =============================================================================
+# Copy this file to br-config.toml and modify as needed.
+# All values shown are defaults unless otherwise noted.
+
+# =============================================================================
+# Daemon Settings
+# =============================================================================
+[daemon]
+# Host address to bind to
+host = "127.0.0.1"
+# Port to listen on
+port = 8080
+# Log level: trace, debug, info, warn, error
+log_level = "info"
+# Optional log file path (logs to stdout if not set)
+# log_file = "/var/log/br-daemon.log"
+
+# =============================================================================
+# Authentication Settings
+# =============================================================================
+[auth]
+# JWT secret for signing tokens (REQUIRED for production - generate a strong random string)
+# jwt_secret = "your-secret-key-here-change-this"
+# Session duration in seconds (default: 24 hours)
+session_duration = 86400
+
+# =============================================================================
+# User Accounts
+# =============================================================================
+# Define user accounts for authentication
+# Password hashes can be generated using bcrypt
+# Roles: "admin" (full access) or "viewer" (read-only)
+
+# [[users]]
+# username = "admin"
+# password_hash = "$2b$12$..."  # bcrypt hash
+# role = "admin"
+
+# [[users]]
+# username = "viewer"
+# password_hash = "$2b$12$..."
+# role = "viewer"
+
+# =============================================================================
+# Storage Settings
+# =============================================================================
+[storage]
+# Directory where recordings are saved
+recordings_dir = "./recordings"
+# Disk usage percentage at which to warn (0-100)
+disk_warning_threshold = 90
+
+# =============================================================================
+# Polling Settings
+# =============================================================================
+[polling]
+# How often to check if channels are live (seconds)
+default_interval = 60
+# How often to fetch playlist segments while recording (seconds)
+playlist_interval = 2
+
+# =============================================================================
+# Post-Processing Settings
+# =============================================================================
+[post_processing]
+# Path to ffmpeg binary (uses PATH if not specified)
+# ffmpeg_path = "/usr/bin/ffmpeg"
+# Maximum concurrent remux operations
+max_concurrent_remux = 2
+
+[post_processing.defaults]
+# Whether to remux recordings after completion
+remux = true
+# Output format for remuxing
+remux_format = "mp4"
+# Whether to delete .ts segments after successful remux
+cleanup_segments = true
+# Filename template for recordings
+# Available variables: {channel}, {platform}, {date}, {time}, {title}, {game}
+filename_template = "{channel}_{date}_{title}"
+
+# =============================================================================
+# Notifications Settings
+# =============================================================================
+# Configure one or more notification providers
+
+# Discord webhook notifications
+# [notifications.discord]
+# webhook_url = "https://discord.com/api/webhooks/..."
+# on_stream_start = true
+# on_stream_end = true
+# on_error = false
+
+# Telegram bot notifications
+# [notifications.telegram]
+# bot_token = "123456:ABC-DEF..."
+# chat_id = "-1001234567890"
+# on_stream_start = true
+# on_stream_end = true
+# on_error = false
+
+# Generic webhook notifications
+# [notifications.webhook]
+# url = "https://your-webhook-endpoint.com/notify"
+# on_stream_start = true
+# on_stream_end = true
+# on_error = false
+# [notifications.webhook.headers]
+# Authorization = "Bearer your-token"
+# Content-Type = "application/json"
+
+# =============================================================================
+# Channels to Monitor
+# =============================================================================
+# Define channels to monitor for live streams
+# Platforms: "twitch", "youtube", "kick"
+
+# Example: Twitch channel
+[[channels]]
+name = "shroud"
+platform = "twitch"
+enabled = true
+quality = "best"
+
+# Example: YouTube channel with schedule
+# [[channels]]
+# name = "UCxxxxxxxxxxxxxxxx"  # YouTube channel ID
+# platform = "youtube"
+# enabled = true
+# quality = "1080p60"
+#
+# [channels.schedule]
+# enabled = true
+# [[channels.schedule.rules]]
+# days = ["monday", "wednesday", "friday"]
+# start_time = "18:00"
+# end_time = "23:00"
+
+# Example: Kick channel with filters
+# [[channels]]
+# name = "somestreamer"
+# platform = "kick"
+# enabled = true
+# quality = "source"
+#
+# [channels.filters]
+# title_contains = ["tournament", "ranked"]
+# title_excludes = ["rerun", "rebroadcast"]
+# game_contains = []
+# game_excludes = ["Just Chatting"]
+# min_viewers = 100
+
+# Example: Channel with custom post-processing
+# [[channels]]
+# name = "anotherstreamer"
+# platform = "twitch"
+# enabled = true
+# quality = "best"
+#
+# [channels.post_processing]
+# remux = true
+# remux_format = "mkv"
+# cleanup_segments = false
+# filename_template = "{platform}/{channel}/{date}_{title}"

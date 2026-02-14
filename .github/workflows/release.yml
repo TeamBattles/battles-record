@@ -1,0 +1,381 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.2.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create draft release
+        run: |
+          PRERELEASE_FLAG=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create v${{ inputs.version }} \
+            --draft \
+            $PRERELEASE_FLAG \
+            --title "v${{ inputs.version }}" \
+            --notes "## Battles Record v${{ inputs.version }}
+
+          ### Downloads
+
+          | Platform | Standard | YouTube Bundled |
+          |----------|----------|-----------------|
+          | Windows (x64) | [MSI](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-windows-x64.msi) | [MSI](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-windows-x64-youtube.msi) |
+          | Linux (x64) | [DEB](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-linux-x64.deb) | [DEB](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-linux-x64-youtube.deb) |
+          | Linux (ARM64) | [DEB](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-linux-arm64.deb) | [DEB](https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/battles-record-${{ inputs.version }}-linux-arm64-youtube.deb) |
+
+          **Standard**: Smaller download. Install YouTube dependencies (yt-dlp, Bun) from Settings > Dependencies.
+
+          **YouTube Bundled**: Includes yt-dlp and Bun pre-installed for YouTube recording support.
+
+          ### Microsoft Store (Windows)
+
+          Install from the [Microsoft Store](https://apps.microsoft.com/detail/9MWBFBHK0JXD) for automatic updates and signed installation."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows
+            arch: x64
+            daemon_ext: .exe
+            bundle_ext: .msi
+            bundle_dir: msi
+            bundle_type: ''
+
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            platform: linux
+            arch: x64
+            daemon_ext: ''
+            bundle_ext: .deb
+            bundle_dir: deb
+            bundle_type: deb
+
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            platform: linux
+            arch: arm64
+            daemon_ext: ''
+            bundle_ext: .deb
+            bundle_dir: deb
+            bundle_type: deb
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: br-ui/package-lock.json
+
+      # Linux dependencies
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            xdg-utils \
+            libfuse2
+
+      # Update version in all files (Linux/macOS)
+      # Note: BASE_VERSION strips pre-release identifier (e.g., 0.2.0-beta.1 -> 0.2.0) for MSI compatibility
+      - name: Update version files (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          VERSION="${{ inputs.version }}"
+          BASE_VERSION="${VERSION%%-*}"
+
+          # Update workspace Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$BASE_VERSION\"/" Cargo.toml
+
+          # Update br-ui/src-tauri/Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"$BASE_VERSION\"/" br-ui/src-tauri/Cargo.toml
+
+          # Update br-ui/package.json
+          cd br-ui
+          npm pkg set version="$BASE_VERSION"
+
+          # Update tauri.conf.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$BASE_VERSION\"/" src-tauri/tauri.conf.json
+
+      # Update version in all files (Windows)
+      # Note: BASE_VERSION strips pre-release identifier (e.g., 0.2.0-beta.1 -> 0.2.0) for MSI compatibility
+      - name: Update version files (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $VERSION = "${{ inputs.version }}"
+          $BASE_VERSION = $VERSION -replace '-.*$', ''
+
+          # Update workspace Cargo.toml (only the package version line, not dependencies)
+          $content = Get-Content Cargo.toml -Raw
+          $content = $content -replace '(?m)^version = "[^"]*"', "version = `"$BASE_VERSION`""
+          Set-Content Cargo.toml $content -NoNewline
+
+          # Update br-ui/src-tauri/Cargo.toml (only the package version line)
+          $content = Get-Content br-ui/src-tauri/Cargo.toml -Raw
+          $content = $content -replace '(?m)^version = "[^"]*"', "version = `"$BASE_VERSION`""
+          Set-Content br-ui/src-tauri/Cargo.toml $content -NoNewline
+
+          # Update br-ui/package.json
+          cd br-ui
+          npm pkg set version="$BASE_VERSION"
+
+          # Update tauri.conf.json
+          $json = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
+          $json.version = $BASE_VERSION
+          $json | ConvertTo-Json -Depth 10 | Set-Content src-tauri/tauri.conf.json
+
+      # Install npm dependencies
+      - name: Install npm dependencies
+        run: |
+          cd br-ui
+          npm ci
+
+      # Build daemon sidecar
+      - name: Build daemon sidecar
+        run: cargo build --release -p br-daemon --target ${{ matrix.target }}
+
+      - name: Copy daemon to sidecar location (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          mkdir -p br-ui/src-tauri/binaries
+          cp target/${{ matrix.target }}/release/br-daemon${{ matrix.daemon_ext }} \
+             br-ui/src-tauri/binaries/br-daemon-${{ matrix.target }}${{ matrix.daemon_ext }}
+
+      - name: Copy daemon to sidecar location (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path br-ui/src-tauri/binaries
+          Copy-Item "target/${{ matrix.target }}/release/br-daemon${{ matrix.daemon_ext }}" `
+                    "br-ui/src-tauri/binaries/br-daemon-${{ matrix.target }}${{ matrix.daemon_ext }}"
+
+      # Build standard variant
+      - name: Build standard variant
+        shell: bash
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          cd br-ui
+          BUNDLE_FLAG=""
+          if [ -n "${{ matrix.bundle_type }}" ]; then
+            BUNDLE_FLAG="--bundles ${{ matrix.bundle_type }}"
+          fi
+          npx tauri build --target ${{ matrix.target }} $BUNDLE_FLAG
+
+      - name: Sign standard MSI
+        if: matrix.platform == 'windows' && env.AZURE_SIGNING_ACCOUNT != ''
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_AD_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }}
+          files-folder-filter: msi
+        env:
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+
+      - name: Upload standard artifact (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          # Find the built artifact
+          ARTIFACT=$(find br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }} -name "*${{ matrix.bundle_ext }}" | head -1)
+          NEW_NAME="battles-record-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.bundle_ext }}"
+          cp "$ARTIFACT" "$NEW_NAME"
+
+          # Upload to release
+          gh release upload v${{ inputs.version }} "$NEW_NAME" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload standard artifact (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          # Find the built artifact
+          $artifact = Get-ChildItem -Path "br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }}" -Filter "*${{ matrix.bundle_ext }}" | Select-Object -First 1
+          $newName = "battles-record-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.bundle_ext }}"
+          Copy-Item $artifact.FullName $newName
+
+          # Upload to release
+          gh release upload v${{ inputs.version }} $newName --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Prepare YouTube-bundled variant
+      - name: Create youtube-deps directory (Unix)
+        if: matrix.platform != 'windows'
+        run: mkdir -p br-ui/src-tauri/youtube-deps
+
+      - name: Create youtube-deps directory (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path br-ui/src-tauri/youtube-deps
+
+      - name: Download yt-dlp (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            curl -L -o br-ui/src-tauri/youtube-deps/yt-dlp \
+              https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64
+          else
+            curl -L -o br-ui/src-tauri/youtube-deps/yt-dlp \
+              https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+          fi
+          chmod +x br-ui/src-tauri/youtube-deps/yt-dlp
+
+      - name: Download yt-dlp (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" `
+            -OutFile "br-ui/src-tauri/youtube-deps/yt-dlp.exe"
+
+      - name: Download Bun (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            curl -L -o bun.zip https://github.com/oven-sh/bun/releases/latest/download/bun-linux-aarch64.zip
+          else
+            curl -L -o bun.zip https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip
+          fi
+          unzip -j bun.zip "*/bun" -d br-ui/src-tauri/youtube-deps/
+          chmod +x br-ui/src-tauri/youtube-deps/bun
+          rm -f bun.zip
+
+      - name: Download Bun (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64.zip" `
+            -OutFile "bun.zip"
+          Expand-Archive -Path bun.zip -DestinationPath bun-temp -Force
+          Get-ChildItem -Path bun-temp -Recurse -Filter "bun.exe" | Copy-Item -Destination "br-ui/src-tauri/youtube-deps/"
+          Remove-Item -Recurse -Force bun-temp, bun.zip
+
+      - name: Add resources to tauri.conf.json (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          cd br-ui/src-tauri
+          # Add resources configuration for bundled deps
+          jq '.bundle.resources = {"youtube-deps/*": "youtube-deps/"}' tauri.conf.json > tauri.conf.tmp.json
+          mv tauri.conf.tmp.json tauri.conf.json
+
+      - name: Add resources to tauri.conf.json (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          cd br-ui/src-tauri
+          $json = Get-Content tauri.conf.json | ConvertFrom-Json
+          $json.bundle | Add-Member -NotePropertyName "resources" -NotePropertyValue @{"youtube-deps/*" = "youtube-deps/"} -Force
+          $json | ConvertTo-Json -Depth 10 | Set-Content tauri.conf.json
+
+      # Build YouTube-bundled variant
+      - name: Build YouTube-bundled variant
+        shell: bash
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          cd br-ui
+          BUNDLE_FLAG=""
+          if [ -n "${{ matrix.bundle_type }}" ]; then
+            BUNDLE_FLAG="--bundles ${{ matrix.bundle_type }}"
+          fi
+          npx tauri build --target ${{ matrix.target }} $BUNDLE_FLAG
+
+      - name: Sign YouTube-bundled MSI
+        if: matrix.platform == 'windows' && env.AZURE_SIGNING_ACCOUNT != ''
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_AD_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          files-folder: br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }}
+          files-folder-filter: msi
+        env:
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+
+      - name: Upload YouTube-bundled artifact (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          # Find the built artifact
+          ARTIFACT=$(find br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }} -name "*${{ matrix.bundle_ext }}" | head -1)
+          NEW_NAME="battles-record-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}-youtube${{ matrix.bundle_ext }}"
+          cp "$ARTIFACT" "$NEW_NAME"
+
+          # Upload to release
+          gh release upload v${{ inputs.version }} "$NEW_NAME" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload YouTube-bundled artifact (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          # Find the built artifact
+          $artifact = Get-ChildItem -Path "br-ui/src-tauri/target/${{ matrix.target }}/release/bundle/${{ matrix.bundle_dir }}" -Filter "*${{ matrix.bundle_ext }}" | Select-Object -First 1
+          $newName = "battles-record-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}-youtube${{ matrix.bundle_ext }}"
+          Copy-Item $artifact.FullName $newName
+
+          # Upload to release
+          gh release upload v${{ inputs.version }} $newName --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-release:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Publish release
+        run: gh release edit v${{ inputs.version }} --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
