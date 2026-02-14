@@ -1,0 +1,37 @@
+// Custom HTML response for OAuth callback - auto-closes the tab
+// This is in a separate file to avoid Svelte parser issues with HTML in strings
+
+export const OAUTH_RESPONSE_HTML = [
+	'<!DOCTYPE html>',
+	'<html>',
+	'<head>',
+	'<title>Authentication Complete</title>',
+	'<style>',
+	'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#18181b;color:#a1a1aa;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}',
+	'.container{text-align:center;padding:2rem}',
+	'.checkmark{width:64px;height:64px;margin:0 auto 1rem;color:#22c55e}',
+	'h1{color:#fafafa;font-size:1.5rem;margin-bottom:.5rem}',
+	'p{margin-bottom:1rem;transition:opacity .3s}',
+	'.hint{color:#71717a;font-size:.875rem}',
+	'</style>',
+	'</head>',
+	'<body>',
+	'<div class="container">',
+	'<svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">',
+	'<circle cx="12" cy="12" r="10"/>',
+	'<path d="m9 12 2 2 4-4"/>',
+	'</svg>',
+	'<h1>Authentication Complete</h1>',
+	'<p id="msg">Closing this tab...</p>',
+	'</div>',
+	'<script>',
+	'setTimeout(function(){',
+	'try{window.close()}catch(e){}',
+	'setTimeout(function(){',
+	'document.getElementById("msg").innerHTML="You can close this tab now.<br><span class=hint>Return to Battles Record</span>"',
+	'},500)',
+	'},800)',
+	'<\/script>',
+	'</body>',
+	'</html>'
+].join('');

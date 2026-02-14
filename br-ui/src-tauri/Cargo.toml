@@ -1,0 +1,38 @@
+[workspace]
+
+[package]
+name = "br-ui"
+version = "1.2.0"
+description = "Battles Record desktop app"
+authors = ["TeamBattles"]
+license = "MIT"
+repository = "https://github.com/TeamBattles/battles-record"
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.10", features = ["tray-icon"] }
+tauri-plugin-log = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-process = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-oauth = "2"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["time"] }
+zip = "0.6"
+which = "6.0"
