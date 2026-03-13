@@ -144,7 +144,11 @@ async fn test_create_channel_success() {
     let token = server.admin_token();
 
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("test_streamer", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("test_streamer", "twitch"),
+            &token,
+        )
         .await;
 
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -163,7 +167,11 @@ async fn test_create_channel_requires_admin() {
     let token = server.viewer_token();
 
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("test_streamer", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("test_streamer", "twitch"),
+            &token,
+        )
         .await;
 
     // AdminUser extractor returns 401 with "Admin access required" message
@@ -177,13 +185,21 @@ async fn test_create_channel_duplicate_fails() {
 
     // Create first channel
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("duplicate_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("duplicate_test", "twitch"),
+            &token,
+        )
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Try to create duplicate
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("duplicate_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("duplicate_test", "twitch"),
+            &token,
+        )
         .await;
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -196,13 +212,21 @@ async fn test_create_channel_same_name_different_platform_succeeds() {
 
     // Create Twitch channel
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("multi_platform", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("multi_platform", "twitch"),
+            &token,
+        )
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     // Create Kick channel with same name - should succeed (different platform)
     let response = server
-        .post_json_auth("/api/channels", add_channel_json("multi_platform", "kick"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("multi_platform", "kick"),
+            &token,
+        )
         .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
@@ -219,7 +243,9 @@ async fn test_create_channel_with_custom_quality() {
         "quality": "1080p60"
     });
 
-    let response = server.post_json_auth("/api/channels", payload, &token).await;
+    let response = server
+        .post_json_auth("/api/channels", payload, &token)
+        .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let body: Value = json_body(response).await;
@@ -238,7 +264,9 @@ async fn test_create_channel_disabled() {
         "quality": "best"
     });
 
-    let response = server.post_json_auth("/api/channels", payload, &token).await;
+    let response = server
+        .post_json_auth("/api/channels", payload, &token)
+        .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let body: Value = json_body(response).await;
@@ -256,7 +284,11 @@ async fn test_get_channel_success() {
 
     // Create a channel first
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("get_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("get_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -295,7 +327,11 @@ async fn test_update_channel_success() {
 
     // Create a channel
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("update_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("update_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -307,7 +343,11 @@ async fn test_update_channel_success() {
     });
 
     let response = server
-        .put_json_auth(&format!("/api/channels/{}", channel_id), update_payload, &token)
+        .put_json_auth(
+            &format!("/api/channels/{}", channel_id),
+            update_payload,
+            &token,
+        )
         .await;
     response.assert_success();
 
@@ -324,7 +364,11 @@ async fn test_update_channel_requires_admin() {
 
     // Create a channel as admin
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("viewer_update_test", "twitch"), &admin_token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("viewer_update_test", "twitch"),
+            &admin_token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -349,7 +393,11 @@ async fn test_update_channel_quota_settings() {
 
     // Create a channel
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("quota_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("quota_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -361,7 +409,11 @@ async fn test_update_channel_quota_settings() {
     });
 
     let response = server
-        .put_json_auth(&format!("/api/channels/{}", channel_id), update_payload, &token)
+        .put_json_auth(
+            &format!("/api/channels/{}", channel_id),
+            update_payload,
+            &token,
+        )
         .await;
     response.assert_success();
 
@@ -377,7 +429,11 @@ async fn test_update_channel_clear_quota() {
 
     // Create a channel with quota
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("clear_quota_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("clear_quota_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -416,7 +472,11 @@ async fn test_delete_channel_success() {
 
     // Create a channel
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("delete_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("delete_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -445,7 +505,11 @@ async fn test_delete_channel_requires_admin() {
 
     // Create a channel as admin
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("viewer_delete_test", "twitch"), &admin_token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("viewer_delete_test", "twitch"),
+            &admin_token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
@@ -482,14 +546,22 @@ async fn test_check_channel_success() {
 
     // Create a channel
     let create_response = server
-        .post_json_auth("/api/channels", add_channel_json("check_test", "twitch"), &token)
+        .post_json_auth(
+            "/api/channels",
+            add_channel_json("check_test", "twitch"),
+            &token,
+        )
         .await;
     let create_body: Value = json_body(create_response).await;
     let channel_id = create_body["data"]["id"].as_str().unwrap();
 
     // Check the channel (will likely return offline since it's a test)
     let response = server
-        .post_json_auth(&format!("/api/channels/{}/check", channel_id), json!({}), &token)
+        .post_json_auth(
+            &format!("/api/channels/{}/check", channel_id),
+            json!({}),
+            &token,
+        )
         .await;
     response.assert_success();
 

@@ -196,12 +196,7 @@ impl TestServer {
     }
 
     /// Make a PUT request with JSON body and authentication
-    pub async fn put_json_auth(
-        &self,
-        uri: &str,
-        json: serde_json::Value,
-        token: &str,
-    ) -> Response {
+    pub async fn put_json_auth(&self, uri: &str, json: serde_json::Value, token: &str) -> Response {
         self.request(
             Request::builder()
                 .method(Method::PUT)
@@ -229,9 +224,8 @@ impl TestServer {
 
     /// Create a JWT token for testing
     pub fn create_token(&self, username: &str, role: UserRole) -> String {
-        let (token, _) =
-            br_daemon::api::auth::create_token(username, role, &self.jwt_secret, 24)
-                .expect("Failed to create token");
+        let (token, _) = br_daemon::api::auth::create_token(username, role, &self.jwt_secret, 24)
+            .expect("Failed to create token");
         token
     }
 

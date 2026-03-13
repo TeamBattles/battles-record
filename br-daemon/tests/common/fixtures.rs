@@ -4,9 +4,7 @@
 //! This module provides factory functions for creating test data
 //! with sensible defaults that can be customized as needed.
 
-use br_daemon::config::{
-    ChannelConfig, FiltersConfig, ScheduleConfig, ScheduleRule,
-};
+use br_daemon::config::{ChannelConfig, FiltersConfig, ScheduleConfig, ScheduleRule};
 use br_daemon::types::{
     Channel, ChannelStatus, Platform, Quality, QuotaStatus, Recording, RecordingDetail,
     RecordingStatus, StreamInfo,
@@ -116,7 +114,11 @@ pub fn full_channel_config(name: &str) -> ChannelConfig {
         .retention_days(30)
         .with_schedule(true, "America/Los_Angeles")
         .with_schedule_rule(
-            vec!["monday".to_string(), "wednesday".to_string(), "friday".to_string()],
+            vec![
+                "monday".to_string(),
+                "wednesday".to_string(),
+                "friday".to_string(),
+            ],
             "18:00",
             "23:00",
         )

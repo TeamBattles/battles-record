@@ -139,7 +139,7 @@ fn test_queued_segment_equality_by_sequence() {
         segment: HlsSegment {
             sequence: 100,
             uri: "http://different.com/different.ts".to_string(), // Different URI
-            duration: 5.0, // Different duration
+            duration: 5.0,                                        // Different duration
         },
         priority: SegmentPriority::Normal, // Different priority
     };

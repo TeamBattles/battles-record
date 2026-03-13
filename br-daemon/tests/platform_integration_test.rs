@@ -75,7 +75,10 @@ async fn test_mock_platform_channel_not_found_error() {
 #[tokio::test]
 async fn test_mock_platform_network_error() {
     let mock = MockPlatform::twitch();
-    mock.set_error("bad_network", MockError::Network("Connection refused".to_string()));
+    mock.set_error(
+        "bad_network",
+        MockError::Network("Connection refused".to_string()),
+    );
 
     let result: PlatformResult<Option<StreamInfo>> = mock.check_live("bad_network").await;
     assert!(result.is_err());
@@ -154,7 +157,8 @@ async fn test_mock_platform_get_stream_url_offline_returns_error() {
     mock.set_offline("offline_channel");
 
     let quality = Quality::source();
-    let result: PlatformResult<br_daemon::platforms::StreamUrl> = mock.get_stream_url("offline_channel", &quality).await;
+    let result: PlatformResult<br_daemon::platforms::StreamUrl> =
+        mock.get_stream_url("offline_channel", &quality).await;
     assert!(result.is_err());
 
     match result.unwrap_err() {
@@ -172,11 +176,15 @@ async fn test_mock_platform_get_stream_url_live_returns_url() {
     );
 
     let quality = Quality::source();
-    let result: PlatformResult<br_daemon::platforms::StreamUrl> = mock.get_stream_url("live_channel", &quality).await;
+    let result: PlatformResult<br_daemon::platforms::StreamUrl> =
+        mock.get_stream_url("live_channel", &quality).await;
     assert!(result.is_ok());
 
     let stream_url = result.unwrap();
-    assert_eq!(stream_url.url, "https://cdn.example.com/stream/playlist.m3u8");
+    assert_eq!(
+        stream_url.url,
+        "https://cdn.example.com/stream/playlist.m3u8"
+    );
     assert_eq!(stream_url.quality.name, "source");
 }
 
@@ -195,7 +203,8 @@ async fn test_mock_platform_call_counting() {
     let _: PlatformResult<Option<StreamInfo>> = mock.check_live("channel1").await;
     let _: PlatformResult<Option<StreamInfo>> = mock.check_live("channel2").await;
     let _: PlatformResult<Vec<Quality>> = mock.get_qualities("channel1").await;
-    let _: PlatformResult<br_daemon::platforms::StreamUrl> = mock.get_stream_url("channel1", &Quality::source()).await;
+    let _: PlatformResult<br_daemon::platforms::StreamUrl> =
+        mock.get_stream_url("channel1", &Quality::source()).await;
 
     assert_eq!(mock.check_live_call_count(), 2);
     assert_eq!(mock.get_qualities_call_count(), 1);
@@ -221,7 +230,11 @@ async fn test_mock_platform_latency_simulation() {
     let elapsed = start.elapsed();
 
     // Should have taken at least 50ms
-    assert!(elapsed.as_millis() >= 50, "Expected >= 50ms, got {:?}", elapsed);
+    assert!(
+        elapsed.as_millis() >= 50,
+        "Expected >= 50ms, got {:?}",
+        elapsed
+    );
 }
 
 #[tokio::test]
@@ -243,11 +256,20 @@ async fn test_mock_platform_builder_chain() {
         .build();
 
     // Verify live channels
-    assert!(StreamPlatform::check_live(&mock, "live1").await.unwrap().is_some());
-    assert!(StreamPlatform::check_live(&mock, "live2").await.unwrap().is_some());
+    assert!(StreamPlatform::check_live(&mock, "live1")
+        .await
+        .unwrap()
+        .is_some());
+    assert!(StreamPlatform::check_live(&mock, "live2")
+        .await
+        .unwrap()
+        .is_some());
 
     // Verify offline channel
-    assert!(StreamPlatform::check_live(&mock, "offline1").await.unwrap().is_none());
+    assert!(StreamPlatform::check_live(&mock, "offline1")
+        .await
+        .unwrap()
+        .is_none());
 
     // Verify custom channel
     let custom: PlatformResult<Option<StreamInfo>> = mock.check_live("custom").await;
@@ -381,7 +403,10 @@ fn test_quality_clone() {
 #[test]
 fn test_platform_error_display() {
     let errors = vec![
-        (PlatformError::Api("Bad request".to_string()), "API error: Bad request"),
+        (
+            PlatformError::Api("Bad request".to_string()),
+            "API error: Bad request",
+        ),
         (PlatformError::AuthRequired, "Authentication required"),
         (
             PlatformError::ChannelNotFound("test".to_string()),
@@ -524,7 +549,10 @@ fn test_mock_error_conversion() {
             "Channel not found: test",
         ),
         (MockError::StreamOffline, "Stream offline"),
-        (MockError::Parse("bad json".to_string()), "Parse error: bad json"),
+        (
+            MockError::Parse("bad json".to_string()),
+            "Parse error: bad json",
+        ),
     ];
 
     for (mock_error, expected_substring) in test_cases {

@@ -4,9 +4,12 @@ pub mod fixtures;
 pub mod test_server;
 
 // Re-export commonly used items from submodules
-pub use test_server::{TestServer, TestServerOptions, ResponseExt, json_body, text_body};
+pub use test_server::{json_body, text_body, ResponseExt, TestServer, TestServerOptions};
 
-use br_daemon::config::{Config, DaemonConfig, AuthConfig, StorageConfig, PollingConfig, PostProcessingConfig, QuotaConfig, RetentionConfig, OAuthConfig};
+use br_daemon::config::{
+    AuthConfig, Config, DaemonConfig, OAuthConfig, PollingConfig, PostProcessingConfig,
+    QuotaConfig, RetentionConfig, StorageConfig,
+};
 use tempfile::TempDir;
 
 /// Create a minimal test configuration with a temporary directory
