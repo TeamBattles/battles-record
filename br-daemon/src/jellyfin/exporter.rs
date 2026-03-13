@@ -10,7 +10,7 @@ use crate::image_generator::{ImageGenerator, ImageMetadata, SeasonMetadata, Show
 use crate::platforms::ChannelProfile;
 use crate::storage::RecordingEntry;
 use crate::types::Platform;
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Utc};
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};
 
@@ -103,7 +103,7 @@ impl JellyfinExporter {
             recording.started_at,
         );
 
-        let season_dir = show_dir.join(format!("Season {:02}", season));
+        let season_dir = show_dir.join(format!("Season {}", season));
         tokio::fs::create_dir_all(&season_dir).await?;
 
         // Ensure show-level metadata exists
@@ -111,21 +111,27 @@ impl JellyfinExporter {
             .await?;
 
         // Ensure season-level metadata exists
-        self.ensure_season_metadata(&season_dir, season, recording.started_at, channel_profile)
-            .await?;
+        self.ensure_season_metadata(
+            &season_dir,
+            season,
+            recording.started_at,
+            channel_profile,
+            &platform_str,
+        )
+        .await?;
 
         // Generate Jellyfin-compatible filename
-        // Format: {channel} - S{season}E{episode} - {title}.{ext}
         let title = recording.title.as_deref().unwrap_or("Stream");
-        let sanitized_title = sanitize_filename(title);
+        let sanitized_title = truncate_title(&sanitize_filename(title), 80);
+        let date_str = recording.started_at.format("%Y-%m-%d").to_string();
         let extension = processed_file
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("mp4");
 
         let video_filename = format!(
-            "{} - S{:02}E{:03} - {}.{}",
-            recording.channel_name, season, episode, sanitized_title, extension
+            "{} - S{}E{:03} - {} - {}.{}",
+            recording.channel_name, season, episode, date_str, sanitized_title, extension
         );
         let video_path = season_dir.join(&video_filename);
 
@@ -137,7 +143,10 @@ impl JellyfinExporter {
         // Delete the original file after successful copy to avoid duplicates
         // Only delete if the source is within our library directory (not recordings dir)
         // Use canonicalize for proper path comparison on Windows (handles UNC paths, case, etc.)
-        let should_delete = match (processed_file.canonicalize(), self.library_dir.canonicalize()) {
+        let should_delete = match (
+            processed_file.canonicalize(),
+            self.library_dir.canonicalize(),
+        ) {
             (Ok(canonical_file), Ok(canonical_lib)) => {
                 let result = canonical_file.starts_with(&canonical_lib);
                 debug!(
@@ -157,8 +166,7 @@ impl JellyfinExporter {
             (_, Err(e2)) => {
                 warn!(
                     "Failed to canonicalize library dir path {:?}: {}",
-                    self.library_dir,
-                    e2
+                    self.library_dir, e2
                 );
                 false
             }
@@ -181,8 +189,8 @@ impl JellyfinExporter {
         // Generate episode NFO
         let duration_minutes = recording.duration_secs.unwrap_or(0) / 60;
         let nfo_filename = format!(
-            "{} - S{:02}E{:03} - {}.nfo",
-            recording.channel_name, season, episode, sanitized_title
+            "{} - S{}E{:03} - {} - {}.nfo",
+            recording.channel_name, season, episode, date_str, sanitized_title
         );
         let nfo_path = season_dir.join(&nfo_filename);
 
@@ -202,8 +210,8 @@ impl JellyfinExporter {
         // Generate rich episode thumbnail if enabled
         if self.config.generate_thumbnails {
             let thumb_filename = format!(
-                "{} - S{:02}E{:03} - {}-thumb.jpg",
-                recording.channel_name, season, episode, sanitized_title
+                "{} - S{}E{:03} - {} - {}-thumb.jpg",
+                recording.channel_name, season, episode, date_str, sanitized_title
             );
             let thumb_path = season_dir.join(&thumb_filename);
 
@@ -234,7 +242,7 @@ impl JellyfinExporter {
         self.tracker.save()?;
 
         info!(
-            "Exported {} S{:02}E{:03} to Jellyfin library",
+            "Exported {} S{}E{:03} to Jellyfin library",
             recording.channel_name, season, episode
         );
 
@@ -307,24 +315,21 @@ impl JellyfinExporter {
         season: u32,
         recording_date: DateTime<Utc>,
         profile: &ChannelProfile,
+        platform: &str,
     ) -> anyhow::Result<()> {
         let nfo_path = season_dir.join("season.nfo");
 
         if !nfo_path.exists() {
-            let year = recording_date.year() as u32;
-            let month = recording_date.month();
-            let nfo_content = nfo::generate_season_nfo(season, year, month);
+            let nfo_content = nfo::generate_season_nfo(season);
             nfo::write_nfo(&nfo_path, &nfo_content).await?;
-            debug!("Created season.nfo for Season {:02}", season);
+            debug!("Created season.nfo for Season {}", season);
         }
 
         // Generate season poster if not exists
         let poster_path = season_dir.join("poster.jpg");
         if !poster_path.exists() && self.config.fetch_profile_images {
-            let platform_str = "twitch"; // TODO: Pass platform through
-
-            let episode_count = self.tracker.count_episodes_for_month(
-                platform_str,
+            let episode_count = self.tracker.count_episodes_for_season(
+                platform,
                 &profile.display_name,
                 recording_date,
             );
@@ -364,17 +369,18 @@ impl JellyfinExporter {
                 .peek_next_episode(&platform_str, channel_name, recording_date);
 
         let title = title.unwrap_or("Stream");
-        let sanitized_title = sanitize_filename(title);
+        let sanitized_title = truncate_title(&sanitize_filename(title), 80);
+        let date_str = recording_date.format("%Y-%m-%d").to_string();
 
         let filename = format!(
-            "{} - S{:02}E{:03} - {}.{}",
-            channel_name, season, episode, sanitized_title, extension
+            "{} - S{}E{:03} - {} - {}.{}",
+            channel_name, season, episode, date_str, sanitized_title, extension
         );
 
         self.library_dir
             .join(&platform_str)
             .join(channel_name)
-            .join(format!("Season {:02}", season))
+            .join(format!("Season {}", season))
             .join(filename)
     }
 }
@@ -391,6 +397,14 @@ fn sanitize_filename(s: &str) -> String {
         .to_string()
 }
 
+fn truncate_title(s: &str, max_chars: usize) -> String {
+    s.chars()
+        .take(max_chars)
+        .collect::<String>()
+        .trim_end()
+        .to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -401,5 +415,19 @@ mod tests {
         assert_eq!(sanitize_filename("Test: Episode"), "Test_ Episode");
         assert_eq!(sanitize_filename("A/B\\C"), "A_B_C");
         assert_eq!(sanitize_filename("What?!"), "What_!");
+    }
+
+    #[test]
+    fn test_truncate_title() {
+        assert_eq!(truncate_title("Short title", 80), "Short title");
+
+        let long = "A".repeat(100);
+        let truncated = truncate_title(&long, 80);
+        assert_eq!(truncated.len(), 80);
+
+        // Unicode safety
+        let emoji_title = "Stream 🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮🎮";
+        let truncated = truncate_title(emoji_title, 20);
+        assert!(truncated.is_char_boundary(truncated.len()));
     }
 }

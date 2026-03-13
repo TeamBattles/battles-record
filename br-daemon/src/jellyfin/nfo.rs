@@ -35,22 +35,16 @@ pub fn generate_tvshow_nfo(
     )
 }
 
-/**
- * Generate season.nfo for a season (month-based grouping).
- *
- * Season number = month (1-12).
- */
-pub fn generate_season_nfo(season_number: u32, year: u32, month: u32) -> String {
-    let month_name = month_name(month);
-
+/** Generate season.nfo for a season (year-based grouping). */
+pub fn generate_season_nfo(season_year: u32) -> String {
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <season>
     <seasonnumber>{}</seasonnumber>
-    <title>{} {}</title>
+    <title>{}</title>
 </season>
 "#,
-        season_number, month_name, year
+        season_year, season_year
     )
 }
 
@@ -125,37 +119,13 @@ fn capitalize(s: &str) -> String {
     }
 }
 
-/** Get month name from month number (1-12). */
-fn month_name(month: u32) -> &'static str {
-    match month {
-        1 => "January",
-        2 => "February",
-        3 => "March",
-        4 => "April",
-        5 => "May",
-        6 => "June",
-        7 => "July",
-        8 => "August",
-        9 => "September",
-        10 => "October",
-        11 => "November",
-        12 => "December",
-        _ => "Unknown",
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_tvshow_nfo() {
-        let nfo = generate_tvshow_nfo(
-            "xQc",
-            "twitch",
-            Some("Canadian streamer"),
-            Utc::now(),
-        );
+        let nfo = generate_tvshow_nfo("xQc", "twitch", Some("Canadian streamer"), Utc::now());
         assert!(nfo.contains("<title>xQc</title>"));
         assert!(nfo.contains("<plot>Canadian streamer</plot>"));
         assert!(nfo.contains("<studio>Twitch</studio>"));
@@ -163,9 +133,9 @@ mod tests {
 
     #[test]
     fn test_season_nfo() {
-        let nfo = generate_season_nfo(1, 2024, 1); // Season 1 = January
-        assert!(nfo.contains("<seasonnumber>1</seasonnumber>"));
-        assert!(nfo.contains("<title>January 2024</title>"));
+        let nfo = generate_season_nfo(2024);
+        assert!(nfo.contains("<seasonnumber>2024</seasonnumber>"));
+        assert!(nfo.contains("<title>2024</title>"));
     }
 
     #[test]

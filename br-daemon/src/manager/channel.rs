@@ -1,9 +1,14 @@
 use crate::config::{ChannelConfig, Config};
-use crate::platforms::{is_bun_available, KickPlatform, StreamPlatform, StreamUrl, TwitchPlatform, YoutubePlatform};
+use crate::platforms::{
+    is_bun_available, KickPlatform, StreamPlatform, StreamUrl, TwitchPlatform, YoutubePlatform,
+};
 use crate::recording::{RecordingEngine, RecordingEvent, RecordingState};
 use crate::scheduler::{DecisionReason, FilterMatcher, ScheduleChecker, StreamMetadata};
 use crate::storage::StorageManager;
-use crate::types::{Channel, ChannelStatus, FiltersResponse, Platform, Quality, QuotaStatus, ScheduleRuleResponse, StreamInfo};
+use crate::types::{
+    Channel, ChannelStatus, FiltersResponse, Platform, Quality, QuotaStatus, ScheduleRuleResponse,
+    StreamInfo,
+};
 use chrono::{DateTime, Utc};
 use parking_lot::{Mutex, RwLock};
 use std::collections::{HashMap, HashSet};
@@ -69,14 +74,9 @@ pub enum ManagerEvent {
         message: String,
     },
     /** Post-processing started. */
-    ProcessingStarted {
-        recording_id: Uuid,
-    },
+    ProcessingStarted { recording_id: Uuid },
     /** Post-processing progress. */
-    ProcessingProgress {
-        recording_id: Uuid,
-        percent: u8,
-    },
+    ProcessingProgress { recording_id: Uuid, percent: u8 },
     /** Post-processing completed successfully. */
     ProcessingComplete {
         recording_id: Uuid,
@@ -84,10 +84,7 @@ pub enum ManagerEvent {
         size_bytes: u64,
     },
     /** Post-processing failed. */
-    ProcessingFailed {
-        recording_id: Uuid,
-        error: String,
-    },
+    ProcessingFailed { recording_id: Uuid, error: String },
     /** Recording skipped due to schedule rules. */
     ScheduleSkip {
         channel_id: Uuid,
@@ -125,13 +122,11 @@ pub enum ManagerEvent {
         expires_at: Option<DateTime<Utc>>,
     },
     /** Platform authentication expired (refresh failed). */
-    PlatformAuthExpired {
-        platform: Platform,
-        reason: String,
-    },
+    PlatformAuthExpired { platform: Platform, reason: String },
 }
 
 /** Handle to an active recording. */
+#[allow(dead_code)]
 struct RecordingHandle {
     recording_id: Uuid,
     /** ID of the recording in the StorageManager index (if registration succeeded). */
@@ -450,7 +445,8 @@ impl ChannelManager {
         platform: crate::types::Platform,
     ) -> Option<crate::config::ChannelConfig> {
         let channels = self.channels.read();
-        channels.values()
+        channels
+            .values()
             .find(|m| m.config.name.eq_ignore_ascii_case(name) && m.config.platform == platform)
             .map(|m| m.config.clone())
     }
@@ -924,6 +920,7 @@ impl ChannelManager {
                 output_dir.clone(),
                 stream_info.map(|s| s.title.clone()),
                 stream_info.and_then(|s| s.game.clone()),
+                stream_info.and_then(|s| s.thumbnail_url.clone()),
             )
             .await
         {
@@ -958,8 +955,13 @@ impl ChannelManager {
         };
 
         // Create and start recording engine
-        let (engine, mut event_rx) =
-            RecordingEngine::new(stream_url, output_dir.clone(), state, shutdown_rx, stale_timeout_secs);
+        let (engine, mut event_rx) = RecordingEngine::new(
+            stream_url,
+            output_dir.clone(),
+            state,
+            shutdown_rx,
+            stale_timeout_secs,
+        );
 
         // Store recording handle
         {
@@ -1060,8 +1062,6 @@ impl ChannelManager {
         tokio::spawn(async move {
             let mut total_segments = 0u32;
             let mut total_bytes = 0u64;
-            let mut had_error = false;
-
             while let Ok(event) = event_rx.recv().await {
                 match event {
                     RecordingEvent::SegmentDownloaded {
@@ -1091,7 +1091,9 @@ impl ChannelManager {
 
                             if total_segments == 0 {
                                 // No data captured - delete the empty entry
-                                if let Err(e) = storage_manager_forward.delete_recording(&storage_id, true).await
+                                if let Err(e) = storage_manager_forward
+                                    .delete_recording(&storage_id, true)
+                                    .await
                                 {
                                     error!(
                                         "Failed to delete empty recording {} in StorageManager: {}",
@@ -1107,7 +1109,12 @@ impl ChannelManager {
                                 // Recording ended normally - mark as pending processing
                                 // so it will be picked up by the reconciliation worker
                                 if let Err(e) = storage_manager_forward
-                                    .mark_pending_processing(&storage_id, duration_secs, total_bytes, total_segments)
+                                    .mark_pending_processing(
+                                        &storage_id,
+                                        duration_secs,
+                                        total_bytes,
+                                        total_segments,
+                                    )
                                     .await
                                 {
                                     error!(
@@ -1138,7 +1145,6 @@ impl ChannelManager {
                         debug!("Init segment downloaded ({} bytes)", size_bytes);
                     }
                     RecordingEvent::Error { message } => {
-                        had_error = true;
                         let _ = event_tx_forward.send(ManagerEvent::Error {
                             channel_id: Some(channel_id),
                             channel_name: Some(channel_name_forward.clone()),
@@ -1209,13 +1215,19 @@ impl ChannelManager {
             // Get channel name for logging
             let channel_name = {
                 let channels = self.channels.read();
-                channels.get(&id).map(|m| m.config.name.clone()).unwrap_or_default()
+                channels
+                    .get(&id)
+                    .map(|m| m.config.name.clone())
+                    .unwrap_or_default()
             };
             info!("Checking channel: {}", channel_name);
 
             match self.check_channel(id).await {
                 Ok(status) => {
-                    info!("Channel {} ({}) check completed, status: {:?}", channel_name, id, status);
+                    info!(
+                        "Channel {} ({}) check completed, status: {:?}",
+                        channel_name, id, status
+                    );
                 }
                 Err(e) => {
                     warn!("Error checking channel {} ({}): {}", channel_name, id, e);
@@ -1264,7 +1276,10 @@ impl ChannelManager {
             self.poll_all_channels().await;
             *self.last_poll_time.write() = Some(std::time::Instant::now());
         } else {
-            debug!("Skipping poll - last poll was less than {}s ago", MIN_POLL_INTERVAL_SECS);
+            debug!(
+                "Skipping poll - last poll was less than {}s ago",
+                MIN_POLL_INTERVAL_SECS
+            );
         }
     }
 
@@ -1383,8 +1398,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
         assert!(manager.get_channels().is_empty());
     }
 
@@ -1394,8 +1413,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("testchannel", Platform::Twitch);
 
@@ -1416,8 +1439,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("testchannel", Platform::Twitch);
 
@@ -1437,8 +1464,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("testchannel", Platform::Twitch);
 
@@ -1458,8 +1489,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("removable_channel", Platform::Twitch);
 
@@ -1480,8 +1515,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let result = manager.remove_channel(Uuid::new_v4());
         assert!(result.is_none());
@@ -1493,8 +1532,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("quality_channel", Platform::Twitch);
 
@@ -1525,8 +1568,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let mut config = create_test_channel_config("old_name", Platform::YouTube);
         config.quality = "1080p".to_string();
@@ -1557,8 +1604,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config = create_test_channel_config("quota_channel", Platform::Kick);
 
@@ -1589,8 +1640,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let update = ChannelUpdate {
             name: Some("whatever".to_string()),
@@ -1614,8 +1669,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let mut config = create_test_channel_config("status_channel", Platform::Twitch);
         config.quota_gb = Some(10);
@@ -1623,12 +1682,7 @@ mod tests {
         let id = manager.add_channel(config);
 
         // Update quota status
-        let updated = manager.update_quota_status(
-            id,
-            QuotaStatus::Warning,
-            8_000_000_000,
-            80,
-        );
+        let updated = manager.update_quota_status(id, QuotaStatus::Warning, 8_000_000_000, 80);
         assert!(updated);
 
         // Verify the status was updated
@@ -1644,15 +1698,14 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
-
-        let result = manager.update_quota_status(
-            Uuid::new_v4(),
-            QuotaStatus::Ok,
-            0,
-            0,
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
         );
+
+        let result = manager.update_quota_status(Uuid::new_v4(), QuotaStatus::Ok, 0, 0);
         assert!(!result);
     }
 
@@ -1662,8 +1715,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         // Initially no recordings
         assert_eq!(manager.active_recording_count(), 0);
@@ -1683,8 +1740,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let channels_data = [
             ("channel1", Platform::Twitch),
@@ -1713,8 +1774,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config1 = create_test_channel_config("same_name", Platform::Twitch);
 
@@ -1736,8 +1801,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let config1 = create_test_channel_config("same_name", Platform::Twitch);
         let config2 = create_test_channel_config("same_name", Platform::YouTube);
@@ -1756,8 +1825,12 @@ mod tests {
         let storage_config = create_test_storage_config(temp_dir.path().to_path_buf());
         let storage_manager = Arc::new(StorageManager::new(storage_config).await.unwrap());
 
-        let (manager, _rx) =
-            ChannelManager::new(temp_dir.path().to_path_buf(), 60, storage_manager, create_test_config());
+        let (manager, _rx) = ChannelManager::new(
+            temp_dir.path().to_path_buf(),
+            60,
+            storage_manager,
+            create_test_config(),
+        );
 
         let mut config = create_test_channel_config("config_test", Platform::Twitch);
         config.quality = "1080p".to_string();

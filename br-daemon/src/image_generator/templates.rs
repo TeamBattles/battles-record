@@ -12,7 +12,7 @@
 use super::colors::{darken_color, ColorPalette};
 use super::gradients::{create_gradient, create_gradient_with_stops, GradientDirection};
 use super::text::{FontWeight, TextAlign, TextRenderer, TextStyle};
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{DateTime, Utc};
 use image::{DynamicImage, Rgba, RgbaImage};
 
 /** Standard Jellyfin image dimensions. */
@@ -102,7 +102,13 @@ pub fn generate_show_primary(
             profile_size,
             image::imageops::FilterType::Lanczos3,
         );
-        draw_rounded_image(&mut canvas, &resized.to_rgba8(), profile_x as i32, profile_y as i32, 20);
+        draw_rounded_image(
+            &mut canvas,
+            &resized.to_rgba8(),
+            profile_x as i32,
+            profile_y as i32,
+            20,
+        );
     }
 
     // Channel name (large, centered)
@@ -133,7 +139,13 @@ pub fn generate_show_primary(
         ..Default::default()
     };
     let platform_text = format!("[{}]", metadata.platform.to_uppercase());
-    text_renderer.draw_text(&mut canvas, &platform_text, width as i32 / 2, 520, &platform_style);
+    text_renderer.draw_text(
+        &mut canvas,
+        &platform_text,
+        width as i32 / 2,
+        520,
+        &platform_style,
+    );
 
     // Divider line
     draw_horizontal_line(&mut canvas, 80, width - 80, 580, palette.text_muted, 2);
@@ -158,14 +170,26 @@ pub fn generate_show_primary(
     let mut current_y = meta_y_start;
     if let Some(viewers) = metadata.viewer_count {
         let viewer_text = format_number(viewers);
-        text_renderer.draw_text(&mut canvas, &viewer_text, width as i32 / 2, current_y, &value_style);
+        text_renderer.draw_text(
+            &mut canvas,
+            &viewer_text,
+            width as i32 / 2,
+            current_y,
+            &value_style,
+        );
         let label_style = TextStyle {
             size: 16.0,
             color: palette.text_muted,
             align: TextAlign::Center,
             ..Default::default()
         };
-        text_renderer.draw_text(&mut canvas, "viewers", width as i32 / 2, current_y + 30, &label_style);
+        text_renderer.draw_text(
+            &mut canvas,
+            "viewers",
+            width as i32 / 2,
+            current_y + 30,
+            &label_style,
+        );
         current_y += line_spacing + 20;
     }
 
@@ -176,13 +200,25 @@ pub fn generate_show_primary(
         } else {
             game.clone()
         };
-        text_renderer.draw_text(&mut canvas, &game_display, width as i32 / 2, current_y, &value_style);
+        text_renderer.draw_text(
+            &mut canvas,
+            &game_display,
+            width as i32 / 2,
+            current_y,
+            &value_style,
+        );
         current_y += line_spacing;
     }
 
     // Date
     let date_str = metadata.date.format("%b %d, %Y").to_string();
-    text_renderer.draw_text(&mut canvas, &date_str, width as i32 / 2, current_y, &value_style);
+    text_renderer.draw_text(
+        &mut canvas,
+        &date_str,
+        width as i32 / 2,
+        current_y,
+        &value_style,
+    );
 
     canvas
 }
@@ -225,7 +261,13 @@ pub fn generate_season_primary(
             profile_size,
             image::imageops::FilterType::Lanczos3,
         );
-        draw_rounded_image(&mut canvas, &resized.to_rgba8(), profile_x as i32, profile_y as i32, 15);
+        draw_rounded_image(
+            &mut canvas,
+            &resized.to_rgba8(),
+            profile_x as i32,
+            profile_y as i32,
+            15,
+        );
     }
 
     // Channel name
@@ -250,28 +292,8 @@ pub fn generate_season_primary(
     // Divider
     draw_horizontal_line(&mut canvas, 100, width - 100, 430, palette.text_muted, 2);
 
-    // DATE - PROMINENTLY DISPLAYED
-    // Month name (large)
-    let month_name = month_name(metadata.date.month());
-    let month_style = TextStyle {
-        size: 72.0,
-        color: palette.text,
-        align: TextAlign::Center,
-        weight: FontWeight::Bold,
-        ..Default::default()
-    };
-    text_renderer.draw_text_with_shadow(
-        &mut canvas,
-        month_name,
-        width as i32 / 2,
-        500,
-        &month_style,
-        3,
-        darken_color(&palette.primary, 0.3),
-    );
-
-    // Day number (very large)
-    let day_style = TextStyle {
+    // YEAR - PROMINENTLY DISPLAYED
+    let year_style = TextStyle {
         size: 120.0,
         color: palette.accent,
         align: TextAlign::Center,
@@ -280,17 +302,17 @@ pub fn generate_season_primary(
     };
     text_renderer.draw_text_with_shadow(
         &mut canvas,
-        &metadata.date.day().to_string(),
+        &metadata.season_number.to_string(),
         width as i32 / 2,
-        600,
-        &day_style,
+        520,
+        &year_style,
         4,
         darken_color(&palette.accent, 0.3),
     );
 
-    // Year
-    let year_style = TextStyle {
-        size: 48.0,
+    // "SEASON {year}" subtitle
+    let season_label_style = TextStyle {
+        size: 36.0,
         color: palette.text_muted,
         align: TextAlign::Center,
         weight: FontWeight::Regular,
@@ -298,22 +320,30 @@ pub fn generate_season_primary(
     };
     text_renderer.draw_text(
         &mut canvas,
-        &metadata.date.year().to_string(),
+        &format!("SEASON {}", metadata.season_number),
         width as i32 / 2,
-        740,
-        &year_style,
+        670,
+        &season_label_style,
     );
 
-    // Season info
-    let season_style = TextStyle {
-        size: 24.0,
-        color: palette.text_muted,
+    // Episode count (prominent)
+    let episode_style = TextStyle {
+        size: 48.0,
+        color: palette.accent,
         align: TextAlign::Center,
-        weight: FontWeight::Regular,
+        weight: FontWeight::Bold,
         ..Default::default()
     };
-    let season_text = format!("Season {} · {} Episodes", metadata.season_number, metadata.episode_count);
-    text_renderer.draw_text(&mut canvas, &season_text, width as i32 / 2, 840, &season_style);
+    let episode_text = format!("{} EPISODES", metadata.episode_count);
+    text_renderer.draw_text_with_shadow(
+        &mut canvas,
+        &episode_text,
+        width as i32 / 2,
+        760,
+        &episode_style,
+        2,
+        darken_color(&palette.primary, 0.3),
+    );
 
     canvas
 }
@@ -455,10 +485,7 @@ pub fn generate_thumb(
     let top_overlay = create_gradient_with_stops(
         width,
         height / 3,
-        &[
-            (0.0, Rgba([0, 0, 0, 200])),
-            (1.0, Rgba([0, 0, 0, 0])),
-        ],
+        &[(0.0, Rgba([0, 0, 0, 200])), (1.0, Rgba([0, 0, 0, 0]))],
         GradientDirection::Vertical,
     );
     blend_images_at(&mut canvas, &top_overlay, 0, 0);
@@ -532,7 +559,14 @@ pub fn generate_thumb(
     let bar_height = 80;
 
     // Draw semi-transparent bar background
-    draw_rect(&mut canvas, 0, bar_y, width, bar_height as u32, Rgba([0, 0, 0, 150]));
+    draw_rect(
+        &mut canvas,
+        0,
+        bar_y,
+        width,
+        bar_height as u32,
+        Rgba([0, 0, 0, 150]),
+    );
 
     // Metadata items
     let meta_style = TextStyle {
@@ -567,7 +601,7 @@ pub fn generate_thumb(
         items.push((format_duration(duration), "duration".to_string()));
     }
     items.push((
-        format!("S{:02}E{:02}", metadata.season, metadata.episode),
+        format!("S{}E{:03}", metadata.season, metadata.episode),
         "episode".to_string(),
     ));
 
@@ -587,7 +621,13 @@ pub fn generate_thumb(
         ..Default::default()
     };
     let date_str = metadata.date.format("%B %d, %Y").to_string();
-    text_renderer.draw_text(&mut canvas, &date_str, width as i32 - 60, height as i32 - 70, &date_style);
+    text_renderer.draw_text(
+        &mut canvas,
+        &date_str,
+        width as i32 - 60,
+        height as i32 - 70,
+        &date_style,
+    );
 
     canvas
 }
@@ -960,8 +1000,11 @@ fn draw_rounded_image(canvas: &mut RgbaImage, img: &RgbaImage, x: i32, y: i32, r
             let canvas_x = x + ix as i32;
             let canvas_y = y + iy as i32;
 
-            if canvas_x >= 0 && canvas_x < canvas.width() as i32 &&
-               canvas_y >= 0 && canvas_y < canvas.height() as i32 {
+            if canvas_x >= 0
+                && canvas_x < canvas.width() as i32
+                && canvas_y >= 0
+                && canvas_y < canvas.height() as i32
+            {
                 let src = img.get_pixel(ix, iy);
                 if src[3] > 0 {
                     let dst = canvas.get_pixel(canvas_x as u32, canvas_y as u32);
@@ -980,7 +1023,14 @@ fn distance(x1: u32, y1: u32, x2: u32, y2: u32) -> u32 {
 }
 
 /** Draw a horizontal line. */
-fn draw_horizontal_line(canvas: &mut RgbaImage, x1: u32, x2: u32, y: i32, color: Rgba<u8>, thickness: u32) {
+fn draw_horizontal_line(
+    canvas: &mut RgbaImage,
+    x1: u32,
+    x2: u32,
+    y: i32,
+    color: Rgba<u8>,
+    thickness: u32,
+) {
     if y < 0 || y >= canvas.height() as i32 {
         return;
     }
@@ -1021,9 +1071,8 @@ fn blend_pixel(dst: &Rgba<u8>, src: &Rgba<u8>) -> Rgba<u8> {
         return Rgba([0, 0, 0, 0]);
     }
 
-    let blend = |s: u8, d: u8| -> u8 {
-        ((s as f32 * sa + d as f32 * da * (1.0 - sa)) / out_a) as u8
-    };
+    let blend =
+        |s: u8, d: u8| -> u8 { ((s as f32 * sa + d as f32 * da * (1.0 - sa)) / out_a) as u8 };
 
     Rgba([
         blend(src[0], dst[0]),
@@ -1092,25 +1141,6 @@ fn format_duration(secs: u64) -> String {
     }
 }
 
-/** Get month name from number. */
-fn month_name(month: u32) -> &'static str {
-    match month {
-        1 => "JANUARY",
-        2 => "FEBRUARY",
-        3 => "MARCH",
-        4 => "APRIL",
-        5 => "MAY",
-        6 => "JUNE",
-        7 => "JULY",
-        8 => "AUGUST",
-        9 => "SEPTEMBER",
-        10 => "OCTOBER",
-        11 => "NOVEMBER",
-        12 => "DECEMBER",
-        _ => "UNKNOWN",
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1127,12 +1157,6 @@ mod tests {
         assert_eq!(format_duration(300), "5m");
         assert_eq!(format_duration(3700), "1h 1m");
         assert_eq!(format_duration(7200), "2h 0m");
-    }
-
-    #[test]
-    fn test_month_name() {
-        assert_eq!(month_name(1), "JANUARY");
-        assert_eq!(month_name(12), "DECEMBER");
     }
 
     #[test]

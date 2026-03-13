@@ -4,7 +4,9 @@ use br_daemon::config;
 use br_daemon::jellyfin::JellyfinExporter;
 use br_daemon::manager::{ChannelManager, ManagerEvent};
 use br_daemon::notifications::NotificationManager;
-use br_daemon::platforms::{ChannelProfile, StreamPlatform, TwitchPlatform};
+use br_daemon::platforms::{
+    ChannelProfile, KickPlatform, StreamPlatform, TwitchPlatform, YoutubePlatform,
+};
 use br_daemon::processing::{ProcessingEvent, ProcessingManager, ReconciliationWorker};
 use br_daemon::storage::StorageManager;
 use br_daemon::types::{Platform, QuotaStatus};
@@ -50,10 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Allow --port flag to override config
     let mut config = config;
-    if let Some(port_str) = std::env::args()
-        .skip_while(|a| a != "--port")
-        .nth(1)
-    {
+    if let Some(port_str) = std::env::args().skip_while(|a| a != "--port").nth(1) {
         if let Ok(port) = port_str.parse::<u16>() {
             tracing::info!("Port override via --port flag: {}", port);
             config.daemon.port = port;
@@ -63,20 +62,18 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Allow --data-dir flag to override recordings directory
-    if let Some(data_dir) = std::env::args()
-        .skip_while(|a| a != "--data-dir")
-        .nth(1)
-    {
+    if let Some(data_dir) = std::env::args().skip_while(|a| a != "--data-dir").nth(1) {
         tracing::info!("Data directory override via --data-dir flag: {}", data_dir);
         config.storage.recordings_dir = PathBuf::from(data_dir);
     }
 
     // Allow --library-dir flag to override library directory
-    let library_dir_specified = std::env::args()
-        .skip_while(|a| a != "--library-dir")
-        .nth(1);
+    let library_dir_specified = std::env::args().skip_while(|a| a != "--library-dir").nth(1);
     if let Some(library_dir) = library_dir_specified.clone() {
-        tracing::info!("Library directory override via --library-dir flag: {}", library_dir);
+        tracing::info!(
+            "Library directory override via --library-dir flag: {}",
+            library_dir
+        );
         config.storage.library_dir = PathBuf::from(library_dir);
     }
 
@@ -111,13 +108,19 @@ async fn main() -> anyhow::Result<()> {
     // Clean up orphaned recordings from previous session
     let orphaned = storage_manager.cleanup_orphaned_recordings().await;
     if orphaned > 0 {
-        tracing::info!("Cleaned up {} orphaned recordings from previous session", orphaned);
+        tracing::info!(
+            "Cleaned up {} orphaned recordings from previous session",
+            orphaned
+        );
     }
 
     // Reset any recordings that were mid-processing when the daemon stopped
     let interrupted = storage_manager.reset_interrupted_processing().await;
     if interrupted > 0 {
-        tracing::info!("Reset {} interrupted processing jobs from previous session", interrupted);
+        tracing::info!(
+            "Reset {} interrupted processing jobs from previous session",
+            interrupted
+        );
     }
 
     let storage_manager = Arc::new(storage_manager);
@@ -163,7 +166,10 @@ async fn main() -> anyhow::Result<()> {
         if cfg.jellyfin.enabled {
             match JellyfinExporter::new(cfg.jellyfin.clone(), cfg.storage.library_dir.clone()) {
                 Ok(exporter) => {
-                    tracing::info!("Jellyfin exporter initialized (library_dir: {:?})", cfg.storage.library_dir);
+                    tracing::info!(
+                        "Jellyfin exporter initialized (library_dir: {:?})",
+                        cfg.storage.library_dir
+                    );
                     Some(Arc::new(tokio::sync::Mutex::new(exporter)))
                 }
                 Err(e) => {
@@ -187,9 +193,9 @@ async fn main() -> anyhow::Result<()> {
         let mut rx = processing_events;
         while let Ok(event) = rx.recv().await {
             let manager_event = match &event {
-                ProcessingEvent::Started { recording_id } => {
-                    ManagerEvent::ProcessingStarted { recording_id: *recording_id }
-                }
+                ProcessingEvent::Started { recording_id } => ManagerEvent::ProcessingStarted {
+                    recording_id: *recording_id,
+                },
                 ProcessingEvent::Progress {
                     recording_id,
                     percent,
@@ -224,7 +230,11 @@ async fn main() -> anyhow::Result<()> {
                     size_bytes,
                 } => {
                     if let Err(e) = storage_for_processing
-                        .mark_processed(&recording_id, PathBuf::from(&output_file), Some(size_bytes))
+                        .mark_processed(
+                            &recording_id,
+                            PathBuf::from(&output_file),
+                            Some(size_bytes),
+                        )
                         .await
                     {
                         tracing::error!(
@@ -243,21 +253,43 @@ async fn main() -> anyhow::Result<()> {
                         // Export to Jellyfin if enabled
                         if let Some(ref jellyfin) = jellyfin_for_processing {
                             // Get the recording entry
-                            if let Ok(Some(recording)) = storage_for_processing.get_recording(&recording_id).await {
+                            if let Ok(Some(recording)) =
+                                storage_for_processing.get_recording(&recording_id).await
+                            {
                                 // Try to get cached profile from channel config first
-                                let profile = if let Some(channel_config) = channel_manager_for_processing.get_channel_config_by_name(&recording.channel_name, recording.platform) {
+                                let profile = if let Some(channel_config) =
+                                    channel_manager_for_processing.get_channel_config_by_name(
+                                        &recording.channel_name,
+                                        recording.platform,
+                                    ) {
                                     // Resolve custom images first (path relative to images_dir), fallback to platform URLs
-                                    let profile_image = channel_config.custom_profile_image.as_ref()
-                                        .map(|rel| images_dir_for_processing.join(rel).to_string_lossy().to_string())
+                                    let profile_image = channel_config
+                                        .custom_profile_image
+                                        .as_ref()
+                                        .map(|rel| {
+                                            images_dir_for_processing
+                                                .join(rel)
+                                                .to_string_lossy()
+                                                .to_string()
+                                        })
                                         .or(channel_config.platform_profile_url.clone());
 
-                                    let banner_image = channel_config.custom_banner_image.as_ref()
-                                        .map(|rel| images_dir_for_processing.join(rel).to_string_lossy().to_string())
+                                    let banner_image = channel_config
+                                        .custom_banner_image
+                                        .as_ref()
+                                        .map(|rel| {
+                                            images_dir_for_processing
+                                                .join(rel)
+                                                .to_string_lossy()
+                                                .to_string()
+                                        })
                                         .or(channel_config.platform_banner_url.clone());
 
                                     // Log image status for debugging
                                     if profile_image.is_some() || banner_image.is_some() {
-                                        let using_custom = channel_config.custom_profile_image.is_some() || channel_config.custom_banner_image.is_some();
+                                        let using_custom =
+                                            channel_config.custom_profile_image.is_some()
+                                                || channel_config.custom_banner_image.is_some();
                                         tracing::debug!(
                                             channel = %recording.channel_name,
                                             using_custom = using_custom,
@@ -286,33 +318,32 @@ async fn main() -> anyhow::Result<()> {
                                 let profile = match profile {
                                     Some(p) => Some(p),
                                     None => {
-                                        let platform: Option<Box<dyn StreamPlatform + Send>> = match recording.platform {
-                                            Platform::Twitch => Some(Box::new(TwitchPlatform::new())),
-                                            Platform::YouTube => {
-                                                tracing::warn!("Jellyfin export: YouTube platform not yet implemented");
-                                                None
-                                            }
-                                            Platform::Kick => {
-                                                tracing::warn!("Jellyfin export: Kick platform not yet implemented");
-                                                None
-                                            }
-                                        };
-
-                                        if let Some(platform) = platform {
-                                            match platform.get_channel_profile(&recording.channel_name).await {
-                                                Ok(p) => Some(p),
-                                                Err(e) => {
-                                                    tracing::error!(
-                                                        recording_id = %recording_id,
-                                                        channel = %recording.channel_name,
-                                                        error = %e,
-                                                        "Failed to fetch channel profile for Jellyfin export"
-                                                    );
-                                                    None
+                                        let platform: Box<dyn StreamPlatform + Send> =
+                                            match recording.platform {
+                                                Platform::Twitch => Box::new(TwitchPlatform::new()),
+                                                Platform::YouTube => {
+                                                    Box::new(YoutubePlatform::new())
                                                 }
+                                                Platform::Kick => Box::new(KickPlatform::new()),
+                                            };
+
+                                        match platform
+                                            .get_channel_profile(&recording.channel_name)
+                                            .await
+                                        {
+                                            Ok(p) => Some(p),
+                                            Err(e) => {
+                                                tracing::warn!(
+                                                    "Failed to fetch profile for {}: {}, using minimal profile",
+                                                    recording.channel_name, e
+                                                );
+                                                Some(ChannelProfile {
+                                                    display_name: recording.channel_name.clone(),
+                                                    description: None,
+                                                    profile_image_url: None,
+                                                    banner_image_url: None,
+                                                })
                                             }
-                                        } else {
-                                            None
                                         }
                                     }
                                 };
@@ -320,7 +351,10 @@ async fn main() -> anyhow::Result<()> {
                                 if let Some(profile) = profile {
                                     let mut exporter = jellyfin.lock().await;
                                     let output_path = PathBuf::from(&output_file);
-                                    match exporter.export_recording(&recording, &output_path, &profile).await {
+                                    match exporter
+                                        .export_recording(&recording, &output_path, &profile)
+                                        .await
+                                    {
                                         Ok(result) => {
                                             tracing::info!(
                                                 recording_id = %recording_id,
@@ -332,7 +366,10 @@ async fn main() -> anyhow::Result<()> {
 
                                             // Update recording with Jellyfin export status
                                             if let Err(e) = storage_for_processing
-                                                .mark_jellyfin_exported(&recording_id, result.video_path)
+                                                .mark_jellyfin_exported(
+                                                    &recording_id,
+                                                    result.video_path,
+                                                )
                                                 .await
                                             {
                                                 tracing::warn!(
@@ -405,7 +442,10 @@ async fn main() -> anyhow::Result<()> {
         )
     };
     tokio::spawn(reconciliation_worker.run());
-    tracing::info!("Reconciliation worker started (library_dir: {:?})", config.read().storage.library_dir);
+    tracing::info!(
+        "Reconciliation worker started (library_dir: {:?})",
+        config.read().storage.library_dir
+    );
 
     // Start notification manager
     let notification_manager = Arc::new(NotificationManager::new(
@@ -489,12 +529,8 @@ async fn main() -> anyhow::Result<()> {
 
                         let old_status = channel.quota_status;
                         if new_status != old_status || channel.quota_used_bytes != usage {
-                            quota_channel_manager.update_quota_status(
-                                channel.id,
-                                new_status,
-                                usage,
-                                percent,
-                            );
+                            quota_channel_manager
+                                .update_quota_status(channel.id, new_status, usage, percent);
 
                             if new_status != old_status {
                                 let _ = quota_event_tx.send(ManagerEvent::QuotaStatusChanged {
@@ -544,7 +580,11 @@ async fn main() -> anyhow::Result<()> {
             let loaded = config::load_channels_file(channels_file);
             if loaded.is_empty() && !cfg.channels.is_empty() {
                 // Migrate existing channels from config to the new file
-                tracing::info!("Migrating {} channels from config to {:?}", cfg.channels.len(), channels_file);
+                tracing::info!(
+                    "Migrating {} channels from config to {:?}",
+                    cfg.channels.len(),
+                    channels_file
+                );
                 if let Err(e) = config::save_channels_file(channels_file, &cfg.channels) {
                     tracing::error!("Failed to migrate channels: {}", e);
                 }

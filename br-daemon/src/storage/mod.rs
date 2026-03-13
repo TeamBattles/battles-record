@@ -41,8 +41,8 @@ impl StorageManager {
         tokio::fs::create_dir_all(&config.recordings_dir).await?;
 
         // Initialize the index
-        let index = RecordingsIndex::new(config.recordings_dir.clone())
-            .map_err(std::io::Error::other)?;
+        let index =
+            RecordingsIndex::new(config.recordings_dir.clone()).map_err(std::io::Error::other)?;
 
         // Initialize quota checker
         let quota_checker = QuotaChecker::new(config.quotas.clone());
@@ -66,6 +66,7 @@ impl StorageManager {
         path: PathBuf,
         title: Option<String>,
         game: Option<String>,
+        thumbnail_url: Option<String>,
     ) -> Result<Uuid, std::io::Error> {
         let platform = Self::parse_platform(platform)?;
         let id = Uuid::new_v4();
@@ -89,13 +90,11 @@ impl StorageManager {
             failure_reason: None,
             jellyfin_exported: false,
             jellyfin_path: None,
-            thumbnail_url: None,
+            thumbnail_url,
         };
 
         let mut index = self.index.write().await;
-        index
-            .add(entry)
-            .map_err(std::io::Error::other)?;
+        index.add(entry).map_err(std::io::Error::other)?;
 
         Ok(id)
     }
@@ -132,10 +131,9 @@ impl StorageManager {
         segment_count: u32,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::Completed,
@@ -146,27 +144,22 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as processing. */
     pub async fn mark_processing(&self, id: &Uuid) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::Processing,
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as processed. */
@@ -177,10 +170,9 @@ impl StorageManager {
         new_size: Option<u64>,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::Processed,
@@ -189,18 +181,15 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as failed. */
     pub async fn mark_failed(&self, id: &Uuid) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::Failed,
@@ -208,27 +197,22 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as stopping (graceful shutdown initiated). */
     pub async fn mark_stopping(&self, id: &Uuid) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::Stopping,
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as pending processing. */
@@ -240,10 +224,9 @@ impl StorageManager {
         segment_count: u32,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::PendingProcessing,
@@ -254,18 +237,19 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as processing failed. */
-    pub async fn mark_processing_failed(&self, id: &Uuid, reason: Option<String>) -> Result<(), std::io::Error> {
+    pub async fn mark_processing_failed(
+        &self,
+        id: &Uuid,
+        reason: Option<String>,
+    ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::ProcessingFailed,
@@ -274,9 +258,7 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Mark a recording as exported to Jellyfin. */
@@ -286,10 +268,9 @@ impl StorageManager {
         jellyfin_path: PathBuf,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             jellyfin_exported: true,
@@ -297,27 +278,22 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Reset processing attempts for a recording (for manual retry). */
     pub async fn reset_processing_attempts(&self, id: &Uuid) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             processing_attempts: 0,
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /** Update size, segment count, and optionally duration for a recording (used when reconciling legacy data). */
@@ -329,10 +305,9 @@ impl StorageManager {
         duration_secs: Option<u64>,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             size_bytes,
@@ -341,9 +316,7 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /**
@@ -366,7 +339,11 @@ impl StorageManager {
         for entry in &all_recordings {
             tracing::debug!(
                 "  Recording {} ({}) status={:?} output_file={:?} attempts={}",
-                entry.channel_name, entry.id, entry.status, entry.output_file, entry.processing_attempts
+                entry.channel_name,
+                entry.id,
+                entry.status,
+                entry.output_file,
+                entry.processing_attempts
             );
         }
 
@@ -443,7 +420,9 @@ impl StorageManager {
             for e in &all {
                 tracing::debug!(
                     "  Recording {} ({}) status={:?}",
-                    e.channel_name, e.id, e.status
+                    e.channel_name,
+                    e.id,
+                    e.status
                 );
             }
 
@@ -464,12 +443,15 @@ impl StorageManager {
             if let Err(e) = self.mark_pending_processing_simple(&id).await {
                 tracing::warn!(
                     "Failed to reset interrupted processing {} ({}): {}",
-                    channel_name, id, e
+                    channel_name,
+                    id,
+                    e
                 );
             } else {
                 tracing::info!(
                     "Reset interrupted processing {} ({}) to PendingProcessing",
-                    channel_name, id
+                    channel_name,
+                    id
                 );
             }
         }
@@ -480,19 +462,16 @@ impl StorageManager {
     /** Mark a recording as pending processing (simple version, preserves existing data). */
     async fn mark_pending_processing_simple(&self, id: &Uuid) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             status: RecordingStatus::PendingProcessing,
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /**
@@ -517,7 +496,12 @@ impl StorageManager {
             if size_bytes == 0 {
                 // No data captured - delete entirely
                 if let Err(e) = self.delete_recording(&id, true).await {
-                    tracing::warn!("Failed to delete empty orphaned recording {} ({}): {}", channel_name, id, e);
+                    tracing::warn!(
+                        "Failed to delete empty orphaned recording {} ({}): {}",
+                        channel_name,
+                        id,
+                        e
+                    );
                 } else {
                     tracing::info!("Deleted empty orphaned recording {} ({})", channel_name, id);
                 }
@@ -525,8 +509,16 @@ impl StorageManager {
                 // Has data - mark as pending processing
                 // Estimate duration from segment count (assuming ~2 sec segments)
                 let estimated_duration = (segment_count as u64) * 2;
-                if let Err(e) = self.mark_pending_processing(&id, estimated_duration, size_bytes, segment_count).await {
-                    tracing::warn!("Failed to mark orphaned recording {} ({}) as pending: {}", channel_name, id, e);
+                if let Err(e) = self
+                    .mark_pending_processing(&id, estimated_duration, size_bytes, segment_count)
+                    .await
+                {
+                    tracing::warn!(
+                        "Failed to mark orphaned recording {} ({}) as pending: {}",
+                        channel_name,
+                        id,
+                        e
+                    );
                 } else {
                     tracing::info!("Marked orphaned recording {} ({}) as pending processing ({} bytes, {} segments)",
                         channel_name, id, size_bytes, segment_count);
@@ -545,10 +537,9 @@ impl StorageManager {
         segment_count: u32,
     ) -> Result<(), std::io::Error> {
         let mut index = self.index.write().await;
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let updated = RecordingEntry {
             size_bytes,
@@ -556,9 +547,7 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)
+        index.update(updated).map_err(std::io::Error::other)
     }
 
     /**
@@ -586,7 +575,9 @@ impl StorageManager {
                 Err(e) => {
                     tracing::warn!(
                         "Failed to calculate stats for active recording {} ({}): {}",
-                        channel_name, id, e
+                        channel_name,
+                        id,
+                        e
                     );
                     continue;
                 }
@@ -596,15 +587,24 @@ impl StorageManager {
             let duration_secs = (segment_count as u64) * 2;
 
             // Update the recording entry
-            if let Err(e) = self.update_recording_stats(&id, size_bytes, segment_count, Some(duration_secs)).await {
+            if let Err(e) = self
+                .update_recording_stats(&id, size_bytes, segment_count, Some(duration_secs))
+                .await
+            {
                 tracing::warn!(
                     "Failed to update stats for active recording {} ({}): {}",
-                    channel_name, id, e
+                    channel_name,
+                    id,
+                    e
                 );
             } else {
                 tracing::debug!(
                     "Updated active recording {} ({}): {} bytes, {} segments, ~{}s",
-                    channel_name, id, size_bytes, segment_count, duration_secs
+                    channel_name,
+                    id,
+                    size_bytes,
+                    segment_count,
+                    duration_secs
                 );
                 updated_count += 1;
             }
@@ -655,7 +655,8 @@ impl StorageManager {
         id: &Uuid,
         delete_files: bool,
     ) -> Result<Option<u64>, std::io::Error> {
-        self.delete_recording_with_options(id, delete_files, true).await
+        self.delete_recording_with_options(id, delete_files, true)
+            .await
     }
 
     /**
@@ -675,28 +676,32 @@ impl StorageManager {
     ) -> Result<Option<u64>, std::io::Error> {
         let mut index = self.index.write().await;
 
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         let mut freed_bytes = 0u64;
 
         if delete_files {
-            freed_bytes += CleanupWorker::delete_recording_files(&self.config.recordings_dir, &entry).await?;
+            freed_bytes +=
+                CleanupWorker::delete_recording_files(&self.config.recordings_dir, &entry).await?;
         }
 
         if include_library {
-            freed_bytes += CleanupWorker::delete_jellyfin_files(&entry).await.unwrap_or(0);
+            freed_bytes += CleanupWorker::delete_jellyfin_files(&entry)
+                .await
+                .unwrap_or(0);
         }
 
-        index
-            .delete(*id)
-            .map_err(std::io::Error::other)?;
+        index.delete(*id).map_err(std::io::Error::other)?;
 
         // Return Some(freed_bytes) only if we actually attempted to delete files
         // Preserves backwards compatibility: delete_recording(id, false) returns None
-        Ok(if delete_files { Some(freed_bytes) } else { None })
+        Ok(if delete_files {
+            Some(freed_bytes)
+        } else {
+            None
+        })
     }
 
     /**
@@ -709,13 +714,14 @@ impl StorageManager {
     pub async fn cleanup_jellyfin_files(&self, id: &Uuid) -> Result<u64, std::io::Error> {
         let mut index = self.index.write().await;
 
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
         // Delete Jellyfin files
-        let freed_bytes = CleanupWorker::delete_jellyfin_files(&entry).await.unwrap_or(0);
+        let freed_bytes = CleanupWorker::delete_jellyfin_files(&entry)
+            .await
+            .unwrap_or(0);
 
         // Reset jellyfin flags on the recording entry
         let updated = RecordingEntry {
@@ -724,9 +730,7 @@ impl StorageManager {
             ..entry
         };
 
-        index
-            .update(updated)
-            .map_err(std::io::Error::other)?;
+        index.update(updated).map_err(std::io::Error::other)?;
 
         Ok(freed_bytes)
     }
@@ -738,22 +742,17 @@ impl StorageManager {
      *
      * Returns bytes freed from recordings directory.
      */
-    pub async fn delete_recording_files_only(
-        &self,
-        id: &Uuid,
-    ) -> Result<u64, std::io::Error> {
+    pub async fn delete_recording_files_only(&self, id: &Uuid) -> Result<u64, std::io::Error> {
         let mut index = self.index.write().await;
 
-        let entry = index
-            .get(*id)
-            .cloned()
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found"))?;
+        let entry = index.get(*id).cloned().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "Recording not found")
+        })?;
 
-        let freed_bytes = CleanupWorker::delete_recording_files(&self.config.recordings_dir, &entry).await?;
+        let freed_bytes =
+            CleanupWorker::delete_recording_files(&self.config.recordings_dir, &entry).await?;
 
-        index
-            .delete(*id)
-            .map_err(std::io::Error::other)?;
+        index.delete(*id).map_err(std::io::Error::other)?;
 
         Ok(freed_bytes)
     }
@@ -808,12 +807,14 @@ impl StorageManager {
 
         let channel_stats: Vec<ChannelStats> = per_channel
             .into_iter()
-            .map(|((channel_name, platform), (count, size_bytes))| ChannelStats {
-                channel_name,
-                platform: platform.to_string(),
-                count,
-                size_bytes,
-            })
+            .map(
+                |((channel_name, platform), (count, size_bytes))| ChannelStats {
+                    channel_name,
+                    platform: platform.to_string(),
+                    count,
+                    size_bytes,
+                },
+            )
             .collect();
 
         StorageStats {
@@ -829,7 +830,10 @@ impl StorageManager {
      * This finds expired recordings and deletes them along with their files.
      * Also enforces per-channel retention if configured.
      */
-    pub async fn run_cleanup(&self, channels: &[crate::types::Channel]) -> Result<CleanupResult, std::io::Error> {
+    pub async fn run_cleanup(
+        &self,
+        channels: &[crate::types::Channel],
+    ) -> Result<CleanupResult, std::io::Error> {
         // 1. Global retention cleanup - find expired recordings
         let to_delete = {
             let index = self.index.read().await;
@@ -971,6 +975,7 @@ mod tests {
                 PathBuf::from("recordings/test"),
                 Some("Test Stream".to_string()),
                 Some("Test Game".to_string()),
+                None,
             )
             .await
             .unwrap();
@@ -1020,6 +1025,7 @@ mod tests {
                 PathBuf::from("recordings/test"),
                 None,
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -1031,7 +1037,10 @@ mod tests {
         assert_eq!(recording.segment_count, 10);
 
         // Complete the recording
-        manager.complete_recording(&id, 3600, 5000, 50).await.unwrap();
+        manager
+            .complete_recording(&id, 3600, 5000, 50)
+            .await
+            .unwrap();
         let recording = manager.get_recording(&id).await.unwrap().unwrap();
         assert_eq!(recording.status, RecordingStatus::Completed);
         assert_eq!(recording.duration_secs, Some(3600));
@@ -1060,6 +1069,7 @@ mod tests {
                 "test_channel",
                 "twitch",
                 PathBuf::from("recordings/test2"),
+                None,
                 None,
                 None,
             )
@@ -1091,6 +1101,7 @@ mod tests {
                 "test_channel",
                 "twitch",
                 PathBuf::from("recordings/test"),
+                None,
                 None,
                 None,
             )
@@ -1131,6 +1142,7 @@ mod tests {
                 PathBuf::from("recordings/1"),
                 None,
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -1143,6 +1155,7 @@ mod tests {
                 PathBuf::from("recordings/2"),
                 None,
                 None,
+                None,
             )
             .await
             .unwrap();
@@ -1153,6 +1166,7 @@ mod tests {
                 "channel_b",
                 "youtube",
                 PathBuf::from("recordings/3"),
+                None,
                 None,
                 None,
             )
@@ -1199,6 +1213,7 @@ mod tests {
                 "test_channel",
                 "twitch",
                 PathBuf::from("recordings/test"),
+                None,
                 None,
                 None,
             )

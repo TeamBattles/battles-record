@@ -114,7 +114,8 @@ impl ImageGenerator {
 
         match self.load_image(path_or_url).await {
             Ok(img) => {
-                self.profile_cache.insert(path_or_url.to_string(), img.clone());
+                self.profile_cache
+                    .insert(path_or_url.to_string(), img.clone());
                 Some(img)
             }
             Err(e) => {
@@ -125,7 +126,11 @@ impl ImageGenerator {
     }
 
     /** Get color palette for a profile image. */
-    fn get_palette(&mut self, url: Option<&str>, profile_img: Option<&DynamicImage>) -> ColorPalette {
+    fn get_palette(
+        &mut self,
+        url: Option<&str>,
+        profile_img: Option<&DynamicImage>,
+    ) -> ColorPalette {
         if let Some(url) = url {
             if let Some(cached) = self.palette_cache.get(url) {
                 return cached.clone();
@@ -157,7 +162,9 @@ impl ImageGenerator {
         tokio::fs::create_dir_all(output_dir).await?;
 
         // Load profile and banner images (from URL or local file)
-        let profile_img = self.get_profile_image(metadata.profile_image_url.as_deref()).await;
+        let profile_img = self
+            .get_profile_image(metadata.profile_image_url.as_deref())
+            .await;
         let banner_img = if let Some(path_or_url) = &metadata.banner_image_url {
             match self.load_image(path_or_url).await {
                 Ok(img) => Some(img),
@@ -170,10 +177,7 @@ impl ImageGenerator {
             None
         };
 
-        let palette = self.get_palette(
-            metadata.profile_image_url.as_deref(),
-            profile_img.as_ref(),
-        );
+        let palette = self.get_palette(metadata.profile_image_url.as_deref(), profile_img.as_ref());
 
         let show_meta = ShowImageMetadata {
             channel_name: metadata.channel_name.clone(),
@@ -233,7 +237,11 @@ impl ImageGenerator {
             &palette,
             &show_meta,
         );
-        save_image(&landscape, &output_dir.join("landscape.jpg"), ImageFormat::Jpeg)?;
+        save_image(
+            &landscape,
+            &output_dir.join("landscape.jpg"),
+            ImageFormat::Jpeg,
+        )?;
         debug!("Generated landscape.jpg");
 
         Ok(())
@@ -247,11 +255,10 @@ impl ImageGenerator {
     ) -> anyhow::Result<()> {
         tokio::fs::create_dir_all(output_dir).await?;
 
-        let profile_img = self.get_profile_image(metadata.profile_image_url.as_deref()).await;
-        let palette = self.get_palette(
-            metadata.profile_image_url.as_deref(),
-            profile_img.as_ref(),
-        );
+        let profile_img = self
+            .get_profile_image(metadata.profile_image_url.as_deref())
+            .await;
+        let palette = self.get_palette(metadata.profile_image_url.as_deref(), profile_img.as_ref());
 
         let season_meta = SeasonImageMetadata {
             channel_name: metadata.channel_name.clone(),
@@ -279,7 +286,9 @@ impl ImageGenerator {
         metadata: &ImageMetadata,
         output_path: &Path,
     ) -> anyhow::Result<()> {
-        let profile_img = self.get_profile_image(metadata.profile_image_url.as_deref()).await;
+        let profile_img = self
+            .get_profile_image(metadata.profile_image_url.as_deref())
+            .await;
 
         let stream_thumb = if let Some(path_or_url) = &metadata.thumbnail_url {
             match self.load_image(path_or_url).await {
@@ -293,10 +302,7 @@ impl ImageGenerator {
             None
         };
 
-        let palette = self.get_palette(
-            metadata.profile_image_url.as_deref(),
-            profile_img.as_ref(),
-        );
+        let palette = self.get_palette(metadata.profile_image_url.as_deref(), profile_img.as_ref());
 
         let episode_meta = EpisodeImageMetadata {
             channel_name: metadata.channel_name.clone(),
@@ -369,7 +375,9 @@ mod tests {
             banner_image_url: None,
         };
 
-        let result = generator.generate_show_images(&metadata, temp_dir.path()).await;
+        let result = generator
+            .generate_show_images(&metadata, temp_dir.path())
+            .await;
         assert!(result.is_ok());
 
         // Check files were created
@@ -403,7 +411,9 @@ mod tests {
             profile_image_url: None,
         };
 
-        let result = generator.generate_season_images(&metadata, temp_dir.path()).await;
+        let result = generator
+            .generate_season_images(&metadata, temp_dir.path())
+            .await;
         assert!(result.is_ok());
 
         assert!(temp_dir.path().join("poster.jpg").exists());

@@ -5,7 +5,6 @@
 
 pub mod episode_tracker;
 pub mod exporter;
-pub mod images;
 pub mod nfo;
 
 pub use episode_tracker::EpisodeTracker;
