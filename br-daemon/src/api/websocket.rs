@@ -39,9 +39,7 @@ pub async fn ws_handler(
             return Response::builder()
                 .status(401)
                 .body("Missing token".into())
-                .unwrap_or_else(|_| {
-                    Response::new("Missing token".into())
-                });
+                .unwrap_or_else(|_| Response::new("Missing token".into()));
         }
     };
 
@@ -55,9 +53,7 @@ pub async fn ws_handler(
             Response::builder()
                 .status(401)
                 .body("Invalid or expired token".into())
-                .unwrap_or_else(|_| {
-                    Response::new("Invalid or expired token".into())
-                })
+                .unwrap_or_else(|_| Response::new("Invalid or expired token".into()))
         }
     }
 }
@@ -237,9 +233,13 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             output_file,
             size_bytes,
         }),
-        ManagerEvent::ProcessingFailed { recording_id, error } => {
-            Some(WsEvent::ProcessingFailed { recording_id, error })
-        }
+        ManagerEvent::ProcessingFailed {
+            recording_id,
+            error,
+        } => Some(WsEvent::ProcessingFailed {
+            recording_id,
+            error,
+        }),
         ManagerEvent::ScheduleSkip {
             channel_id,
             channel_name,

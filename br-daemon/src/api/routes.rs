@@ -1,6 +1,6 @@
 use crate::api::auth::{
-    create_token, verify_password, verify_token_detailed,
-    AdminUser, AuthError, AuthErrorCode, AuthUser, Claims, LoginRequest, LoginResponse, TokenError,
+    create_token, verify_password, verify_token_detailed, AdminUser, AuthError, AuthErrorCode,
+    AuthUser, Claims, LoginRequest, LoginResponse, TokenError,
 };
 use crate::api::config_api::{
     get_config, get_post_processing_config, update_config, update_post_processing_config,
@@ -172,7 +172,10 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
             "/api/users/:id/sessions",
             get(get_user_sessions).delete(revoke_all_user_sessions),
         )
-        .route("/api/users/:user_id/sessions/:session_id", delete(revoke_user_session))
+        .route(
+            "/api/users/:user_id/sessions/:session_id",
+            delete(revoke_user_session),
+        )
         // Platform auth endpoints (admin only)
         .route("/api/auth/platforms", get(list_platform_auth))
         .route(
@@ -181,13 +184,28 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
                 .put(set_platform_auth)
                 .delete(delete_platform_auth),
         )
-        .route("/api/auth/platforms/:platform/test", post(test_platform_auth))
+        .route(
+            "/api/auth/platforms/:platform/test",
+            post(test_platform_auth),
+        )
         // YouTube-specific cookie auth endpoint
-        .route("/api/auth/platforms/youtube/cookies", post(set_youtube_cookies))
+        .route(
+            "/api/auth/platforms/youtube/cookies",
+            post(set_youtube_cookies),
+        )
         // OAuth endpoints
-        .route("/api/auth/platforms/oauth/availability", get(crate::api::oauth::get_oauth_availability))
-        .route("/api/auth/platforms/:platform/oauth/start", post(crate::api::oauth::start_oauth))
-        .route("/api/auth/platforms/:platform/oauth/callback", post(crate::api::oauth::oauth_callback))
+        .route(
+            "/api/auth/platforms/oauth/availability",
+            get(crate::api::oauth::get_oauth_availability),
+        )
+        .route(
+            "/api/auth/platforms/:platform/oauth/start",
+            post(crate::api::oauth::start_oauth),
+        )
+        .route(
+            "/api/auth/platforms/:platform/oauth/callback",
+            post(crate::api::oauth::oauth_callback),
+        )
         // Shutdown endpoint (local-only mode)
         .route("/api/shutdown", post(shutdown))
         .with_state(state)
@@ -209,7 +227,9 @@ async fn shutdown(
 ) -> Result<Json<ApiResponse<String>>, (StatusCode, ApiError)> {
     // Only allow shutdown in local-only mode for security
     if !state.local_only {
-        return Err(ApiError::forbidden("Shutdown only available in local-only mode"));
+        return Err(ApiError::forbidden(
+            "Shutdown only available in local-only mode",
+        ));
     }
 
     tracing::info!("Shutdown requested via API");
@@ -239,7 +259,11 @@ fn save_channels_to_config(state: &Arc<AppState>) {
         if let Err(e) = crate::config::save_channels_file(&channels_path, &channel_configs) {
             tracing::error!("Failed to save channels to {:?}: {}", channels_path, e);
         } else {
-            tracing::debug!("Saved {} channels to {:?}", channel_configs.len(), channels_path);
+            tracing::debug!(
+                "Saved {} channels to {:?}",
+                channel_configs.len(),
+                channels_path
+            );
         }
     } else {
         // Legacy behavior: save to main config file
@@ -266,11 +290,19 @@ async fn login(
     // In local-only mode, skip password verification
     if state.local_only {
         let duration_hours = config.auth.session_duration / 3600;
-        let duration_hours = if duration_hours == 0 { 24 } else { duration_hours };
+        let duration_hours = if duration_hours == 0 {
+            24
+        } else {
+            duration_hours
+        };
 
-        let (token, expiry) =
-            create_token(&request.username, crate::types::UserRole::Admin, &state.jwt_secret, duration_hours)
-                .map_err(|_| AuthError::new("Failed to create token"))?;
+        let (token, expiry) = create_token(
+            &request.username,
+            crate::types::UserRole::Admin,
+            &state.jwt_secret,
+            duration_hours,
+        )
+        .map_err(|_| AuthError::new("Failed to create token"))?;
 
         return Ok(Json(ApiResponse::new(LoginResponse {
             token,
@@ -285,10 +317,9 @@ async fn login(
         .iter()
         .enumerate()
         .find(|(_, u)| u.username == request.username)
-        .ok_or_else(|| AuthError::with_code(
-            "Invalid username or password",
-            AuthErrorCode::Unauthorized,
-        ))?;
+        .ok_or_else(|| {
+            AuthError::with_code("Invalid username or password", AuthErrorCode::Unauthorized)
+        })?;
 
     // Verify password
     if !verify_password(&request.password, &user.password_hash) {
@@ -373,12 +404,15 @@ async fn refresh_token(
         })));
     }
 
-    let token = extract_bearer_token(&headers)
-        .ok_or_else(AuthError::token_missing)?;
+    let token = extract_bearer_token(&headers).ok_or_else(AuthError::token_missing)?;
 
     let config = state.config.read();
     let duration_hours = config.auth.session_duration / 3600;
-    let duration_hours = if duration_hours == 0 { 24 } else { duration_hours };
+    let duration_hours = if duration_hours == 0 {
+        24
+    } else {
+        duration_hours
+    };
     let grace_period_secs = config.auth.refresh_grace_period;
     drop(config);
 
@@ -411,9 +445,7 @@ async fn refresh_token(
                 ))
             }
         }
-        Err(TokenError::Invalid(_)) | Err(TokenError::Malformed) => {
-            Err(AuthError::token_invalid())
-        }
+        Err(TokenError::Invalid(_)) | Err(TokenError::Malformed) => Err(AuthError::token_invalid()),
     }
 }
 
@@ -507,9 +539,9 @@ pub struct UpdateChannelRequest {
 /** Schedule rule in API request format. */
 #[derive(Debug, Deserialize)]
 pub struct UpdateScheduleRule {
-    pub days: Vec<u8>,        // 0-6, Sunday=0
-    pub start_time: String,   // "HH:MM"
-    pub end_time: String,     // "HH:MM"
+    pub days: Vec<u8>,      // 0-6, Sunday=0
+    pub start_time: String, // "HH:MM"
+    pub end_time: String,   // "HH:MM"
 }
 
 /** Filters in API request format. */
@@ -545,7 +577,8 @@ async fn add_channel(
     let duplicate = existing_channels.iter().any(|ch| {
         // Normalize existing channel names for comparison
         let existing_normalized = normalize_channel_name(&ch.name, ch.platform);
-        existing_normalized.eq_ignore_ascii_case(&normalized_name) && ch.platform == request.platform
+        existing_normalized.eq_ignore_ascii_case(&normalized_name)
+            && ch.platform == request.platform
     });
     if duplicate {
         return Err(ApiError::bad_request(format!(
@@ -598,7 +631,10 @@ async fn add_channel(
     let channel_manager = state.channel_manager.clone();
     let channel_name = normalized_name.clone();
     tokio::spawn(async move {
-        tracing::debug!("Triggering immediate check for newly added channel: {}", channel_name);
+        tracing::debug!(
+            "Triggering immediate check for newly added channel: {}",
+            channel_name
+        );
         if let Err(e) = channel_manager.check_channel(id).await {
             tracing::warn!("Initial check for {} failed: {}", channel_name, e);
         }
@@ -611,7 +647,10 @@ async fn add_channel(
     let channel_name_for_profile = normalized_name;
     let platform_type = request.platform;
     tokio::spawn(async move {
-        tracing::debug!("Fetching profile images for newly added channel: {}", channel_name_for_profile);
+        tracing::debug!(
+            "Fetching profile images for newly added channel: {}",
+            channel_name_for_profile
+        );
 
         // Create platform instance based on type
         // Note: Profile data is public, no auth needed. Using auth with the public Client-ID
@@ -629,14 +668,20 @@ async fn add_channel(
         };
 
         if let Some(platform) = platform {
-            match platform.get_channel_profile(&channel_name_for_profile).await {
+            match platform
+                .get_channel_profile(&channel_name_for_profile)
+                .await
+            {
                 Ok(profile) => {
                     // Store the fetched URLs in the channel config
-                    if channel_manager_for_profile.update_platform_images(
-                        id,
-                        profile.profile_image_url,
-                        profile.banner_image_url,
-                    ).is_some() {
+                    if channel_manager_for_profile
+                        .update_platform_images(
+                            id,
+                            profile.profile_image_url,
+                            profile.banner_image_url,
+                        )
+                        .is_some()
+                    {
                         // Persist to config file
                         let channel_configs = channel_manager_for_profile.get_channel_configs();
                         let channels_file = {
@@ -645,8 +690,13 @@ async fn add_channel(
                         };
 
                         if let Some(channels_path) = channels_file {
-                            if let Err(e) = crate::config::save_channels_file(&channels_path, &channel_configs) {
-                                tracing::error!("Failed to save channels after profile fetch: {}", e);
+                            if let Err(e) =
+                                crate::config::save_channels_file(&channels_path, &channel_configs)
+                            {
+                                tracing::error!(
+                                    "Failed to save channels after profile fetch: {}",
+                                    e
+                                );
                             }
                         } else {
                             let mut config = config_for_profile.write();
@@ -655,11 +705,18 @@ async fn add_channel(
                                 tracing::error!("Failed to save config after profile fetch: {}", e);
                             }
                         }
-                        tracing::info!("Fetched and stored profile images for {}", channel_name_for_profile);
+                        tracing::info!(
+                            "Fetched and stored profile images for {}",
+                            channel_name_for_profile
+                        );
                     }
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to fetch profile for {}: {}", channel_name_for_profile, e);
+                    tracing::warn!(
+                        "Failed to fetch profile for {}: {}",
+                        channel_name_for_profile,
+                        e
+                    );
                 }
             }
         }
@@ -710,14 +767,19 @@ async fn fetch_platform_images(
     let platform: Option<Box<dyn StreamPlatform + Send>> = match channel.platform {
         Platform::Twitch => Some(Box::new(TwitchPlatform::new())),
         Platform::YouTube => {
-            return Err(ApiError::bad_request("YouTube profile fetch not yet implemented"));
+            return Err(ApiError::bad_request(
+                "YouTube profile fetch not yet implemented",
+            ));
         }
         Platform::Kick => {
-            return Err(ApiError::bad_request("Kick profile fetch not yet implemented"));
+            return Err(ApiError::bad_request(
+                "Kick profile fetch not yet implemented",
+            ));
         }
     };
 
-    let platform = platform.ok_or_else(|| ApiError::internal("Failed to create platform adapter"))?;
+    let platform =
+        platform.ok_or_else(|| ApiError::internal("Failed to create platform adapter"))?;
 
     // Fetch profile from platform API
     let profile = platform
@@ -728,7 +790,11 @@ async fn fetch_platform_images(
     // Store the fetched URLs in the channel config
     state
         .channel_manager
-        .update_platform_images(id, profile.profile_image_url.clone(), profile.banner_image_url.clone())
+        .update_platform_images(
+            id,
+            profile.profile_image_url.clone(),
+            profile.banner_image_url.clone(),
+        )
         .ok_or_else(|| ApiError::not_found("Channel"))?;
 
     // Persist to config file
@@ -769,7 +835,11 @@ async fn update_channel(
         rules
             .into_iter()
             .map(|r| ScheduleRule {
-                days: r.days.into_iter().map(|d| day_number_to_name(d).to_string()).collect(),
+                days: r
+                    .days
+                    .into_iter()
+                    .map(|d| day_number_to_name(d).to_string())
+                    .collect(),
                 start_time: Some(r.start_time),
                 end_time: Some(r.end_time),
             })
@@ -840,7 +910,11 @@ async fn update_channel(
         tokio::spawn(async move {
             tracing::debug!("Triggering check for re-enabled channel: {}", channel_name);
             if let Err(e) = channel_manager.check_channel(id).await {
-                tracing::warn!("Check for re-enabled channel {} failed: {}", channel_name, e);
+                tracing::warn!(
+                    "Check for re-enabled channel {} failed: {}",
+                    channel_name,
+                    e
+                );
             }
         });
     }

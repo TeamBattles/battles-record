@@ -32,7 +32,10 @@ impl NotificationManager {
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .unwrap_or_else(|e| {
-                error!("Failed to create HTTP client with TLS: {}, using default client", e);
+                error!(
+                    "Failed to create HTTP client with TLS: {}, using default client",
+                    e
+                );
                 Client::new()
             });
 

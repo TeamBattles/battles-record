@@ -124,7 +124,10 @@ pub fn verify_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::e
 }
 
 /** Decode a token without validating expiry (for refresh flow). */
-pub fn decode_token_unvalidated(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+pub fn decode_token_unvalidated(
+    token: &str,
+    secret: &str,
+) -> Result<Claims, jsonwebtoken::errors::Error> {
     let mut validation = Validation::default();
     validation.validate_exp = false;
 
@@ -205,12 +208,12 @@ where
             .and_then(|v| v.to_str().ok())
             .ok_or_else(|| AuthError::token_missing())?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or_else(|| AuthError::with_code(
+        let token = auth_header.strip_prefix("Bearer ").ok_or_else(|| {
+            AuthError::with_code(
                 "Invalid Authorization header format",
                 AuthErrorCode::TokenInvalid,
-            ))?;
+            )
+        })?;
 
         let claims = verify_token_detailed(token, &secret.0).map_err(|e| match e {
             TokenError::Expired { .. } => AuthError::token_expired(),
@@ -234,7 +237,10 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let user = AuthUser::from_request_parts(parts, state).await?;
         if user.role != UserRole::Admin {
-            return Err(AuthError::with_code("Admin access required", AuthErrorCode::Forbidden));
+            return Err(AuthError::with_code(
+                "Admin access required",
+                AuthErrorCode::Forbidden,
+            ));
         }
         Ok(AdminUser {
             username: user.username,
@@ -411,7 +417,10 @@ mod tests {
     #[test]
     fn test_verify_token_detailed_malformed() {
         let result = verify_token_detailed("not-a-valid-jwt", TEST_SECRET);
-        assert!(matches!(result, Err(TokenError::Invalid(_)) | Err(TokenError::Malformed)));
+        assert!(matches!(
+            result,
+            Err(TokenError::Invalid(_)) | Err(TokenError::Malformed)
+        ));
     }
 
     #[test]

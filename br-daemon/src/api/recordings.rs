@@ -253,8 +253,12 @@ pub async fn get_storage_stats(
 
             // Compare using device ID (works in Docker and on real filesystems)
             let same_disk = are_same_device(&recordings_dir_path, &library_dir_path);
-            tracing::info!("Storage stats: same_disk={} (recordings_dir={}, library_dir={})",
-                same_disk, recordings_dir_str, library_dir_str);
+            tracing::info!(
+                "Storage stats: same_disk={} (recordings_dir={}, library_dir={})",
+                same_disk,
+                recordings_dir_str,
+                library_dir_str
+            );
 
             if !same_disk {
                 (Some(lib_free), Some(lib_total))
@@ -362,8 +366,14 @@ fn are_same_device(path1: &std::path::Path, path2: &std::path::Path) -> bool {
 
     // If total bytes match and are non-zero, they're on the same disk
     let same = total1 == total2 && total1 > 0;
-    tracing::info!("are_same_device: path1={:?} (total={}), path2={:?} (total={}) -> {}",
-        path1, total1, path2, total2, same);
+    tracing::info!(
+        "are_same_device: path1={:?} (total={}), path2={:?} (total={}) -> {}",
+        path1,
+        total1,
+        path2,
+        total2,
+        same
+    );
     same
 }
 
@@ -515,7 +525,11 @@ pub async fn cleanup_storage(
             let result = match request.location {
                 CleanupLocation::Recordings => {
                     // Only delete recording files, remove from index
-                    match state.storage_manager.delete_recording_files_only(&recording.id).await {
+                    match state
+                        .storage_manager
+                        .delete_recording_files_only(&recording.id)
+                        .await
+                    {
                         Ok(freed) => {
                             recordings_freed += freed;
                             Ok(())
@@ -525,7 +539,11 @@ pub async fn cleanup_storage(
                 }
                 CleanupLocation::Library => {
                     // Only delete Jellyfin files, keep recording in index
-                    match state.storage_manager.cleanup_jellyfin_files(&recording.id).await {
+                    match state
+                        .storage_manager
+                        .cleanup_jellyfin_files(&recording.id)
+                        .await
+                    {
                         Ok(freed) => {
                             library_freed += freed;
                             Ok(())
@@ -535,7 +553,11 @@ pub async fn cleanup_storage(
                 }
                 CleanupLocation::Both => {
                     // Delete both recording and Jellyfin files
-                    match state.storage_manager.delete_recording(&recording.id, true).await {
+                    match state
+                        .storage_manager
+                        .delete_recording(&recording.id, true)
+                        .await
+                    {
                         Ok(Some(freed)) => {
                             // We don't have separate tracking here, so we estimate
                             // For "both" mode, recording files are the bulk of the size

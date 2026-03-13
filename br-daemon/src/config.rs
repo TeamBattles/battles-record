@@ -177,20 +177,21 @@ struct ChannelsFile {
 /** Load channels from a separate TOML file. */
 pub fn load_channels_file(path: &Path) -> Vec<ChannelConfig> {
     match std::fs::read_to_string(path) {
-        Ok(content) => {
-            match toml::from_str::<ChannelsFile>(&content) {
-                Ok(file) => {
-                    tracing::info!("Loaded {} channels from {:?}", file.channels.len(), path);
-                    file.channels
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to parse channels from {:?}: {}", path, e);
-                    Vec::new()
-                }
+        Ok(content) => match toml::from_str::<ChannelsFile>(&content) {
+            Ok(file) => {
+                tracing::info!("Loaded {} channels from {:?}", file.channels.len(), path);
+                file.channels
             }
-        }
+            Err(e) => {
+                tracing::warn!("Failed to parse channels from {:?}: {}", path, e);
+                Vec::new()
+            }
+        },
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            tracing::info!("Channels file {:?} not found, starting with empty channels", path);
+            tracing::info!(
+                "Channels file {:?} not found, starting with empty channels",
+                path
+            );
             Vec::new()
         }
         Err(e) => {
@@ -282,7 +283,6 @@ pub struct UserConfig {
     #[serde(default)]
     pub role: UserRole,
 }
-
 
 /**
  * Storage directory configuration.
@@ -782,7 +782,10 @@ mod tests {
         let twitch = config.oauth.twitch.unwrap();
         assert_eq!(twitch.client_id, "twitch_client_123");
         assert_eq!(twitch.client_secret, Some("twitch_secret_456".to_string()));
-        assert_eq!(twitch.redirect_uri, Some("battles-record://oauth/callback".to_string()));
+        assert_eq!(
+            twitch.redirect_uri,
+            Some("battles-record://oauth/callback".to_string())
+        );
 
         // Verify YouTube OAuth config (minimal)
         assert!(config.oauth.youtube.is_some());

@@ -47,7 +47,7 @@ fn get_emoji(event_type: NotificationType) -> &'static str {
         NotificationType::RecordingStarted => "\u{23FA}\u{FE0F}", // Record button
         NotificationType::RecordingEnded => "\u{23F9}\u{FE0F}", // Stop button
         NotificationType::ProcessingComplete => "\u{2705}", // Check mark
-        NotificationType::Error => "\u{274C}", // Cross mark
+        NotificationType::Error => "\u{274C}",       // Cross mark
     }
 }
 
@@ -63,10 +63,7 @@ fn get_color(event_type: NotificationType) -> u32 {
 /** Build title with emoji and event-specific text. */
 fn build_title(payload: &NotificationPayload) -> String {
     let emoji = get_emoji(payload.event_type);
-    let channel_display = payload
-        .channel_name
-        .as_deref()
-        .unwrap_or("Unknown channel");
+    let channel_display = payload.channel_name.as_deref().unwrap_or("Unknown channel");
 
     match payload.event_type {
         NotificationType::StreamLive => {
@@ -198,8 +195,14 @@ mod tests {
     #[test]
     fn test_get_emoji() {
         assert_eq!(get_emoji(NotificationType::StreamLive), "\u{1F534}");
-        assert_eq!(get_emoji(NotificationType::RecordingStarted), "\u{23FA}\u{FE0F}");
-        assert_eq!(get_emoji(NotificationType::RecordingEnded), "\u{23F9}\u{FE0F}");
+        assert_eq!(
+            get_emoji(NotificationType::RecordingStarted),
+            "\u{23FA}\u{FE0F}"
+        );
+        assert_eq!(
+            get_emoji(NotificationType::RecordingEnded),
+            "\u{23F9}\u{FE0F}"
+        );
         assert_eq!(get_emoji(NotificationType::ProcessingComplete), "\u{2705}");
         assert_eq!(get_emoji(NotificationType::Error), "\u{274C}");
     }
@@ -207,9 +210,15 @@ mod tests {
     #[test]
     fn test_get_color() {
         assert_eq!(get_color(NotificationType::StreamLive), colors::SUCCESS);
-        assert_eq!(get_color(NotificationType::RecordingStarted), colors::SUCCESS);
+        assert_eq!(
+            get_color(NotificationType::RecordingStarted),
+            colors::SUCCESS
+        );
         assert_eq!(get_color(NotificationType::RecordingEnded), colors::INFO);
-        assert_eq!(get_color(NotificationType::ProcessingComplete), colors::INFO);
+        assert_eq!(
+            get_color(NotificationType::ProcessingComplete),
+            colors::INFO
+        );
         assert_eq!(get_color(NotificationType::Error), colors::ERROR);
     }
 
@@ -270,17 +279,24 @@ mod tests {
 
         let fields = build_fields(&payload);
         // Should have Segments and Size fields
-        assert!(fields.iter().any(|f| f.name == "Segments" && f.value == "100"));
-        assert!(fields.iter().any(|f| f.name == "Size" && f.value.contains("500.00 MB")));
+        assert!(fields
+            .iter()
+            .any(|f| f.name == "Segments" && f.value == "100"));
+        assert!(fields
+            .iter()
+            .any(|f| f.name == "Size" && f.value.contains("500.00 MB")));
     }
 
     #[test]
     fn test_build_fields_with_output_file() {
-        let payload = NotificationPayload::processing_complete("/output/video.mp4", 1024 * 1024 * 100);
+        let payload =
+            NotificationPayload::processing_complete("/output/video.mp4", 1024 * 1024 * 100);
 
         let fields = build_fields(&payload);
         // Should have Size and Output fields
         assert!(fields.iter().any(|f| f.name == "Size"));
-        assert!(fields.iter().any(|f| f.name == "Output" && f.value == "/output/video.mp4"));
+        assert!(fields
+            .iter()
+            .any(|f| f.name == "Output" && f.value == "/output/video.mp4"));
     }
 }

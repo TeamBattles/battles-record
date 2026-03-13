@@ -119,10 +119,7 @@ pub enum WsEvent {
     },
 
     /** Platform authentication expired (refresh failed). */
-    PlatformAuthExpired {
-        platform: Platform,
-        reason: String,
-    },
+    PlatformAuthExpired { platform: Platform, reason: String },
 }
 
 /** Stream info for WebSocket events. */

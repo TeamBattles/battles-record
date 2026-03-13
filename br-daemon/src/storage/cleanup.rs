@@ -105,18 +105,11 @@ impl CleanupWorker {
         // Sort by started_at (oldest first)
         inactive.sort_by(|a, b| a.started_at.cmp(&b.started_at));
 
-        let expired: Vec<_> = inactive
-            .iter()
-            .filter(|r| r.started_at < cutoff)
-            .collect();
+        let expired: Vec<_> = inactive.iter().filter(|r| r.started_at < cutoff).collect();
 
         let can_delete = inactive.len().saturating_sub(keep_minimum as usize);
 
-        expired
-            .iter()
-            .take(can_delete)
-            .map(|r| r.id)
-            .collect()
+        expired.iter().take(can_delete).map(|r| r.id).collect()
     }
 
     /**
@@ -236,7 +229,11 @@ impl CleanupWorker {
                 freed_bytes += metadata.len();
             }
             if let Err(e) = fs::remove_file(jellyfin_path).await {
-                tracing::warn!("Failed to delete Jellyfin video file {:?}: {}", jellyfin_path, e);
+                tracing::warn!(
+                    "Failed to delete Jellyfin video file {:?}: {}",
+                    jellyfin_path,
+                    e
+                );
             }
         }
 
@@ -262,7 +259,11 @@ impl CleanupWorker {
                         freed_bytes += metadata.len();
                     }
                     if let Err(e) = fs::remove_file(&thumb_path).await {
-                        tracing::warn!("Failed to delete Jellyfin thumbnail {:?}: {}", thumb_path, e);
+                        tracing::warn!(
+                            "Failed to delete Jellyfin thumbnail {:?}: {}",
+                            thumb_path,
+                            e
+                        );
                     }
                 }
             }
@@ -299,7 +300,10 @@ impl CleanupWorker {
 
     /** Check if a recording status is considered "active" (should not be deleted). */
     fn is_active(status: RecordingStatus) -> bool {
-        matches!(status, RecordingStatus::Recording | RecordingStatus::Processing)
+        matches!(
+            status,
+            RecordingStatus::Recording | RecordingStatus::Processing
+        )
     }
 
     /** Calculate total size of a directory recursively. */
@@ -737,7 +741,9 @@ mod tests {
 
         // Create the files
         fs::write(&video_path, vec![0u8; 5000]).await.unwrap();
-        fs::write(&nfo_path, b"<episodedetails>...</episodedetails>").await.unwrap();
+        fs::write(&nfo_path, b"<episodedetails>...</episodedetails>")
+            .await
+            .unwrap();
         fs::write(&thumb_path, vec![0u8; 1000]).await.unwrap();
 
         // Create recording entry with jellyfin_exported = true
@@ -858,7 +864,9 @@ mod tests {
         // Create show-level metadata (should be preserved)
         let tvshow_nfo = show_dir.join("tvshow.nfo");
         let poster = show_dir.join("poster.jpg");
-        fs::write(&tvshow_nfo, b"<tvshow>...</tvshow>").await.unwrap();
+        fs::write(&tvshow_nfo, b"<tvshow>...</tvshow>")
+            .await
+            .unwrap();
         fs::write(&poster, vec![0u8; 2000]).await.unwrap();
 
         // Create episode file

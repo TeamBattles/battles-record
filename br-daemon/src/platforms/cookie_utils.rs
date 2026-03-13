@@ -35,16 +35,16 @@ pub fn get_cookies_dir() -> Result<PathBuf, CookieError> {
     #[cfg(target_os = "macos")]
     {
         if let Some(home) = std::env::var_os("HOME") {
-            return Ok(PathBuf::from(home)
-                .join("Library/Application Support/com.battles.record/cookies"));
+            return Ok(
+                PathBuf::from(home).join("Library/Application Support/com.battles.record/cookies")
+            );
         }
     }
 
     #[cfg(target_os = "linux")]
     {
         if let Some(home) = std::env::var_os("HOME") {
-            return Ok(PathBuf::from(home)
-                .join(".local/share/com.battles.record/cookies"));
+            return Ok(PathBuf::from(home).join(".local/share/com.battles.record/cookies"));
         }
     }
 
@@ -78,8 +78,7 @@ pub fn validate_cookie_file(content: &str) -> Result<(), CookieError> {
     // Check for Netscape header (common variants)
     let has_valid_header = lines.iter().any(|line| {
         let lower = line.to_lowercase();
-        lower.contains("netscape") && lower.contains("cookie")
-            || lower.contains("http cookie file")
+        lower.contains("netscape") && lower.contains("cookie") || lower.contains("http cookie file")
     });
 
     if !has_valid_header {
@@ -130,7 +129,8 @@ pub fn validate_cookie_file(content: &str) -> Result<(), CookieError> {
 
     if !has_youtube_cookie {
         return Err(CookieError::ValidationError(
-            "No YouTube or Google cookies found. Make sure to export cookies from youtube.com.".to_string(),
+            "No YouTube or Google cookies found. Make sure to export cookies from youtube.com."
+                .to_string(),
         ));
     }
 
@@ -204,7 +204,11 @@ mod tests {
     #[test]
     fn test_validate_http_cookie_header() {
         let result = validate_cookie_file(VALID_COOKIE_HTTP_HEADER);
-        assert!(result.is_ok(), "Expected valid cookie file with HTTP header: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Expected valid cookie file with HTTP header: {:?}",
+            result
+        );
     }
 
     #[test]
@@ -239,7 +243,10 @@ mod tests {
 "#;
         let result = validate_cookie_file(content);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("7 tab-separated fields"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("7 tab-separated fields"));
     }
 
     #[test]

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use super::{FfmpegRunner, InputSource, ProcessingManager, ProcessingMode};
 
@@ -109,7 +109,10 @@ impl ReconciliationWorker {
         // Get channels that are currently recording (skip their recordings)
         let active_channels = self.storage.get_active_recording_channel_names().await;
         if !active_channels.is_empty() {
-            info!("Active recording channels (will skip): {:?}", active_channels);
+            info!(
+                "Active recording channels (will skip): {:?}",
+                active_channels
+            );
         }
 
         for entry in unprocessed {
@@ -144,10 +147,8 @@ impl ReconciliationWorker {
         );
 
         // Check if there's a valid input source (segments, concatenated file, or output file)
-        let input_source = FfmpegRunner::find_input_source(
-            &entry.path,
-            entry.output_file.as_deref()
-        ).await;
+        let input_source =
+            FfmpegRunner::find_input_source(&entry.path, entry.output_file.as_deref()).await;
 
         let (segment_count, total_size) = match &input_source {
             Ok(InputSource::ConcatList(_)) => {
@@ -161,7 +162,10 @@ impl ReconciliationWorker {
             }
             Ok(InputSource::SingleFile(path)) => {
                 // We have a single file (concatenated or previous output)
-                let size = tokio::fs::metadata(path).await.map(|m| m.len()).unwrap_or(0);
+                let size = tokio::fs::metadata(path)
+                    .await
+                    .map(|m| m.len())
+                    .unwrap_or(0);
                 info!(
                     "queue_recording: {} ({}) - found concatenated/output file {:?} ({} bytes)",
                     entry.channel_name, entry.id, path, size
@@ -178,7 +182,11 @@ impl ReconciliationWorker {
 
                 // Mark as processing failed to increment attempt counter
                 // After 5 attempts, it won't be retried anymore
-                if let Err(mark_err) = self.storage.mark_processing_failed(&entry.id, Some(reason.clone())).await {
+                if let Err(mark_err) = self
+                    .storage
+                    .mark_processing_failed(&entry.id, Some(reason.clone()))
+                    .await
+                {
                     warn!(
                         "Failed to mark recording {} as failed: {}",
                         entry.id, mark_err
@@ -206,8 +214,14 @@ impl ReconciliationWorker {
                 None
             };
 
-            if let Err(e) = self.storage
-                .update_recording_stats(&entry.id, total_size, segment_count as u32, estimated_duration)
+            if let Err(e) = self
+                .storage
+                .update_recording_stats(
+                    &entry.id,
+                    total_size,
+                    segment_count as u32,
+                    estimated_duration,
+                )
                 .await
             {
                 warn!("Failed to update recording stats: {}", e);
@@ -233,10 +247,13 @@ impl ReconciliationWorker {
             .map_err(|e| e.to_string())?;
 
         // Use entry duration if available, otherwise estimate from segment count
-        let duration = entry.duration_secs.or_else(|| Some((segment_count as u64) * 2));
+        let duration = entry
+            .duration_secs
+            .or_else(|| Some((segment_count as u64) * 2));
 
         // Build output directory: library_dir/{platform}/{channel}/
-        let output_dir = self.library_dir
+        let output_dir = self
+            .library_dir
             .join(entry.platform.to_string())
             .join(&entry.channel_name);
 
@@ -312,11 +329,20 @@ impl ReconciliationWorker {
 
             // Update if we found a duration
             if let Some(duration) = probed_duration {
-                if let Err(e) = self.storage
-                    .update_recording_stats(&entry.id, entry.size_bytes, entry.segment_count, Some(duration))
+                if let Err(e) = self
+                    .storage
+                    .update_recording_stats(
+                        &entry.id,
+                        entry.size_bytes,
+                        entry.segment_count,
+                        Some(duration),
+                    )
                     .await
                 {
-                    warn!("Failed to update duration for {} ({}): {}", entry.channel_name, entry.id, e);
+                    warn!(
+                        "Failed to update duration for {} ({}): {}",
+                        entry.channel_name, entry.id, e
+                    );
                 } else {
                     info!(
                         "Updated {} ({}) duration: {}s",
@@ -348,7 +374,10 @@ impl ReconciliationWorker {
         while let Ok(Some(entry)) = entries.next_entry().await {
             let entry_path = entry.path();
             // Only count .ts files with numeric filenames (segment files)
-            let is_ts = entry_path.extension().map(|ext| ext == "ts").unwrap_or(false);
+            let is_ts = entry_path
+                .extension()
+                .map(|ext| ext == "ts")
+                .unwrap_or(false);
             let is_numeric = entry_path
                 .file_stem()
                 .and_then(|s| s.to_string_lossy().parse::<u64>().ok())

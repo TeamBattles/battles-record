@@ -109,25 +109,33 @@ impl KickPlatform {
     async fn curl_get(&self, url: &str) -> PlatformResult<String> {
         let mut cmd = Command::new("curl");
         cmd.arg("-s") // Silent mode
-            .arg("-A").arg(CURL_USER_AGENT)
-            .arg("-H").arg("Accept: application/json, text/plain, */*")
-            .arg("-H").arg("Accept-Language: en-US,en;q=0.9")
-            .arg("-H").arg("Referer: https://kick.com/")
-            .arg("-H").arg("Origin: https://kick.com")
-            .arg("-w").arg("\n%{http_code}") // Append HTTP status code
+            .arg("-A")
+            .arg(CURL_USER_AGENT)
+            .arg("-H")
+            .arg("Accept: application/json, text/plain, */*")
+            .arg("-H")
+            .arg("Accept-Language: en-US,en;q=0.9")
+            .arg("-H")
+            .arg("Referer: https://kick.com/")
+            .arg("-H")
+            .arg("Origin: https://kick.com")
+            .arg("-w")
+            .arg("\n%{http_code}") // Append HTTP status code
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
         // Add auth header if present
         if let Some(ref token) = self.auth_token {
-            cmd.arg("-H").arg(format!("Authorization: Bearer {}", token));
+            cmd.arg("-H")
+                .arg(format!("Authorization: Bearer {}", token));
         }
 
         cmd.arg(url);
 
-        let output = cmd.output().await.map_err(|e| {
-            PlatformError::Api(format!("Failed to execute curl: {}", e))
-        })?;
+        let output = cmd
+            .output()
+            .await
+            .map_err(|e| PlatformError::Api(format!("Failed to execute curl: {}", e)))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stdout_str = stdout.trim();
@@ -166,9 +174,8 @@ impl KickPlatform {
     async fn fetch_channel(&self, channel: &str) -> PlatformResult<KickChannelResponse> {
         let url = format!("{}/v2/channels/{}", KICK_API_BASE, channel.to_lowercase());
         let body = self.curl_get(&url).await?;
-        serde_json::from_str(&body).map_err(|e| {
-            PlatformError::Api(format!("Failed to parse Kick response: {}", e))
-        })
+        serde_json::from_str(&body)
+            .map_err(|e| PlatformError::Api(format!("Failed to parse Kick response: {}", e)))
     }
 }
 
@@ -214,13 +221,7 @@ impl StreamPlatform for KickPlatform {
         let playback_url = data.playback_url.ok_or(PlatformError::StreamOffline)?;
 
         // Fetch playlist using reqwest (m3u8 URLs don't have Cloudflare)
-        let playlist_text = self
-            .client
-            .get(&playback_url)
-            .send()
-            .await?
-            .text()
-            .await?;
+        let playlist_text = self.client.get(&playback_url).send().await?.text().await?;
 
         let mut qualities = vec![Quality::source()];
 
@@ -261,13 +262,7 @@ impl StreamPlatform for KickPlatform {
         let playback_url = data.playback_url.ok_or(PlatformError::StreamOffline)?;
 
         // Fetch master playlist to find quality variant (m3u8 URLs don't have Cloudflare)
-        let master_content = self
-            .client
-            .get(&playback_url)
-            .send()
-            .await?
-            .text()
-            .await?;
+        let master_content = self.client.get(&playback_url).send().await?.text().await?;
 
         let variants = parse_master_playlist(&master_content, &playback_url)
             .map_err(|e| PlatformError::Api(format!("Failed to parse playlist: {}", e)))?;

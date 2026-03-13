@@ -27,9 +27,9 @@ impl Default for ColorPalette {
         // Default dark theme colors matching design system
         Self {
             primary: Rgba([24, 24, 27, 255]),       // zinc-900
-            secondary: Rgba([39, 39, 42, 255]),    // zinc-800
-            accent: Rgba([16, 185, 129, 255]),     // emerald-500
-            text: Rgba([250, 250, 250, 255]),      // zinc-50
+            secondary: Rgba([39, 39, 42, 255]),     // zinc-800
+            accent: Rgba([16, 185, 129, 255]),      // emerald-500
+            text: Rgba([250, 250, 250, 255]),       // zinc-50
             text_muted: Rgba([113, 113, 122, 255]), // zinc-500
         }
     }
@@ -66,7 +66,10 @@ pub fn extract_dominant_colors(img: &DynamicImage, num_colors: usize) -> Vec<Rgb
 
     // Check if all pixels are identical (edge case that breaks kmeans)
     let first = &pixels[0];
-    if pixels.iter().all(|p| p.red == first.red && p.green == first.green && p.blue == first.blue) {
+    if pixels
+        .iter()
+        .all(|p| p.red == first.red && p.green == first.green && p.blue == first.blue)
+    {
         return vec![Rgba([
             (first.red * 255.0).clamp(0.0, 255.0) as u8,
             (first.green * 255.0).clamp(0.0, 255.0) as u8,
@@ -81,14 +84,8 @@ pub fn extract_dominant_colors(img: &DynamicImage, num_colors: usize) -> Vec<Rgb
     let verbose = false;
     let seed = 42;
 
-    let result: Kmeans<Srgb<f32>> = get_kmeans(
-        num_colors,
-        max_iterations,
-        converge,
-        verbose,
-        &pixels,
-        seed,
-    );
+    let result: Kmeans<Srgb<f32>> =
+        get_kmeans(num_colors, max_iterations, converge, verbose, &pixels, seed);
 
     // The actual number of centroids may be less than requested
     let actual_centroids = result.centroids.len();
@@ -141,7 +138,11 @@ pub fn generate_palette(img: &DynamicImage) -> ColorPalette {
     // Find the most vibrant color for accent
     let accent = colors
         .iter()
-        .max_by(|a, b| color_saturation(a).partial_cmp(&color_saturation(b)).unwrap())
+        .max_by(|a, b| {
+            color_saturation(a)
+                .partial_cmp(&color_saturation(b))
+                .unwrap()
+        })
         .cloned()
         .unwrap_or(Rgba([16, 185, 129, 255])); // fallback to emerald
 
@@ -229,7 +230,12 @@ pub fn lighten_color(color: &Rgba<u8>, factor: f32) -> Rgba<u8> {
         (adjusted * 255.0).clamp(0.0, 255.0) as u8
     };
 
-    Rgba([lighten(color[0]), lighten(color[1]), lighten(color[2]), color[3]])
+    Rgba([
+        lighten(color[0]),
+        lighten(color[1]),
+        lighten(color[2]),
+        color[3],
+    ])
 }
 
 #[cfg(test)]
@@ -262,11 +268,8 @@ mod tests {
     #[test]
     fn test_extract_colors_from_solid_image() {
         // Create a simple red image
-        let img = DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(
-            10,
-            10,
-            Rgba([255, 0, 0, 255]),
-        ));
+        let img =
+            DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(10, 10, Rgba([255, 0, 0, 255])));
         let colors = extract_dominant_colors(&img, 3);
         assert!(!colors.is_empty());
         // Should be mostly red

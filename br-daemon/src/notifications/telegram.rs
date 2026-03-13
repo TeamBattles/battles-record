@@ -15,11 +15,11 @@ struct TelegramMessage {
 /** Get emoji prefix for notification type. */
 fn get_emoji(event_type: NotificationType) -> &'static str {
     match event_type {
-        NotificationType::StreamLive => "\u{1F534}",           // 🔴 Red circle
+        NotificationType::StreamLive => "\u{1F534}", // 🔴 Red circle
         NotificationType::RecordingStarted => "\u{23FA}\u{FE0F}", // ⏺️ Record button
-        NotificationType::RecordingEnded => "\u{23F9}\u{FE0F}",   // ⏹️ Stop button
-        NotificationType::ProcessingComplete => "\u{2705}",    // ✅ Check mark
-        NotificationType::Error => "\u{274C}",                 // ❌ Cross mark
+        NotificationType::RecordingEnded => "\u{23F9}\u{FE0F}", // ⏹️ Stop button
+        NotificationType::ProcessingComplete => "\u{2705}", // ✅ Check mark
+        NotificationType::Error => "\u{274C}",       // ❌ Cross mark
     }
 }
 
@@ -154,8 +154,14 @@ mod tests {
     #[test]
     fn test_get_emoji() {
         assert_eq!(get_emoji(NotificationType::StreamLive), "\u{1F534}");
-        assert_eq!(get_emoji(NotificationType::RecordingStarted), "\u{23FA}\u{FE0F}");
-        assert_eq!(get_emoji(NotificationType::RecordingEnded), "\u{23F9}\u{FE0F}");
+        assert_eq!(
+            get_emoji(NotificationType::RecordingStarted),
+            "\u{23FA}\u{FE0F}"
+        );
+        assert_eq!(
+            get_emoji(NotificationType::RecordingEnded),
+            "\u{23F9}\u{FE0F}"
+        );
         assert_eq!(get_emoji(NotificationType::ProcessingComplete), "\u{2705}");
         assert_eq!(get_emoji(NotificationType::Error), "\u{274C}");
     }
@@ -166,10 +172,7 @@ mod tests {
         assert_eq!(escape_markdown("*bold*"), "\\*bold\\*");
         assert_eq!(escape_markdown("[link]"), "\\[link\\]");
         assert_eq!(escape_markdown("`code`"), "\\`code\\`");
-        assert_eq!(
-            escape_markdown("a_b*c[d]e`f"),
-            "a\\_b\\*c\\[d\\]e\\`f"
-        );
+        assert_eq!(escape_markdown("a_b*c[d]e`f"), "a\\_b\\*c\\[d\\]e\\`f");
     }
 
     #[test]
@@ -251,7 +254,8 @@ mod tests {
 
     #[test]
     fn test_build_message_text_with_output_file() {
-        let payload = NotificationPayload::processing_complete("/output/video.mp4", 1024 * 1024 * 100);
+        let payload =
+            NotificationPayload::processing_complete("/output/video.mp4", 1024 * 1024 * 100);
 
         let text = build_message_text(&payload);
         assert!(text.contains("Size: 100.00 MB"));
@@ -260,7 +264,8 @@ mod tests {
 
     #[test]
     fn test_build_message_text_escapes_output_file() {
-        let payload = NotificationPayload::processing_complete("/output/video_file[1].mp4", 1024 * 1024);
+        let payload =
+            NotificationPayload::processing_complete("/output/video_file[1].mp4", 1024 * 1024);
 
         let text = build_message_text(&payload);
         assert!(text.contains("Output: /output/video\\_file\\[1\\].mp4"));

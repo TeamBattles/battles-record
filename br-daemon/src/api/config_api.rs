@@ -210,7 +210,10 @@ impl From<&PostProcessingConfig> for PostProcessingConfigResponse {
                 audio_codec: config.encoding.audio_codec.clone(),
                 audio_bitrate: config.encoding.audio_bitrate.clone(),
             },
-            ffmpeg_path: config.ffmpeg_path.as_ref().map(|p| p.to_string_lossy().to_string()),
+            ffmpeg_path: config
+                .ffmpeg_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string()),
             max_concurrent: config.max_concurrent,
         }
     }
@@ -246,7 +249,9 @@ pub async fn get_post_processing_config(
     State(state): State<Arc<AppState>>,
 ) -> Json<ApiResponse<PostProcessingConfigResponse>> {
     let config = state.config.read();
-    Json(ApiResponse::new(PostProcessingConfigResponse::from(&config.post_processing)))
+    Json(ApiResponse::new(PostProcessingConfigResponse::from(
+        &config.post_processing,
+    )))
 }
 
 /**
@@ -259,7 +264,8 @@ pub async fn update_post_processing_config(
     Json(request): Json<UpdatePostProcessingConfigRequest>,
 ) -> Result<Json<ApiResponse<PostProcessingConfigResponse>>, (StatusCode, ApiError)> {
     // Track if segment_handling changed
-    let new_segment_handling: Option<SegmentHandling> = request.segment_handling
+    let new_segment_handling: Option<SegmentHandling> = request
+        .segment_handling
         .as_ref()
         .and_then(|s| s.parse().ok());
 
@@ -309,7 +315,10 @@ pub async fn update_post_processing_config(
 
     // If segment handling was changed to delete or concatenate, apply retroactively
     if let Some(handling) = new_segment_handling {
-        if matches!(handling, SegmentHandling::Delete | SegmentHandling::Concatenate) {
+        if matches!(
+            handling,
+            SegmentHandling::Delete | SegmentHandling::Concatenate
+        ) {
             let storage = state.storage_manager.clone();
             tokio::spawn(async move {
                 apply_segment_handling_retroactively(storage, handling).await;
@@ -319,11 +328,16 @@ pub async fn update_post_processing_config(
 
     // Return updated config
     let config = state.config.read();
-    Ok(Json(ApiResponse::new(PostProcessingConfigResponse::from(&config.post_processing))))
+    Ok(Json(ApiResponse::new(PostProcessingConfigResponse::from(
+        &config.post_processing,
+    ))))
 }
 
 /** Apply segment handling retroactively to all processed recordings that still have .ts segments. */
-async fn apply_segment_handling_retroactively(storage: Arc<StorageManager>, handling: SegmentHandling) {
+async fn apply_segment_handling_retroactively(
+    storage: Arc<StorageManager>,
+    handling: SegmentHandling,
+) {
     tracing::info!(
         "Applying segment handling {:?} retroactively to processed recordings",
         handling
@@ -348,27 +362,25 @@ async fn apply_segment_handling_retroactively(storage: Arc<StorageManager>, hand
         );
 
         match handling {
-            SegmentHandling::Delete => {
-                match delete_segments(&recording.path).await {
-                    Ok(count) => {
-                        tracing::info!(
-                            "Retroactively deleted {} segment files from {} ({})",
-                            count,
-                            recording.channel_name,
-                            recording.id
-                        );
-                        processed_count += 1;
-                    }
-                    Err(e) => {
-                        tracing::warn!(
-                            "Failed to retroactively delete segments for {} ({}): {}",
-                            recording.channel_name,
-                            recording.id,
-                            e
-                        );
-                    }
+            SegmentHandling::Delete => match delete_segments(&recording.path).await {
+                Ok(count) => {
+                    tracing::info!(
+                        "Retroactively deleted {} segment files from {} ({})",
+                        count,
+                        recording.channel_name,
+                        recording.id
+                    );
+                    processed_count += 1;
                 }
-            }
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to retroactively delete segments for {} ({}): {}",
+                        recording.channel_name,
+                        recording.id,
+                        e
+                    );
+                }
+            },
             SegmentHandling::Concatenate => {
                 match concatenate_segments(&recording.path, &recording.channel_name).await {
                     Ok(path) => {

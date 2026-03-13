@@ -50,11 +50,20 @@ impl Ord for QueuedSegment {
 #[derive(Debug, Clone)]
 pub enum RecordingEvent {
     /** Init segment downloaded (for fMP4/CMAF streams). */
-    InitSegmentDownloaded { size_bytes: u64 },
-    SegmentDownloaded { sequence: u64, size_bytes: u64 },
-    PlaylistRefreshed { new_segments: u32 },
+    InitSegmentDownloaded {
+        size_bytes: u64,
+    },
+    SegmentDownloaded {
+        sequence: u64,
+        size_bytes: u64,
+    },
+    PlaylistRefreshed {
+        new_segments: u32,
+    },
     StreamEnded,
-    Error { message: String },
+    Error {
+        message: String,
+    },
 }
 
 pub struct RecordingEngine {

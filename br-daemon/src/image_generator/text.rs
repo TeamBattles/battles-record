@@ -215,13 +215,11 @@ impl TextRenderer {
                     cursor_x += scaled_font.kern(prev, glyph_id);
                 }
 
-                if let Some(outlined) = scaled_font.outline_glyph(
-                    ab_glyph::Glyph {
-                        id: glyph_id,
-                        scale,
-                        position: ab_glyph::point(cursor_x, line_y as f32 + scaled_font.ascent()),
-                    }
-                ) {
+                if let Some(outlined) = scaled_font.outline_glyph(ab_glyph::Glyph {
+                    id: glyph_id,
+                    scale,
+                    position: ab_glyph::point(cursor_x, line_y as f32 + scaled_font.ascent()),
+                }) {
                     let bounds = outlined.px_bounds();
                     outlined.draw(|px_x, px_y, coverage| {
                         let img_x = (bounds.min.x as i32 + px_x as i32) as u32;
@@ -260,7 +258,13 @@ impl TextRenderer {
             color: shadow_color,
             ..style.clone()
         };
-        self.draw_text(img, text, x + shadow_offset, y + shadow_offset, &shadow_style);
+        self.draw_text(
+            img,
+            text,
+            x + shadow_offset,
+            y + shadow_offset,
+            &shadow_style,
+        );
 
         // Draw main text
         self.draw_text(img, text, x, y, style);

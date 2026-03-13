@@ -261,7 +261,10 @@ impl ProcessingManager {
             let current_jobs = self.current_jobs.read().await;
             if current_jobs.contains(&job_id) {
                 // TODO: Actually implement cancellation (kill FFmpeg process)
-                warn!("Cancellation of running job {} requested but not yet implemented", job_id);
+                warn!(
+                    "Cancellation of running job {} requested but not yet implemented",
+                    job_id
+                );
                 return false;
             }
         }
@@ -373,7 +376,10 @@ impl ProcessingWorker {
                             SegmentHandling::Delete => {
                                 match delete_segments(&job.recording_path).await {
                                     Ok(count) => {
-                                        info!("Deleted {} segment files from {:?}", count, job.recording_path);
+                                        info!(
+                                            "Deleted {} segment files from {:?}",
+                                            count, job.recording_path
+                                        );
                                     }
                                     Err(e) => {
                                         warn!("Failed to delete segments: {}", e);
@@ -381,7 +387,9 @@ impl ProcessingWorker {
                                 }
                             }
                             SegmentHandling::Concatenate => {
-                                match concatenate_segments(&job.recording_path, &job.channel_name).await {
+                                match concatenate_segments(&job.recording_path, &job.channel_name)
+                                    .await
+                                {
                                     Ok(concat_path) => {
                                         info!("Concatenated segments to {:?}", concat_path);
                                     }
@@ -545,7 +553,10 @@ pub async fn delete_segments(recording_path: &PathBuf) -> anyhow::Result<u64> {
  * # Returns
  * The path to the concatenated file.
  */
-pub async fn concatenate_segments(recording_path: &PathBuf, channel_name: &str) -> anyhow::Result<PathBuf> {
+pub async fn concatenate_segments(
+    recording_path: &PathBuf,
+    channel_name: &str,
+) -> anyhow::Result<PathBuf> {
     // Collect and sort .ts files by sequence number
     let mut entries = tokio::fs::read_dir(recording_path).await?;
     let mut ts_files: Vec<(u64, PathBuf)> = Vec::new();
@@ -750,7 +761,7 @@ mod tests {
                 PathBuf::from("/tmp/nonexistent"),
                 ProcessingMode::default(),
                 Some(SegmentHandling::Concatenate), // Override default
-                None, // No duration
+                None,                               // No duration
             )
             .await;
         assert!(result.is_ok());

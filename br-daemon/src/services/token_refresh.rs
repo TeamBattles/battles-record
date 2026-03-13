@@ -177,7 +177,9 @@ struct TokenResponse {
  * Refresh Twitch token via teambattles.gg proxy.
  * The proxy holds the client_secret server-side for security.
  */
-async fn refresh_twitch_token_via_proxy(refresh_token: &str) -> Result<PlatformCredentials, String> {
+async fn refresh_twitch_token_via_proxy(
+    refresh_token: &str,
+) -> Result<PlatformCredentials, String> {
     let client = reqwest::Client::new();
 
     #[derive(Serialize)]
@@ -196,20 +198,27 @@ async fn refresh_twitch_token_via_proxy(refresh_token: &str) -> Result<PlatformC
 
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
-        return Err(format!("Twitch token refresh via proxy failed: {}", error_text));
+        return Err(format!(
+            "Twitch token refresh via proxy failed: {}",
+            error_text
+        ));
     }
 
-    let token: TokenResponse = response.json().await
+    let token: TokenResponse = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    let expires_at = token.expires_in.map(|secs| {
-        Utc::now() + Duration::seconds(secs as i64)
-    });
+    let expires_at = token
+        .expires_in
+        .map(|secs| Utc::now() + Duration::seconds(secs as i64));
 
     Ok(PlatformCredentials {
         access_token: token.access_token,
         // Twitch rotates refresh tokens - always use the new one
-        refresh_token: token.refresh_token.or_else(|| Some(refresh_token.to_string())),
+        refresh_token: token
+            .refresh_token
+            .or_else(|| Some(refresh_token.to_string())),
         expires_at,
         username: None,
         last_validated: Some(Utc::now()),
@@ -220,7 +229,9 @@ async fn refresh_twitch_token_via_proxy(refresh_token: &str) -> Result<PlatformC
  * Refresh YouTube token via teambattles.gg proxy.
  * The proxy holds the client_secret server-side for security.
  */
-async fn refresh_youtube_token_via_proxy(refresh_token: &str) -> Result<PlatformCredentials, String> {
+async fn refresh_youtube_token_via_proxy(
+    refresh_token: &str,
+) -> Result<PlatformCredentials, String> {
     let client = reqwest::Client::new();
 
     #[derive(Serialize)]
@@ -239,15 +250,20 @@ async fn refresh_youtube_token_via_proxy(refresh_token: &str) -> Result<Platform
 
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
-        return Err(format!("YouTube token refresh via proxy failed: {}", error_text));
+        return Err(format!(
+            "YouTube token refresh via proxy failed: {}",
+            error_text
+        ));
     }
 
-    let token: TokenResponse = response.json().await
+    let token: TokenResponse = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    let expires_at = token.expires_in.map(|secs| {
-        Utc::now() + Duration::seconds(secs as i64)
-    });
+    let expires_at = token
+        .expires_in
+        .map(|secs| Utc::now() + Duration::seconds(secs as i64));
 
     // Google doesn't return new refresh token on refresh
     Ok(PlatformCredentials {
@@ -282,20 +298,27 @@ async fn refresh_kick_token_via_proxy(refresh_token: &str) -> Result<PlatformCre
 
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
-        return Err(format!("Kick token refresh via proxy failed: {}", error_text));
+        return Err(format!(
+            "Kick token refresh via proxy failed: {}",
+            error_text
+        ));
     }
 
-    let token: TokenResponse = response.json().await
+    let token: TokenResponse = response
+        .json()
+        .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    let expires_at = token.expires_in.map(|secs| {
-        Utc::now() + Duration::seconds(secs as i64)
-    });
+    let expires_at = token
+        .expires_in
+        .map(|secs| Utc::now() + Duration::seconds(secs as i64));
 
     Ok(PlatformCredentials {
         access_token: token.access_token,
         // Kick refresh tokens are reusable (as of Nov 2025), but may return a new one
-        refresh_token: token.refresh_token.or_else(|| Some(refresh_token.to_string())),
+        refresh_token: token
+            .refresh_token
+            .or_else(|| Some(refresh_token.to_string())),
         expires_at,
         username: None,
         last_validated: Some(Utc::now()),

@@ -242,9 +242,8 @@ impl YoutubePlatform {
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        serde_json::from_str(&stdout).map_err(|e| {
-            YtdlpError::ParseError(format!("Failed to parse JSON: {}", e))
-        })
+        serde_json::from_str(&stdout)
+            .map_err(|e| YtdlpError::ParseError(format!("Failed to parse JSON: {}", e)))
     }
 
     /** Execute yt-dlp to get stream URL (-g flag). */
@@ -341,15 +340,13 @@ impl StreamPlatform for YoutubePlatform {
         let info = match self.ytdlp_json(&url).await {
             Ok(info) => info,
             Err(YtdlpError::NotLive) => return Ok(None),
-            Err(YtdlpError::ChannelNotFound(ch)) => {
-                return Err(PlatformError::ChannelNotFound(ch))
-            }
+            Err(YtdlpError::ChannelNotFound(ch)) => return Err(PlatformError::ChannelNotFound(ch)),
             Err(e) => return Err(e.into()),
         };
 
         // Check if actually live
-        let is_live = info.is_live.unwrap_or(false)
-            || info.live_status.as_deref() == Some("is_live");
+        let is_live =
+            info.is_live.unwrap_or(false) || info.live_status.as_deref() == Some("is_live");
 
         if !is_live {
             return Ok(None);
@@ -398,8 +395,16 @@ impl StreamPlatform for YoutubePlatform {
 
         // Sort by height descending (source first, then highest to lowest)
         qualities.sort_by(|a, b| {
-            let height_a = a.name.trim_end_matches('p').parse::<u32>().unwrap_or(u32::MAX);
-            let height_b = b.name.trim_end_matches('p').parse::<u32>().unwrap_or(u32::MAX);
+            let height_a = a
+                .name
+                .trim_end_matches('p')
+                .parse::<u32>()
+                .unwrap_or(u32::MAX);
+            let height_b = b
+                .name
+                .trim_end_matches('p')
+                .parse::<u32>()
+                .unwrap_or(u32::MAX);
             height_b.cmp(&height_a)
         });
 
@@ -438,7 +443,10 @@ impl StreamPlatform for YoutubePlatform {
             Ok(info) => info,
             Err(YtdlpError::NotLive) => {
                 // For profile, NotLive is OK - we just want channel info
-                warn!("Channel {} is not live, profile info may be limited", channel);
+                warn!(
+                    "Channel {} is not live, profile info may be limited",
+                    channel
+                );
                 YtdlpVideoInfo::default()
             }
             Err(YtdlpError::ChannelNotFound(ch)) => {
@@ -451,7 +459,8 @@ impl StreamPlatform for YoutubePlatform {
         };
 
         Ok(ChannelProfile {
-            display_name: info.channel
+            display_name: info
+                .channel
                 .or(info.uploader)
                 .unwrap_or_else(|| channel.trim_start_matches('@').to_string()),
             description: info.description,

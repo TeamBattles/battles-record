@@ -92,7 +92,10 @@ pub fn parse_media_playlist(content: &str, base_url: &str) -> Result<ParsedPlayl
 }
 
 /** Parse a master playlist and return all variant streams. */
-pub fn parse_master_playlist(content: &str, base_url: &str) -> Result<Vec<MasterVariant>, HlsError> {
+pub fn parse_master_playlist(
+    content: &str,
+    base_url: &str,
+) -> Result<Vec<MasterVariant>, HlsError> {
     let parsed = m3u8_rs::parse_playlist_res(content.as_bytes())
         .map_err(|e| HlsError::ParseError(format!("{:?}", e)))?;
 
@@ -103,13 +106,16 @@ pub fn parse_master_playlist(content: &str, base_url: &str) -> Result<Vec<Master
                 .iter()
                 .map(|v| {
                     let uri = resolve_url(base_url, &v.uri);
-                    let resolution = v.resolution.as_ref().map(|r| format!("{}x{}", r.width, r.height));
+                    let resolution = v
+                        .resolution
+                        .as_ref()
+                        .map(|r| format!("{}x{}", r.width, r.height));
 
                     // Try to extract name from VIDEO attribute or generate from resolution
                     let name = v.video.clone().or_else(|| {
-                        resolution.as_ref().and_then(|r| {
-                            r.split('x').nth(1).map(|h| format!("{}p", h))
-                        })
+                        resolution
+                            .as_ref()
+                            .and_then(|r| r.split('x').nth(1).map(|h| format!("{}p", h)))
                     });
 
                     MasterVariant {
@@ -151,7 +157,9 @@ pub fn find_variant_for_quality<'a>(
 
     // Try to match by name (e.g., "720p60", "1080p")
     if let Some(variant) = variants.iter().find(|v| {
-        v.name.as_ref().map_or(false, |n| n.to_lowercase().contains(&quality_lower))
+        v.name
+            .as_ref()
+            .map_or(false, |n| n.to_lowercase().contains(&quality_lower))
     }) {
         return Some(variant);
     }
@@ -335,8 +343,12 @@ stream.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=3000000
 playlist/720p.m3u8
 "#;
-        let result = parse_master_playlist(content, "https://cdn.example.com/streams/master.m3u8").unwrap();
-        assert_eq!(result[0].uri, "https://cdn.example.com/streams/playlist/720p.m3u8");
+        let result =
+            parse_master_playlist(content, "https://cdn.example.com/streams/master.m3u8").unwrap();
+        assert_eq!(
+            result[0].uri,
+            "https://cdn.example.com/streams/playlist/720p.m3u8"
+        );
     }
 
     #[test]
@@ -345,7 +357,8 @@ playlist/720p.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=3000000
 https://other-cdn.example.com/720p.m3u8
 "#;
-        let result = parse_master_playlist(content, "https://cdn.example.com/streams/master.m3u8").unwrap();
+        let result =
+            parse_master_playlist(content, "https://cdn.example.com/streams/master.m3u8").unwrap();
         assert_eq!(result[0].uri, "https://other-cdn.example.com/720p.m3u8");
     }
 
@@ -353,9 +366,24 @@ https://other-cdn.example.com/720p.m3u8
     #[test]
     fn test_find_variant_source_quality() {
         let variants = vec![
-            MasterVariant { uri: "480p.m3u8".to_string(), bandwidth: 2000000, resolution: Some("854x480".to_string()), name: Some("480p".to_string()) },
-            MasterVariant { uri: "1080p.m3u8".to_string(), bandwidth: 8000000, resolution: Some("1920x1080".to_string()), name: Some("1080p".to_string()) },
-            MasterVariant { uri: "720p.m3u8".to_string(), bandwidth: 4000000, resolution: Some("1280x720".to_string()), name: Some("720p".to_string()) },
+            MasterVariant {
+                uri: "480p.m3u8".to_string(),
+                bandwidth: 2000000,
+                resolution: Some("854x480".to_string()),
+                name: Some("480p".to_string()),
+            },
+            MasterVariant {
+                uri: "1080p.m3u8".to_string(),
+                bandwidth: 8000000,
+                resolution: Some("1920x1080".to_string()),
+                name: Some("1080p".to_string()),
+            },
+            MasterVariant {
+                uri: "720p.m3u8".to_string(),
+                bandwidth: 4000000,
+                resolution: Some("1280x720".to_string()),
+                name: Some("720p".to_string()),
+            },
         ];
 
         let result = find_variant_for_quality(&variants, "source").unwrap();
@@ -365,8 +393,18 @@ https://other-cdn.example.com/720p.m3u8
     #[test]
     fn test_find_variant_best_quality() {
         let variants = vec![
-            MasterVariant { uri: "480p.m3u8".to_string(), bandwidth: 2000000, resolution: Some("854x480".to_string()), name: Some("480p".to_string()) },
-            MasterVariant { uri: "1080p.m3u8".to_string(), bandwidth: 8000000, resolution: Some("1920x1080".to_string()), name: Some("1080p".to_string()) },
+            MasterVariant {
+                uri: "480p.m3u8".to_string(),
+                bandwidth: 2000000,
+                resolution: Some("854x480".to_string()),
+                name: Some("480p".to_string()),
+            },
+            MasterVariant {
+                uri: "1080p.m3u8".to_string(),
+                bandwidth: 8000000,
+                resolution: Some("1920x1080".to_string()),
+                name: Some("1080p".to_string()),
+            },
         ];
 
         let result = find_variant_for_quality(&variants, "best").unwrap();
@@ -376,9 +414,24 @@ https://other-cdn.example.com/720p.m3u8
     #[test]
     fn test_find_variant_720p() {
         let variants = vec![
-            MasterVariant { uri: "480p.m3u8".to_string(), bandwidth: 2000000, resolution: Some("854x480".to_string()), name: Some("480p".to_string()) },
-            MasterVariant { uri: "1080p.m3u8".to_string(), bandwidth: 8000000, resolution: Some("1920x1080".to_string()), name: Some("1080p".to_string()) },
-            MasterVariant { uri: "720p.m3u8".to_string(), bandwidth: 4000000, resolution: Some("1280x720".to_string()), name: Some("720p".to_string()) },
+            MasterVariant {
+                uri: "480p.m3u8".to_string(),
+                bandwidth: 2000000,
+                resolution: Some("854x480".to_string()),
+                name: Some("480p".to_string()),
+            },
+            MasterVariant {
+                uri: "1080p.m3u8".to_string(),
+                bandwidth: 8000000,
+                resolution: Some("1920x1080".to_string()),
+                name: Some("1080p".to_string()),
+            },
+            MasterVariant {
+                uri: "720p.m3u8".to_string(),
+                bandwidth: 4000000,
+                resolution: Some("1280x720".to_string()),
+                name: Some("720p".to_string()),
+            },
         ];
 
         let result = find_variant_for_quality(&variants, "720p").unwrap();
@@ -388,8 +441,18 @@ https://other-cdn.example.com/720p.m3u8
     #[test]
     fn test_find_variant_by_name() {
         let variants = vec![
-            MasterVariant { uri: "low.m3u8".to_string(), bandwidth: 2000000, resolution: Some("854x480".to_string()), name: Some("480p60".to_string()) },
-            MasterVariant { uri: "high.m3u8".to_string(), bandwidth: 8000000, resolution: Some("1920x1080".to_string()), name: Some("1080p60".to_string()) },
+            MasterVariant {
+                uri: "low.m3u8".to_string(),
+                bandwidth: 2000000,
+                resolution: Some("854x480".to_string()),
+                name: Some("480p60".to_string()),
+            },
+            MasterVariant {
+                uri: "high.m3u8".to_string(),
+                bandwidth: 8000000,
+                resolution: Some("1920x1080".to_string()),
+                name: Some("1080p60".to_string()),
+            },
         ];
 
         let result = find_variant_for_quality(&variants, "1080p60").unwrap();
@@ -399,8 +462,18 @@ https://other-cdn.example.com/720p.m3u8
     #[test]
     fn test_find_variant_fallback() {
         let variants = vec![
-            MasterVariant { uri: "480p.m3u8".to_string(), bandwidth: 2000000, resolution: Some("854x480".to_string()), name: Some("480p".to_string()) },
-            MasterVariant { uri: "1080p.m3u8".to_string(), bandwidth: 8000000, resolution: Some("1920x1080".to_string()), name: Some("1080p".to_string()) },
+            MasterVariant {
+                uri: "480p.m3u8".to_string(),
+                bandwidth: 2000000,
+                resolution: Some("854x480".to_string()),
+                name: Some("480p".to_string()),
+            },
+            MasterVariant {
+                uri: "1080p.m3u8".to_string(),
+                bandwidth: 8000000,
+                resolution: Some("1920x1080".to_string()),
+                name: Some("1080p".to_string()),
+            },
         ];
 
         // Request 4K which doesn't exist - should fall back to highest bandwidth
@@ -410,9 +483,12 @@ https://other-cdn.example.com/720p.m3u8
 
     #[test]
     fn test_find_variant_case_insensitive() {
-        let variants = vec![
-            MasterVariant { uri: "720p.m3u8".to_string(), bandwidth: 4000000, resolution: Some("1280x720".to_string()), name: Some("720p".to_string()) },
-        ];
+        let variants = vec![MasterVariant {
+            uri: "720p.m3u8".to_string(),
+            bandwidth: 4000000,
+            resolution: Some("1280x720".to_string()),
+            name: Some("720p".to_string()),
+        }];
 
         // Should match regardless of case
         assert!(find_variant_for_quality(&variants, "720P").is_some());

@@ -88,7 +88,14 @@ fn parse_platform(platform_str: &str) -> Option<Platform> {
     }
 }
 
-fn get_auth_status(creds: &Option<PlatformCredentials>) -> (AuthStatus, Option<String>, Option<DateTime<Utc>>, Option<DateTime<Utc>>) {
+fn get_auth_status(
+    creds: &Option<PlatformCredentials>,
+) -> (
+    AuthStatus,
+    Option<String>,
+    Option<DateTime<Utc>>,
+    Option<DateTime<Utc>>,
+) {
     match creds {
         None => (AuthStatus::NotConnected, None, None, None),
         Some(c) => {

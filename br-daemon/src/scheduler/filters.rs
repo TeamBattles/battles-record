@@ -218,7 +218,10 @@ mod tests {
         assert!(!decision.should_record);
         match decision.reason {
             DecisionReason::TitleNotMatched { required } => {
-                assert_eq!(required, vec!["fortnite".to_string(), "valorant".to_string()]);
+                assert_eq!(
+                    required,
+                    vec!["fortnite".to_string(), "valorant".to_string()]
+                );
             }
             _ => panic!("Expected TitleNotMatched reason"),
         }
@@ -287,7 +290,10 @@ mod tests {
         let decision = matcher.matches(&filters, &metadata);
 
         assert!(!decision.should_record);
-        assert!(matches!(decision.reason, DecisionReason::GameNotMatched { .. }));
+        assert!(matches!(
+            decision.reason,
+            DecisionReason::GameNotMatched { .. }
+        ));
     }
 
     #[test]
@@ -376,25 +382,37 @@ mod tests {
             viewer_count: Some(100),
         };
         let decision = matcher.matches(&filters, &metadata);
-        assert!(decision.should_record, "title_contains should be case-insensitive");
+        assert!(
+            decision.should_record,
+            "title_contains should be case-insensitive"
+        );
 
         // Test title_excludes case insensitivity
         let mut filters = empty_filters();
         filters.title_excludes = vec!["MINECRAFT".to_string()];
         let decision = matcher.matches(&filters, &metadata);
-        assert!(!decision.should_record, "title_excludes should be case-insensitive");
+        assert!(
+            !decision.should_record,
+            "title_excludes should be case-insensitive"
+        );
 
         // Test game_contains case insensitivity
         let mut filters = empty_filters();
         filters.game_contains = vec!["MINECRAFT".to_string()];
         let decision = matcher.matches(&filters, &metadata);
-        assert!(decision.should_record, "game_contains should be case-insensitive");
+        assert!(
+            decision.should_record,
+            "game_contains should be case-insensitive"
+        );
 
         // Test game_excludes case insensitivity
         let mut filters = empty_filters();
         filters.game_excludes = vec!["MINECRAFT".to_string()];
         let decision = matcher.matches(&filters, &metadata);
-        assert!(!decision.should_record, "game_excludes should be case-insensitive");
+        assert!(
+            !decision.should_record,
+            "game_excludes should be case-insensitive"
+        );
     }
 
     #[test]

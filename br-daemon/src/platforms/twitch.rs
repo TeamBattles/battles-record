@@ -270,13 +270,7 @@ impl StreamPlatform for TwitchPlatform {
         );
 
         // Fetch master playlist to resolve to media playlist
-        let master_content = self
-            .client
-            .get(&master_url)
-            .send()
-            .await?
-            .text()
-            .await?;
+        let master_content = self.client.get(&master_url).send().await?.text().await?;
 
         // Parse master playlist
         let variants = parse_master_playlist(&master_content, &master_url)
@@ -330,8 +324,12 @@ impl StreamPlatform for TwitchPlatform {
         tracing::debug!("Twitch profile response for {}: {}", channel, raw_text);
 
         // Parse the response
-        let resp: ChannelProfileResponse = serde_json::from_str(&raw_text)
-            .map_err(|e| PlatformError::Api(format!("Failed to parse response: {} - Raw: {}", e, raw_text)))?;
+        let resp: ChannelProfileResponse = serde_json::from_str(&raw_text).map_err(|e| {
+            PlatformError::Api(format!(
+                "Failed to parse response: {} - Raw: {}",
+                e, raw_text
+            ))
+        })?;
 
         let user = resp
             .data

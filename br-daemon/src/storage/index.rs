@@ -19,9 +19,9 @@ pub enum RecordingStatus {
     PendingProcessing, // Waiting for post-processing
     Processing,
     Processed,
-    ProcessingFailed,  // FFmpeg failed (can retry)
+    ProcessingFailed, // FFmpeg failed (can retry)
     Failed,
-    Completed,         // Re-added for backwards compat
+    Completed, // Re-added for backwards compat
 }
 
 /** A single recording entry in the index. */
@@ -119,15 +119,9 @@ impl RecordingsIndex {
         self.entries
             .values()
             .filter(|entry| {
-                let channel_match = channel
-                    .map(|c| entry.channel_name == c)
-                    .unwrap_or(true);
-                let platform_match = platform
-                    .map(|p| entry.platform == p)
-                    .unwrap_or(true);
-                let status_match = status
-                    .map(|s| entry.status == s)
-                    .unwrap_or(true);
+                let channel_match = channel.map(|c| entry.channel_name == c).unwrap_or(true);
+                let platform_match = platform.map(|p| entry.platform == p).unwrap_or(true);
+                let status_match = status.map(|s| entry.status == s).unwrap_or(true);
                 channel_match && platform_match && status_match
             })
             .collect()

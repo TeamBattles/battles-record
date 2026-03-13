@@ -29,7 +29,8 @@ use std::sync::Arc;
 pub const BUNDLED_TWITCH_CLIENT_ID: &str = "cjve9dao5o8oo9kaqf1qdwg2mgjumi";
 
 /** Bundled YouTube OAuth client ID (public client, PKCE flow). */
-pub const BUNDLED_YOUTUBE_CLIENT_ID: &str = "67527108478-u1bptuaouup3nqcoct59c3e8kboqas09.apps.googleusercontent.com";
+pub const BUNDLED_YOUTUBE_CLIENT_ID: &str =
+    "67527108478-u1bptuaouup3nqcoct59c3e8kboqas09.apps.googleusercontent.com";
 
 /** Bundled Kick OAuth client ID (requires proxy for token exchange). */
 pub const BUNDLED_KICK_CLIENT_ID: &str = "01KGJSCBH77HJS8HZ3VJ22DC1F";
@@ -200,7 +201,8 @@ pub async fn start_oauth(
         .ok_or_else(|| ApiError::bad_request(format!("Invalid platform: {}", platform_str)))?;
 
     // Determine client ID: use custom if provided, otherwise bundled
-    let client_id = request.client_id
+    let client_id = request
+        .client_id
         .filter(|id| !id.is_empty())
         .unwrap_or_else(|| get_bundled_client_id(platform).to_string());
 
@@ -208,7 +210,8 @@ pub async fn start_oauth(
     let client_secret = request.client_secret.filter(|s| !s.is_empty());
 
     // Use provided redirect_uri or default
-    let redirect_uri = request.redirect_uri
+    let redirect_uri = request
+        .redirect_uri
         .filter(|uri| !uri.is_empty())
         .unwrap_or_else(|| "battles-record://oauth/callback".to_string());
 
@@ -222,13 +225,17 @@ pub async fn start_oauth(
         code_verifier.len(),
         code_challenge,
         &code_verifier[..8],
-        &code_verifier[code_verifier.len()-8..],
+        &code_verifier[code_verifier.len() - 8..],
     );
 
     // Verify at generation time that challenge matches verifier
     let verify_challenge = generate_code_challenge(&code_verifier);
     if verify_challenge != code_challenge {
-        tracing::error!("PKCE MISMATCH at generation: {} != {}", verify_challenge, code_challenge);
+        tracing::error!(
+            "PKCE MISMATCH at generation: {} != {}",
+            verify_challenge,
+            code_challenge
+        );
     }
 
     // Generate state token for CSRF protection
@@ -237,18 +244,27 @@ pub async fn start_oauth(
     // Store state with PKCE verifier
     {
         let mut states = state.oauth_states.write();
-        states.insert(state_token.clone(), OAuthStateEntry {
-            platform,
-            created_at: Utc::now(),
-            redirect_uri: redirect_uri.clone(),
-            code_verifier,
-            client_id: client_id.clone(),
-            client_secret,
-        });
+        states.insert(
+            state_token.clone(),
+            OAuthStateEntry {
+                platform,
+                created_at: Utc::now(),
+                redirect_uri: redirect_uri.clone(),
+                code_verifier,
+                client_id: client_id.clone(),
+                client_secret,
+            },
+        );
     }
 
     // Build authorization URL with PKCE code challenge
-    let auth_url = build_auth_url(platform, &client_id, &redirect_uri, &state_token, &code_challenge)?;
+    let auth_url = build_auth_url(
+        platform,
+        &client_id,
+        &redirect_uri,
+        &state_token,
+        &code_challenge,
+    )?;
 
     Ok(Json(ApiResponse::new(StartOAuthResponse {
         auth_url,
@@ -294,7 +310,10 @@ fn build_auth_url(
             ];
             let query = serde_urlencoded::to_string(&params)
                 .map_err(|e| ApiError::internal(format!("Failed to build URL: {}", e)))?;
-            Ok(format!("https://accounts.google.com/o/oauth2/v2/auth?{}", query))
+            Ok(format!(
+                "https://accounts.google.com/o/oauth2/v2/auth?{}",
+                query
+            ))
         }
         Platform::Kick => {
             // Kick OAuth 2.1 with PKCE (mandatory)
@@ -328,7 +347,8 @@ pub async fn oauth_callback(
     let state_entry = {
         let mut states = state.oauth_states.write();
         states.remove(&request.state)
-    }.ok_or_else(|| ApiError::bad_request("Invalid or expired state token"))?;
+    }
+    .ok_or_else(|| ApiError::bad_request("Invalid or expired state token"))?;
 
     // Verify platform matches
     if state_entry.platform != platform {
@@ -358,15 +378,21 @@ pub async fn oauth_callback(
         state_entry.client_secret.as_deref(),
         &state_entry.redirect_uri,
         &state_entry.code_verifier,
-    ).await?;
+    )
+    .await?;
 
     // Fetch user info
-    let user_info = fetch_user_info(platform, &token_response.access_token, &state_entry.client_id).await?;
+    let user_info = fetch_user_info(
+        platform,
+        &token_response.access_token,
+        &state_entry.client_id,
+    )
+    .await?;
 
     // Calculate expiry
-    let expires_at = token_response.expires_in.map(|secs| {
-        Utc::now() + Duration::seconds(secs as i64)
-    });
+    let expires_at = token_response
+        .expires_in
+        .map(|secs| Utc::now() + Duration::seconds(secs as i64));
 
     // Store credentials
     let credentials = crate::config::PlatformCredentials {
@@ -390,17 +416,22 @@ pub async fn oauth_callback(
     let config = state.config.read();
     if let Err(e) = config.save(&state.config_path) {
         tracing::error!("Failed to save config after OAuth: {}", e);
-        return Err(ApiError::internal(format!("Failed to save credentials: {}", e)));
+        return Err(ApiError::internal(format!(
+            "Failed to save credentials: {}",
+            e
+        )));
     }
     drop(config); // Release read lock
 
     // Emit WebSocket event to notify all connected clients
-    let _ = state.event_tx.send(crate::manager::ManagerEvent::PlatformAuthUpdated {
-        platform,
-        status: "connected".to_string(),
-        username: user_info.username.clone(),
-        expires_at,
-    });
+    let _ = state
+        .event_tx
+        .send(crate::manager::ManagerEvent::PlatformAuthUpdated {
+            platform,
+            status: "connected".to_string(),
+            username: user_info.username.clone(),
+            expires_at,
+        });
 
     Ok(Json(ApiResponse::new(OAuthCallbackResponse {
         success: true,
@@ -496,10 +527,15 @@ async fn exchange_twitch_tokens_via_proxy(
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
         tracing::error!("Twitch token exchange via proxy failed: {}", error_text);
-        return Err(ApiError::bad_request(format!("Token exchange failed: {}", error_text)));
+        return Err(ApiError::bad_request(format!(
+            "Token exchange failed: {}",
+            error_text
+        )));
     }
 
-    response.json::<TokenResponse>().await
+    response
+        .json::<TokenResponse>()
+        .await
         .map_err(|e| ApiError::internal(format!("Failed to parse token response: {}", e)))
 }
 
@@ -537,10 +573,15 @@ async fn exchange_kick_tokens_via_proxy(
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
         tracing::error!("Kick token exchange via proxy failed: {}", error_text);
-        return Err(ApiError::bad_request(format!("Token exchange failed: {}", error_text)));
+        return Err(ApiError::bad_request(format!(
+            "Token exchange failed: {}",
+            error_text
+        )));
     }
 
-    response.json::<TokenResponse>().await
+    response
+        .json::<TokenResponse>()
+        .await
         .map_err(|e| ApiError::internal(format!("Failed to parse token response: {}", e)))
 }
 
@@ -585,10 +626,15 @@ async fn exchange_youtube_tokens_via_proxy(
     if !response.status().is_success() {
         let error_text = response.text().await.unwrap_or_default();
         tracing::error!("YouTube token exchange via proxy failed: {}", error_text);
-        return Err(ApiError::bad_request(format!("Token exchange failed: {}", error_text)));
+        return Err(ApiError::bad_request(format!(
+            "Token exchange failed: {}",
+            error_text
+        )));
     }
 
-    response.json::<TokenResponse>().await
+    response
+        .json::<TokenResponse>()
+        .await
         .map_err(|e| ApiError::internal(format!("Failed to parse token response: {}", e)))
 }
 
@@ -624,7 +670,9 @@ async fn fetch_user_info(
                 login: String,
             }
 
-            let users: TwitchUsersResponse = response.json().await
+            let users: TwitchUsersResponse = response
+                .json()
+                .await
                 .map_err(|e| ApiError::internal(format!("Failed to parse user info: {}", e)))?;
 
             Ok(UserInfo {
@@ -652,7 +700,9 @@ async fn fetch_user_info(
                 name: Option<String>,
             }
 
-            let user: GoogleUserInfo = response.json().await
+            let user: GoogleUserInfo = response
+                .json()
+                .await
                 .map_err(|e| ApiError::internal(format!("Failed to parse user info: {}", e)))?;
 
             Ok(UserInfo {
@@ -689,7 +739,7 @@ async fn fetch_user_info(
                 #[serde(default)]
                 name: Option<String>,
                 #[serde(default)]
-                user_id: Option<u64>,
+                _user_id: Option<u64>,
             }
             #[derive(Deserialize)]
             struct KickUser {
@@ -808,12 +858,19 @@ mod tests {
 
         // Regenerating should produce the same challenge
         let challenge2 = generate_code_challenge(&verifier);
-        assert_eq!(challenge1, challenge2, "Same verifier should always produce same challenge");
+        assert_eq!(
+            challenge1, challenge2,
+            "Same verifier should always produce same challenge"
+        );
 
         // Challenge should be valid base64url (43 chars, no padding)
         assert_eq!(challenge1.len(), 43);
-        assert!(challenge1.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_'),
-            "Challenge should only contain base64url characters");
+        assert!(
+            challenge1
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_'),
+            "Challenge should only contain base64url characters"
+        );
     }
 
     #[test]
@@ -834,24 +891,30 @@ mod tests {
         // Add a fresh state
         {
             let mut states = store.write();
-            states.insert("fresh".to_string(), OAuthStateEntry {
-                platform: Platform::Twitch,
-                created_at: Utc::now(),
-                redirect_uri: "test://callback".to_string(),
-                code_verifier: "test_verifier_fresh".to_string(),
-                client_id: BUNDLED_TWITCH_CLIENT_ID.to_string(),
-                client_secret: None,
-            });
+            states.insert(
+                "fresh".to_string(),
+                OAuthStateEntry {
+                    platform: Platform::Twitch,
+                    created_at: Utc::now(),
+                    redirect_uri: "test://callback".to_string(),
+                    code_verifier: "test_verifier_fresh".to_string(),
+                    client_id: BUNDLED_TWITCH_CLIENT_ID.to_string(),
+                    client_secret: None,
+                },
+            );
 
             // Add an expired state (15 minutes ago)
-            states.insert("expired".to_string(), OAuthStateEntry {
-                platform: Platform::YouTube,
-                created_at: Utc::now() - Duration::minutes(15),
-                redirect_uri: "test://callback".to_string(),
-                code_verifier: "test_verifier_expired".to_string(),
-                client_id: BUNDLED_YOUTUBE_CLIENT_ID.to_string(),
-                client_secret: None,
-            });
+            states.insert(
+                "expired".to_string(),
+                OAuthStateEntry {
+                    platform: Platform::YouTube,
+                    created_at: Utc::now() - Duration::minutes(15),
+                    redirect_uri: "test://callback".to_string(),
+                    code_verifier: "test_verifier_expired".to_string(),
+                    client_id: BUNDLED_YOUTUBE_CLIENT_ID.to_string(),
+                    client_secret: None,
+                },
+            );
         }
 
         // Run cleanup
@@ -935,8 +998,17 @@ mod tests {
         assert!(!BUNDLED_KICK_CLIENT_ID.is_empty());
 
         // Verify get_bundled_client_id returns correct values
-        assert_eq!(get_bundled_client_id(Platform::Twitch), BUNDLED_TWITCH_CLIENT_ID);
-        assert_eq!(get_bundled_client_id(Platform::YouTube), BUNDLED_YOUTUBE_CLIENT_ID);
-        assert_eq!(get_bundled_client_id(Platform::Kick), BUNDLED_KICK_CLIENT_ID);
+        assert_eq!(
+            get_bundled_client_id(Platform::Twitch),
+            BUNDLED_TWITCH_CLIENT_ID
+        );
+        assert_eq!(
+            get_bundled_client_id(Platform::YouTube),
+            BUNDLED_YOUTUBE_CLIENT_ID
+        );
+        assert_eq!(
+            get_bundled_client_id(Platform::Kick),
+            BUNDLED_KICK_CLIENT_ID
+        );
     }
 }

@@ -4,7 +4,9 @@
 //! This module provides a configurable mock platform that can simulate
 //! various scenarios like live streams, offline channels, errors, and delays.
 
-use crate::platforms::traits::{ChannelProfile, PlatformError, PlatformResult, StreamPlatform, StreamUrl};
+use crate::platforms::traits::{
+    ChannelProfile, PlatformError, PlatformResult, StreamPlatform, StreamUrl,
+};
 use crate::types::{Platform, Quality, StreamInfo};
 use async_trait::async_trait;
 use chrono::Utc;
@@ -248,7 +250,10 @@ impl MockPlatform {
     /** Get the configuration for a channel. */
     fn get_config(&self, channel: &str) -> MockChannelConfig {
         let channels = self.channels.read();
-        channels.get(channel).cloned().unwrap_or_else(|| self.default_config.clone())
+        channels
+            .get(channel)
+            .cloned()
+            .unwrap_or_else(|| self.default_config.clone())
     }
 
     /** Apply latency if configured. */
@@ -320,9 +325,9 @@ impl StreamPlatform for MockPlatform {
         }
 
         // Return the stream URL
-        let url = config.stream_url.ok_or_else(|| {
-            PlatformError::Api("No stream URL configured for mock".to_string())
-        })?;
+        let url = config
+            .stream_url
+            .ok_or_else(|| PlatformError::Api("No stream URL configured for mock".to_string()))?;
 
         Ok(StreamUrl {
             url,
@@ -344,9 +349,9 @@ impl StreamPlatform for MockPlatform {
             return Err(error.to_platform_error());
         }
 
-        config.profile.ok_or_else(|| {
-            PlatformError::ChannelNotFound(channel.to_string())
-        })
+        config
+            .profile
+            .ok_or_else(|| PlatformError::ChannelNotFound(channel.to_string()))
     }
 }
 
@@ -426,7 +431,10 @@ mod tests {
     #[tokio::test]
     async fn test_mock_platform_error() {
         let mock = MockPlatform::twitch();
-        mock.set_error("bad_channel", MockError::ChannelNotFound("bad_channel".to_string()));
+        mock.set_error(
+            "bad_channel",
+            MockError::ChannelNotFound("bad_channel".to_string()),
+        );
 
         let result = mock.check_live("bad_channel").await;
         assert!(result.is_err());

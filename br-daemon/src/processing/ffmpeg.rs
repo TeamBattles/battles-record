@@ -50,6 +50,7 @@ impl FfmpegRunner {
     }
 
     /** Get the ffprobe path (same directory as ffmpeg, or just "ffprobe" for PATH lookup). */
+    #[allow(dead_code)]
     fn ffprobe_path(&self) -> PathBuf {
         if self.ffmpeg_path == PathBuf::from("ffmpeg") {
             PathBuf::from("ffprobe")
@@ -70,9 +71,12 @@ impl FfmpegRunner {
         // Use "ffprobe" from PATH - this is a static method so we don't have access to self
         let output = Command::new("ffprobe")
             .args([
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
             ])
             .arg(file_path)
             .output()
@@ -97,10 +101,14 @@ impl FfmpegRunner {
     async fn probe_segment(file_path: &Path) -> anyhow::Result<bool> {
         let output = Command::new("ffprobe")
             .args([
-                "-v", "error",
-                "-select_streams", "v:0",
-                "-show_entries", "stream=codec_type",
-                "-of", "csv=p=0",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=codec_type",
+                "-of",
+                "csv=p=0",
             ])
             .arg(file_path)
             .output()
@@ -136,12 +144,16 @@ impl FfmpegRunner {
         }
 
         // Check sync byte at offset 188 (if we have enough data)
-        if bytes_read >= Self::TS_PACKET_SIZE * 2 && buffer[Self::TS_PACKET_SIZE] != Self::TS_SYNC_BYTE {
+        if bytes_read >= Self::TS_PACKET_SIZE * 2
+            && buffer[Self::TS_PACKET_SIZE] != Self::TS_SYNC_BYTE
+        {
             return Ok(false);
         }
 
         // Check sync byte at offset 376 (if we have enough data)
-        if bytes_read >= Self::TS_PACKET_SIZE * 3 && buffer[Self::TS_PACKET_SIZE * 2] != Self::TS_SYNC_BYTE {
+        if bytes_read >= Self::TS_PACKET_SIZE * 3
+            && buffer[Self::TS_PACKET_SIZE * 2] != Self::TS_SYNC_BYTE
+        {
             return Ok(false);
         }
 
@@ -167,7 +179,10 @@ impl FfmpegRunner {
      *
      * Returns the input source to use for FFmpeg.
      */
-    pub async fn find_input_source(recording_path: &Path, output_file: Option<&Path>) -> anyhow::Result<InputSource> {
+    pub async fn find_input_source(
+        recording_path: &Path,
+        output_file: Option<&Path>,
+    ) -> anyhow::Result<InputSource> {
         let mut entries = tokio::fs::read_dir(recording_path).await?;
         let mut numbered_ts_files: Vec<(u64, PathBuf, u64)> = Vec::new(); // (seq, path, size)
         let mut other_ts_files: Vec<PathBuf> = Vec::new();
@@ -188,7 +203,10 @@ impl FfmpegRunner {
                         let stem_str = stem.to_string_lossy();
                         if let Ok(seq) = stem_str.parse::<u64>() {
                             // Numbered segment file - get its size
-                            let size = tokio::fs::metadata(&path).await.map(|m| m.len()).unwrap_or(0);
+                            let size = tokio::fs::metadata(&path)
+                                .await
+                                .map(|m| m.len())
+                                .unwrap_or(0);
                             numbered_ts_files.push((seq, path, size));
                         } else if !stem_str.starts_with("concat_list") {
                             // Non-numbered .ts file (likely concatenated segments)
@@ -298,7 +316,9 @@ impl FfmpegRunner {
 
             // For fMP4/CMAF: prepend init segment to concat list
             if is_fmp4 {
-                let init_abs_path = init_segment_path.canonicalize().unwrap_or_else(|_| init_segment_path.clone());
+                let init_abs_path = init_segment_path
+                    .canonicalize()
+                    .unwrap_or_else(|_| init_segment_path.clone());
                 let init_path_str = init_abs_path.to_string_lossy().replace('\'', "'\\''");
                 content.push_str(&format!("file '{}'\n", init_path_str));
                 info!("Including init segment in concat list: {:?}", init_abs_path);
@@ -354,7 +374,8 @@ impl FfmpegRunner {
                         let metadata = tokio::fs::metadata(output).await?;
                         info!(
                             "Using previous output .ts file as input: {:?} ({} bytes)",
-                            output, metadata.len()
+                            output,
+                            metadata.len()
                         );
                         return Ok(InputSource::SingleFile(output.to_path_buf()));
                     }
@@ -414,10 +435,7 @@ impl FfmpegRunner {
                 cmd.arg("-c").arg("copy");
             }
             ProcessingMode::Transcode {
-                codec,
-                preset,
-                crf,
-                ..
+                codec, preset, crf, ..
             } => {
                 // Video codec
                 let video_codec = match codec.as_str() {
@@ -477,7 +495,15 @@ impl FfmpegRunner {
                             "{}\n... ({} more files) ...\n{}",
                             content.lines().take(5).collect::<Vec<_>>().join("\n"),
                             line_count - 10,
-                            content.lines().rev().take(5).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
+                            content
+                                .lines()
+                                .rev()
+                                .take(5)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .collect::<Vec<_>>()
+                                .join("\n")
                         )
                     }
                 );
@@ -554,10 +580,10 @@ impl FfmpegRunner {
 
             // Also check if there's a specific error pattern
             let error_summary = if let Some(error_line) = stderr_lines.iter().find(|l| {
-                l.contains("No such file") ||
-                l.contains("Invalid data") ||
-                l.contains("Error") ||
-                l.contains("error")
+                l.contains("No such file")
+                    || l.contains("Invalid data")
+                    || l.contains("Error")
+                    || l.contains("error")
             }) {
                 format!(" ({})", error_line.trim())
             } else {
@@ -704,9 +730,7 @@ mod tests {
             .write_all(b"{}")
             .unwrap();
 
-        let concat_list = FfmpegRunner::generate_concat_list(dir_path)
-            .await
-            .unwrap();
+        let concat_list = FfmpegRunner::generate_concat_list(dir_path).await.unwrap();
 
         assert!(concat_list.exists());
 

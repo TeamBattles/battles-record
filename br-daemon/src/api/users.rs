@@ -280,8 +280,8 @@ pub async fn update_user(
                 "Password must be at least 8 characters",
             ));
         }
-        let password_hash = hash_password(&password)
-            .map_err(|_| ApiError::internal("Failed to hash password"))?;
+        let password_hash =
+            hash_password(&password).map_err(|_| ApiError::internal("Failed to hash password"))?;
         config.users[id].password_hash = password_hash;
     }
 

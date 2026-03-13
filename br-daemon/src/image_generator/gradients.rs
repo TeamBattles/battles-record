@@ -61,14 +61,8 @@ pub fn create_gradient(
             let cy = height as f32 / 2.0;
             let diag = (width as f32).hypot(height as f32) / 2.0;
             (
-                Point::from_xy(
-                    cx - diag * radians.cos(),
-                    cy - diag * radians.sin(),
-                ),
-                Point::from_xy(
-                    cx + diag * radians.cos(),
-                    cy + diag * radians.sin(),
-                ),
+                Point::from_xy(cx - diag * radians.cos(), cy - diag * radians.sin()),
+                Point::from_xy(cx + diag * radians.cos(), cy + diag * radians.sin()),
             )
         }
     };
@@ -174,7 +168,13 @@ pub fn create_gradient_with_stops(
         })
         .collect();
 
-    let gradient = LinearGradient::new(start, end, gradient_stops, SpreadMode::Pad, Transform::identity());
+    let gradient = LinearGradient::new(
+        start,
+        end,
+        gradient_stops,
+        SpreadMode::Pad,
+        Transform::identity(),
+    );
 
     if let Some(gradient) = gradient {
         let mut paint = Paint::default();
@@ -267,7 +267,12 @@ mod tests {
 
     #[test]
     fn test_single_color() {
-        let gradient = create_gradient(50, 50, &[Rgba([128, 128, 128, 255])], GradientDirection::Vertical);
+        let gradient = create_gradient(
+            50,
+            50,
+            &[Rgba([128, 128, 128, 255])],
+            GradientDirection::Vertical,
+        );
         let pixel = gradient.get_pixel(25, 25);
         assert_eq!(pixel[0], 128);
     }

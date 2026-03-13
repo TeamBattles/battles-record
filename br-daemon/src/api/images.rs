@@ -131,8 +131,16 @@ pub async fn upload_profile_image(
     Path(id): Path<Uuid>,
     multipart: Multipart,
 ) -> Result<Json<ApiResponse<ImageUploadResponse>>, (StatusCode, ApiError)> {
-    upload_image(&state, id, "profile", PROFILE_WIDTH, PROFILE_HEIGHT, MAX_PROFILE_SIZE, multipart)
-        .await
+    upload_image(
+        &state,
+        id,
+        "profile",
+        PROFILE_WIDTH,
+        PROFILE_HEIGHT,
+        MAX_PROFILE_SIZE,
+        multipart,
+    )
+    .await
 }
 
 /** Upload custom banner image. */
@@ -142,8 +150,16 @@ pub async fn upload_banner_image(
     Path(id): Path<Uuid>,
     multipart: Multipart,
 ) -> Result<Json<ApiResponse<ImageUploadResponse>>, (StatusCode, ApiError)> {
-    upload_image(&state, id, "banner", BANNER_WIDTH, BANNER_HEIGHT, MAX_BANNER_SIZE, multipart)
-        .await
+    upload_image(
+        &state,
+        id,
+        "banner",
+        BANNER_WIDTH,
+        BANNER_HEIGHT,
+        MAX_BANNER_SIZE,
+        multipart,
+    )
+    .await
 }
 
 /** Delete custom profile image. */
@@ -344,7 +360,11 @@ fn process_image(
     let img = image::load_from_memory(data)?;
 
     // Resize with aspect ratio preservation, then crop to exact dimensions
-    let resized = img.resize_to_fill(target_width, target_height, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_to_fill(
+        target_width,
+        target_height,
+        image::imageops::FilterType::Lanczos3,
+    );
 
     // Encode as JPEG
     let mut buffer = Vec::new();
