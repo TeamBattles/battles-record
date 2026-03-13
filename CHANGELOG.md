@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Jellyfin seasons now use year-based grouping (Season 2024) instead of month-based (Season 01)
+- Episode filenames now include ISO date for browsability (e.g. `xQc - S2024E001 - 2024-01-05 - Title.mp4`)
+- Season poster shows year and episode count instead of specific date
+- Episode thumb badge format changed from `S01E01` to `S2024E001`
+- Improved code formatting and readability across daemon codebase
+- Resolved all compiler warnings
+
+### Fixed
+- Episode thumbnails now use actual stream thumbnail URL (previously always blank)
+- YouTube and Kick recordings are now exported to Jellyfin (previously silently skipped)
+- Season metadata episode count now uses correct platform instead of hardcoded "twitch"
+- Jellyfin export no longer skips when profile fetch fails (uses minimal fallback profile)
+
+### Removed
+- Unused `jellyfin/images.rs` module (superseded by `image_generator/`)
+
 ## [1.2.0] - 2026-02-09
 
 ### Added
