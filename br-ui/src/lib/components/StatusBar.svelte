@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { HardDrive, Loader2 } from 'lucide-svelte';
 	import { connectionStore } from '$lib/stores/connection.svelte';
 	import { channelsStore } from '$lib/stores/channels.svelte';
@@ -9,7 +10,7 @@
 		if (connectionStore.connectionState !== 'connected') return;
 
 		// Initial load
-		storageStore.load();
+		untrack(() => storageStore.load());
 
 		// Refresh every 60 seconds
 		const interval = setInterval(() => {

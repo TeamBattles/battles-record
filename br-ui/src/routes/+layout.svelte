@@ -38,6 +38,50 @@
 
 	let cleanupBreakpoint: (() => void) | undefined;
 	let cleanupTheme: (() => void) | undefined;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let eruda: any = null;
+
+	async function toggleDebugConsole(forceShow?: boolean) {
+		if (!eruda) {
+			const mod = await import('eruda');
+			eruda = mod.default ?? mod;
+			eruda.init();
+		} else {
+			if (forceShow === true) {
+				eruda.show();
+			} else if (forceShow === false) {
+				eruda.hide();
+			} else {
+				const el = document.getElementById('eruda');
+				if (el?.style.display === 'none') {
+					eruda.show();
+				} else {
+					eruda.hide();
+				}
+			}
+		}
+	}
+
+	// React to settings toggle changes
+	$effect(() => {
+		const enabled = settingsStore.settings.debugConsole;
+		if (!isInitialized) return;
+		if (enabled) {
+			toggleDebugConsole(true);
+		} else if (eruda) {
+			eruda.destroy();
+			eruda = null;
+		}
+	});
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+			e.preventDefault();
+			// Toggle the setting, which triggers the $effect above
+			settingsStore.settings.debugConsole = !settingsStore.settings.debugConsole;
+			settingsStore.save();
+		}
+	}
 
 	onMount(() => {
 		cleanupBreakpoint = breakpointStore.init();
@@ -50,12 +94,22 @@
 			cleanupBreakpoint?.();
 			cleanupTheme?.();
 			versionStore.destroy();
+			// Clean up eruda
+			if (eruda) {
+				eruda.destroy();
+				eruda = null;
+			}
 		};
 	});
 
 	async function initializeApp() {
 		await settingsStore.init();
 		versionStore.init();
+
+		// Auto-init debug console if previously enabled
+		if (settingsStore.settings.debugConsole) {
+			toggleDebugConsole();
+		}
 
 		// Determine what to do on startup
 		if (settingsStore.hasStartupServer) {
@@ -105,6 +159,8 @@
 		}
 	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <svelte:head>
 	<link rel="icon" href={favicon} />

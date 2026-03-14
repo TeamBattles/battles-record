@@ -89,8 +89,8 @@ impl VersionChecker {
         };
 
         let latest = release.tag_name.trim_start_matches('v').to_string();
-        let current = &self.info.read().current_version;
-        let update_available = is_newer_version(current, &latest);
+        let current = self.info.read().current_version.clone();
+        let update_available = is_newer_version(&current, &latest);
 
         let mut info = self.info.write();
         info.update_available = update_available;

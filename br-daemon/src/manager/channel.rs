@@ -659,10 +659,9 @@ impl ChannelManager {
         };
 
         // Check if live
-        info!("Calling check_live for channel: {}", config.name);
         let stream_info = match platform.check_live(&config.name).await {
             Ok(info) => {
-                info!(
+                debug!(
                     channel = %config.name,
                     is_live = info.is_some(),
                     title = info.as_ref().map(|i| i.title.as_str()).unwrap_or("N/A"),
@@ -798,7 +797,7 @@ impl ChannelManager {
             }
             None => {
                 // Stream is offline
-                info!(channel = %config.name, "Stream is offline");
+                debug!(channel = %config.name, "Stream is offline");
                 let old_status = {
                     let mut channels = self.channels.write();
                     if let Some(managed) = channels.get_mut(&id) {
@@ -806,11 +805,11 @@ impl ChannelManager {
                         // Only change to offline if we're not recording
                         // Recording will be stopped by the engine when stream ends
                         if managed.recording.is_none() {
-                            info!(channel = %config.name, old_status = ?old, "Setting status to Offline");
+                            debug!(channel = %config.name, old_status = ?old, "Setting status to Offline");
                             managed.status = ChannelStatus::Offline;
                             managed.current_stream = None;
                         } else {
-                            info!(channel = %config.name, "Channel has active recording, keeping current status");
+                            debug!(channel = %config.name, "Channel has active recording, keeping current status");
                         }
                         old
                     } else {
@@ -1220,15 +1219,8 @@ impl ChannelManager {
                     .map(|m| m.config.name.clone())
                     .unwrap_or_default()
             };
-            info!("Checking channel: {}", channel_name);
-
             match self.check_channel(id).await {
-                Ok(status) => {
-                    info!(
-                        "Channel {} ({}) check completed, status: {:?}",
-                        channel_name, id, status
-                    );
-                }
+                Ok(_status) => {}
                 Err(e) => {
                     warn!("Error checking channel {} ({}): {}", channel_name, id, e);
 

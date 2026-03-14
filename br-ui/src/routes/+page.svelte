@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import { Video, Tv, HardDrive, ListTodo, Circle, Terminal } from 'lucide-svelte';
 	import StatusCard from '$lib/components/StatusCard.svelte';
 	import { Panel } from '$lib';
@@ -11,8 +11,10 @@
 	$effect(() => {
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			dashboardStore.load();
-			dashboardStore.subscribe();
+			untrack(() => {
+				dashboardStore.load(serverId);
+				dashboardStore.subscribe();
+			});
 		}
 	});
 

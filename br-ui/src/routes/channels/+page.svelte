@@ -13,6 +13,8 @@
 	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
 	import type { Channel } from '$lib/api/types';
 
+	import { untrack } from 'svelte';
+
 	let showAddModal = $state(false);
 
 	// Reload channels when server changes or connection is established
@@ -20,8 +22,10 @@
 		// Track activeServerId to detect server switches
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			channelsStore.load();
-			channelsStore.subscribe();
+			untrack(() => {
+				channelsStore.load(serverId);
+				channelsStore.subscribe();
+			});
 		}
 	});
 

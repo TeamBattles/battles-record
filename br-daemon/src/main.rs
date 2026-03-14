@@ -604,30 +604,20 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Added {} channels", channels_to_add.len());
 
-    // Do initial poll BEFORE starting the HTTP server
-    // This ensures channels have correct status when clients connect
-    if !channels_to_add.is_empty() {
-        tracing::info!("Running initial channel check...");
-        channel_manager.poll_all_channels().await;
-        tracing::info!("Initial channel check complete");
-
-        // DEBUG: Log channel statuses after initial poll
-        let channels = channel_manager.get_channels();
-        for ch in &channels {
-            tracing::info!(
-                channel = %ch.name,
-                status = ?ch.status,
-                enabled = ch.enabled,
-                "Channel status after initial poll"
-            );
-        }
-    }
-
-    // Start polling loop (for subsequent polls)
+    // Run initial poll in the background so the HTTP server starts immediately.
+    // Channels will show as "Unknown" until the first check completes.
     let (shutdown_tx, shutdown_rx) = mpsc::channel(1);
-    let manager_clone = channel_manager.clone();
+    let polling_manager = channel_manager.clone();
+    let channel_count = channels_to_add.len();
     tokio::spawn(async move {
-        manager_clone.run_polling_loop(shutdown_rx).await;
+        if channel_count > 0 {
+            tracing::info!("Running initial channel check ({} channels)...", channel_count);
+            polling_manager.poll_all_channels().await;
+            tracing::info!("Initial channel check complete");
+        }
+
+        // Start polling loop after initial check
+        polling_manager.run_polling_loop(shutdown_rx).await;
     });
 
     // Create version checker

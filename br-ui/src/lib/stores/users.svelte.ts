@@ -33,11 +33,21 @@ class UsersStore {
 		return user.username === this.currentUsername;
 	}
 
-	async load() {
-		this.isLoading = true;
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
+	async load(serverId?: string) {
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.users.length > 0;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) this.users = [];
+		}
 		this.error = null;
 		try {
 			this.users = await api.getUsers();
+			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : 'Failed to load users';
 		} finally {

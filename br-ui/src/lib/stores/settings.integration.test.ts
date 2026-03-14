@@ -56,7 +56,8 @@ const mockSettings: AppSettings = {
 	closeAction: 'ask',
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
-	showCornerBrackets: false
+	showCornerBrackets: false,
+	debugConsole: false
 };
 
 // Helper to reset store state
@@ -68,7 +69,8 @@ function resetStore() {
 			closeAction: 'ask',
 			localDaemonDataDir: null,
 			localDaemonLibraryDir: null,
-			showCornerBrackets: false
+			showCornerBrackets: false,
+			debugConsole: false
 		};
 		settingsStore.isLoaded = false;
 	}

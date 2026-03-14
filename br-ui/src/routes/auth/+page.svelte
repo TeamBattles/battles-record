@@ -11,6 +11,7 @@
 	import ManualTokenInput from '$lib/components/ManualTokenInput.svelte';
 	import OAuthPendingOverlay from '$lib/components/OAuthPendingOverlay.svelte';
 	import AdvancedOAuthModal from '$lib/components/AdvancedOAuthModal.svelte';
+	import { untrack } from 'svelte';
 	import type { Platform } from '$lib/api/types';
 	import { OAUTH_RESPONSE_HTML } from '$lib/utils/oauth-response';
 
@@ -31,7 +32,9 @@
 	$effect(() => {
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			platformAuthStore.load();
+			untrack(() => {
+				platformAuthStore.load(serverId);
+			});
 		}
 	});
 

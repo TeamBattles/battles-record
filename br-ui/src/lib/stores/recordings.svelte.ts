@@ -135,6 +135,9 @@ class RecordingsStore {
 		return this.processingProgress.get(recordingId);
 	}
 
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
 	// Sorting
 	sortBy = $state<'date' | 'size' | 'duration'>('date');
 	sortOrder = $state<'asc' | 'desc'>('desc');
@@ -183,11 +186,18 @@ class RecordingsStore {
 		return result;
 	}
 
-	async load() {
-		this.isLoading = true;
+	async load(serverId?: string) {
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.recordings.length > 0;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) this.recordings = [];
+		}
 		this.error = null;
 		try {
 			this.recordings = await api.getRecordings();
+			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : 'Failed to load recordings';
 		} finally {

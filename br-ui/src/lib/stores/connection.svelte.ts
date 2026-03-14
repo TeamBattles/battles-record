@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { api, wsClient, AuthenticationError, type AuthErrorCode } from '$lib/api';
 import { settingsStore, type SavedServer } from './settings.svelte';
+import { extractErrorMessage } from '$lib/utils/errors';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 export type AuthState = 'valid' | 'refreshing' | 'expired' | 'invalid';
@@ -145,11 +146,7 @@ class ConnectionStore {
 			const wsUrl = server.url.replace(/^http/, 'ws');
 			wsClient.setBaseUrl(wsUrl);
 			wsClient.setToken(server.type === 'remote' ? api.getToken() : null);
-			console.log('[CONN] About to call wsClient.connect()', { time: Date.now() });
 			wsClient.connect();
-			console.log('[CONN] wsClient.connect() returned, setting connectionState=connected', {
-				time: Date.now()
-			});
 
 			this.activeServerId = serverId;
 			this.connectionState = 'connected';
@@ -161,6 +158,7 @@ class ConnectionStore {
 
 			return true;
 		} catch (e) {
+			console.error('[CONN] connectToServer failed:', e);
 			// Handle auth errors by showing the session expired modal
 			if (e instanceof AuthenticationError) {
 				if (e.code === 'TOKEN_EXPIRED' || e.code === 'TOKEN_INVALID') {
@@ -169,7 +167,7 @@ class ConnectionStore {
 				}
 			}
 
-			this.error = e instanceof Error ? e.message : 'Connection failed';
+			this.error = extractErrorMessage(e, 'Connection failed');
 			// Restore previous state so we don't disrupt existing connection
 			this.connectionState = previousState;
 			api.setBaseUrl(previousBaseUrl);
@@ -198,15 +196,10 @@ class ConnectionStore {
 		// Don't change connection state yet - test first
 		this.error = null;
 
-		// Store current API state to restore if auth fails
-		const previousBaseUrl = api.getBaseUrl();
-		const previousToken = api.getToken();
-
 		try {
-			// Test authentication
-			api.setBaseUrl(server.url);
-			api.setToken(null); // Clear token for login
-			const auth = await api.login(username, password);
+			// Test login against the remote URL without modifying the global API state.
+			// This prevents disrupting the active local connection during the attempt.
+			const auth = await api.loginToUrl(server.url, username, password);
 
 			// Calculate expiry (parse ISO string, or default to 30 days)
 			const expiryDate = auth.expires_at
@@ -223,15 +216,11 @@ class ConnectionStore {
 			// Store username
 			this.username = username;
 
-			// Now connect (this will set connecting state)
+			// Now connect (this will switch the API client to the remote server)
 			return await this.connectToServer(serverId);
 		} catch (e) {
-			// Restore previous API state so current connection keeps working
-			if (previousBaseUrl) {
-				api.setBaseUrl(previousBaseUrl);
-				api.setToken(previousToken);
-			}
-			this.error = e instanceof Error ? e.message : 'Authentication failed';
+			console.error('[CONN] authenticateRemote failed:', e);
+			this.error = extractErrorMessage(e, `Could not connect to ${server.url}`);
 			// Don't change connection state - keep current connection intact
 			return false;
 		}
@@ -302,7 +291,8 @@ class ConnectionStore {
 
 			return true;
 		} catch (e) {
-			this.error = e instanceof Error ? e.message : 'Authentication failed';
+			console.error('[CONN] reauthenticate failed:', e);
+			this.error = extractErrorMessage(e, 'Authentication failed');
 			this.authState = 'expired';
 			return false;
 		}
@@ -417,7 +407,8 @@ class ConnectionStore {
 			// Connect normally
 			return await this.connectToServer('local');
 		} catch (e) {
-			this.error = e instanceof Error ? e.message : String(e);
+			console.error('[CONN] connectToLocal failed:', e);
+			this.error = extractErrorMessage(e, 'Failed to start local daemon');
 			this.connectionState = 'disconnected';
 			return false;
 		}

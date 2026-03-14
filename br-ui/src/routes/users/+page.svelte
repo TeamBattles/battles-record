@@ -6,6 +6,7 @@
 	import EditUserModal from '$lib/components/EditUserModal.svelte';
 	import UserSessionsPanel from '$lib/components/UserSessionsPanel.svelte';
 	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
+	import { untrack } from 'svelte';
 	import type { User, CreateUserRequest, UpdateUserRequest } from '$lib/api/types';
 
 	let showAddModal = $state(false);
@@ -18,9 +19,10 @@
 		// Track activeServerId to detect server switches
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			// Set current username from connection info
-			usersStore.setCurrentUsername(connectionStore.username);
-			usersStore.load();
+			untrack(() => {
+				usersStore.setCurrentUsername(connectionStore.username);
+				usersStore.load(serverId);
+			});
 		}
 	});
 

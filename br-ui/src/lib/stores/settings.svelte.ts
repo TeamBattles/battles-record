@@ -18,6 +18,8 @@ export interface AppSettings {
 	localDaemonLibraryDir: string | null;
 	// Appearance
 	showCornerBrackets: boolean;
+	// Debug
+	debugConsole: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -26,7 +28,8 @@ const DEFAULT_SETTINGS: AppSettings = {
 	closeAction: 'ask' as const,
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
-	showCornerBrackets: false
+	showCornerBrackets: false,
+	debugConsole: false
 };
 
 const SETTINGS_FILE = 'settings.json';

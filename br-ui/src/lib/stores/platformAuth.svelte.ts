@@ -41,8 +41,17 @@ class PlatformAuthStore {
 		return this.platforms.filter((p) => p.status === 'connected').length;
 	}
 
-	async load(): Promise<void> {
-		this.isLoading = true;
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
+	async load(serverId?: string): Promise<void> {
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.platforms.length > 0;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) this.platforms = [];
+		}
 		this.error = null;
 		try {
 			const [platforms] = await Promise.all([
@@ -50,6 +59,7 @@ class PlatformAuthStore {
 				this.loadOAuthAvailability()
 			]);
 			this.platforms = platforms;
+			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : 'Failed to load platform authentication';
 		} finally {

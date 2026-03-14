@@ -9,10 +9,23 @@ class DashboardStore {
 	isLoading = $state(false);
 	error = $state<string | null>(null);
 
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
 	private unsubscribe: (() => void) | null = null;
 
-	async load() {
-		this.isLoading = true;
+	async load(serverId?: string) {
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.status !== null;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) {
+				this.status = null;
+				this.channels = [];
+				this.activeRecordings = [];
+			}
+		}
 		this.error = null;
 
 		try {
@@ -27,6 +40,7 @@ class DashboardStore {
 			versionStore.setDaemonUpdateInfo(status.update);
 			this.channels = channels;
 			this.activeRecordings = recordings.filter((r) => r.status === 'recording');
+			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : 'Failed to load dashboard';
 		} finally {

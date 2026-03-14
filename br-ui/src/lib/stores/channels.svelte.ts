@@ -21,6 +21,9 @@ class ChannelsStore {
 	private profileCache = new Map<string, ChannelProfile>();
 	private profileLoading = new Map<string, boolean>();
 
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
 	// WebSocket subscription
 	private unsubscribe: (() => void) | null = null;
 
@@ -112,12 +115,19 @@ class ChannelsStore {
 		this.profileCache.clear();
 	}
 
-	async load() {
-		console.log('[CH] load() starting', { time: Date.now() });
-		this.isLoading = true;
+	async load(serverId?: string) {
+		console.log('[CH] load() starting', { serverId, time: Date.now() });
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.channels.length > 0;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) this.channels = [];
+		}
 		this.error = null;
 		try {
 			this.channels = await api.getChannels();
+			if (serverId) this._loadedServerId = serverId;
 			console.log('[CH] load() complete', {
 				channels: this.channels.map((c) => ({
 					name: c.name,

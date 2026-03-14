@@ -11,6 +11,7 @@
 	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
 	import type { Recording, RecordingStatus } from '$lib/api/types';
 	import { formatDuration, formatBytes, formatDate, RECORDING_STATUS_COLORS } from '$lib/utils';
+	import { untrack } from 'svelte';
 
 	let deleteModalOpen = $state(false);
 	let recordingToDelete = $state<Recording | null>(null);
@@ -24,7 +25,9 @@
 	$effect(() => {
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			recordingsStore.load();
+			untrack(() => {
+				recordingsStore.load(serverId);
+			});
 		}
 	});
 

@@ -20,6 +20,7 @@
 	import CleanupToolsPanel from '$lib/components/CleanupToolsPanel.svelte';
 	import ChannelQuotaModal from '$lib/components/ChannelQuotaModal.svelte';
 	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
+	import { untrack } from 'svelte';
 	import type { Channel } from '$lib/api/types';
 
 	let quotaEditChannel = $state<Channel | null>(null);
@@ -29,8 +30,10 @@
 	$effect(() => {
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			storageStore.load();
-			channelsStore.load();
+			untrack(() => {
+				storageStore.load(serverId);
+				channelsStore.load(serverId);
+			});
 		}
 	});
 

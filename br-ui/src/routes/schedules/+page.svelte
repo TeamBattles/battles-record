@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Calendar, Clock, ChevronRight } from 'lucide-svelte';
+	import { untrack } from 'svelte';
 	import { channelsStore } from '$lib/stores/channels.svelte';
 	import { connectionStore } from '$lib/stores/connection.svelte';
 	import PlatformIcon from '$lib/components/PlatformIcon.svelte';
@@ -12,7 +13,9 @@
 	$effect(() => {
 		const serverId = connectionStore.activeServerId;
 		if (connectionStore.isConnected && serverId) {
-			channelsStore.load();
+			untrack(() => {
+				channelsStore.load(serverId);
+			});
 		}
 	});
 

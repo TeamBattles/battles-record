@@ -14,7 +14,8 @@
 		Check,
 		FolderOpen,
 		HardDrive,
-		Palette
+		Palette,
+		Terminal
 	} from 'lucide-svelte';
 	import {
 		settingsStore,
@@ -261,13 +262,17 @@
 		deleteServer = server;
 	}
 
-	function handleDelete() {
+	async function handleDelete() {
 		if (!deleteServer) return;
-		if (connectionStore.activeServerId === deleteServer.id) {
+		const wasActive = connectionStore.activeServerId === deleteServer.id;
+		if (wasActive) {
 			connectionStore.disconnect();
 		}
 		settingsStore.removeServer(deleteServer.id);
 		deleteServer = null;
+		if (wasActive) {
+			await connectionStore.connectToLocal();
+		}
 	}
 
 	async function handleAddServer() {
@@ -806,6 +811,45 @@
 				>
 					<span
 						class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {settingsStore.settings.showCornerBrackets
+							? 'translate-x-5'
+							: ''}"
+					></span>
+				</button>
+			</div>
+		</div>
+	</section>
+
+	<!-- Advanced -->
+	<section>
+		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+			<Terminal size={14} />
+			Advanced
+		</h3>
+		<div class="relative border border-border bg-card p-4">
+			<CornerBrackets />
+			<div class="flex items-center justify-between">
+				<div>
+					<span id="settings-debug-console-label" class="block font-mono text-sm text-foreground">Debug Console</span>
+					<p class="font-mono text-[10px] text-muted-foreground">
+						Show in-app developer tools for debugging connections and errors
+						<kbd class="ml-1 px-1 py-0.5 rounded bg-muted text-[9px]">Ctrl+Shift+D</kbd>
+					</p>
+				</div>
+				<button
+					role="switch"
+					aria-checked={settingsStore.settings.debugConsole}
+					aria-labelledby="settings-debug-console-label"
+					class="relative w-11 h-6 rounded-full transition-colors {settingsStore.settings.debugConsole
+						? 'bg-emerald-600'
+						: 'bg-muted'}"
+					onclick={() => {
+						const newValue = !settingsStore.settings.debugConsole;
+						settingsStore.settings.debugConsole = newValue;
+						settingsStore.save();
+					}}
+				>
+					<span
+						class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {settingsStore.settings.debugConsole
 							? 'translate-x-5'
 							: ''}"
 					></span>

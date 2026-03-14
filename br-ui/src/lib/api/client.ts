@@ -32,6 +32,51 @@ import type {
 } from './types';
 import { type BackendChannel, transformChannel } from './backend-types';
 
+// Tauri HTTP plugin fetch - routes requests through Rust to bypass
+// CORS and mixed-content browser restrictions for remote servers.
+// Lazy-initialized for SSR compatibility.
+let _httpFetch: typeof globalThis.fetch | null = null;
+
+async function httpFetch(
+	input: RequestInfo | URL,
+	init?: RequestInit & { connectTimeout?: number }
+): Promise<Response> {
+	if (!_httpFetch) {
+		try {
+			const mod = await import('@tauri-apps/plugin-http');
+			_httpFetch = mod.fetch;
+		} catch {
+			_httpFetch = globalThis.fetch.bind(globalThis);
+		}
+	}
+
+	const { connectTimeout, ...fetchInit } = init ?? {};
+	const timeout = connectTimeout ?? 15_000;
+
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), timeout);
+
+	// Chain signals if caller provided one
+	if (fetchInit.signal) {
+		fetchInit.signal.addEventListener('abort', () => controller.abort());
+	}
+
+	try {
+		const response = await _httpFetch(input, {
+			...fetchInit,
+			signal: controller.signal
+		});
+		return response;
+	} catch (e) {
+		if (controller.signal.aborted && !(fetchInit.signal?.aborted)) {
+			throw new Error(`Connection timed out after ${timeout / 1000}s`);
+		}
+		throw e;
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 /**
  * Custom error class for authentication failures.
  * Contains the error code from the backend for handling specific cases.
@@ -131,7 +176,7 @@ export class ApiClient {
 				Authorization: `Bearer ${this.token}`
 			};
 
-			const response = await fetch(`${this.baseUrl}/api/auth/refresh`, {
+			const response = await httpFetch(`${this.baseUrl}/api/auth/refresh`, {
 				method: 'POST',
 				headers
 			});
@@ -193,7 +238,7 @@ export class ApiClient {
 			Object.assign(headers, optHeaders);
 		}
 
-		const response = await fetch(`${this.baseUrl}${path}`, {
+		const response = await httpFetch(`${this.baseUrl}${path}`, {
 			...options,
 			headers
 		});
@@ -244,9 +289,31 @@ export class ApiClient {
 		return res.data;
 	}
 
+	/**
+	 * Test login against a specific URL without modifying global API state.
+	 * Used by authenticateRemote to avoid disrupting the active connection.
+	 */
+	async loginToUrl(url: string, username: string, password: string): Promise<AuthTokens> {
+		const response = await httpFetch(`${url.replace(/\/+$/, '')}/api/auth/login`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username, password })
+		});
+
+		if (!response.ok) {
+			const errorBody = await response.json().catch(() => null);
+			const message =
+				errorBody?.error || `Login failed: ${response.status} ${response.statusText}`;
+			throw new Error(message);
+		}
+
+		const res: ApiResponse<AuthTokens> = await response.json();
+		return res.data;
+	}
+
 	// Health check (no auth required)
 	async checkHealth(): Promise<{ status: string; version: string }> {
-		const response = await fetch(`${this.baseUrl}/health`);
+		const response = await httpFetch(`${this.baseUrl}/health`);
 		if (!response.ok) {
 			throw new Error(`Health check failed: ${response.status}`);
 		}
@@ -539,7 +606,7 @@ export class ApiClient {
 		}
 		// Don't set Content-Type - browser will set it with boundary for multipart
 
-		const response = await fetch(
+		const response = await httpFetch(
 			`${this.baseUrl}/api/channels/${channelId}/images/${imageType}`,
 			{
 				method: 'POST',

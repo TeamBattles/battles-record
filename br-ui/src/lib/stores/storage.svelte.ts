@@ -128,11 +128,21 @@ class StorageStore {
 		return sorted;
 	}
 
-	async load() {
-		this.isLoading = true;
+	// Track which server's data we have for stale-while-revalidate
+	private _loadedServerId: string | null = null;
+
+	async load(serverId?: string) {
+		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
+		const hasData = this.stats !== null;
+
+		if (!hasData || isServerSwitch) {
+			this.isLoading = true;
+			if (isServerSwitch) this.stats = null;
+		}
 		this.error = null;
 		try {
 			this.stats = await api.getStorageStats();
+			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
 			this.error = e instanceof Error ? e.message : 'Failed to load storage stats';
 		} finally {
