@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet, Component } from 'svelte';
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props {
 		title: string;
@@ -15,13 +15,13 @@
 
 <div class={cn('flex flex-col items-center justify-center py-12 text-center', className)}>
 	{#if Icon}
-		<div class="mb-4 text-zinc-500">
+		<div class="mb-4 text-muted-foreground">
 			<Icon class="size-12" />
 		</div>
 	{/if}
-	<h3 class="font-mono text-sm font-medium text-zinc-300">{title}</h3>
+	<h3 class="font-mono text-sm font-medium text-text-2">{title}</h3>
 	{#if description}
-		<p class="mt-1 font-mono text-xs text-zinc-500">{description}</p>
+		<p class="mt-1 font-mono text-xs text-muted-foreground">{description}</p>
 	{/if}
 	{#if action}
 		<div class="mt-4">

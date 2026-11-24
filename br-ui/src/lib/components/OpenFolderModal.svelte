@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { X, Folder, FileVideo } from 'lucide-svelte';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
+	import { X, Folder, FileVideo } from '@lucide/svelte';
+	import HexMesh from './ui/HexMesh.svelte';
 
 	interface Props {
 		open: boolean;
@@ -24,18 +24,17 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div class="absolute inset-0" onclick={onClose}></div>
 
-		<div class="relative w-full max-w-md border border-border bg-card shadow-xl">
-			<CornerBrackets />
-
+		<div class="animate-luxury-fade-scale relative rounded-xl w-full max-w-md border border-border bg-popover shadow-2xl">
 			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-border px-4 py-3">
-				<h3 class="font-mono text-sm uppercase tracking-wider text-foreground">Open Location</h3>
-				<button class="p-1 hover:bg-muted rounded transition-colors" onclick={onClose}>
+			<div class="relative overflow-hidden rounded-t-[inherit] flex items-center justify-between border-b border-border px-4 py-3">
+				<HexMesh />
+				<h3 class="relative z-10 font-mono text-sm uppercase tracking-wider text-foreground">Open Location</h3>
+				<button class="relative z-10 p-1 hover:bg-hover-wash rounded transition-colors" onclick={onClose}>
 					<X class="w-4 h-4 text-muted-foreground" />
 				</button>
 			</div>
@@ -48,14 +47,14 @@
 
 				<!-- Recording folder option -->
 				<button
-					class="w-full flex items-start gap-3 p-3 rounded border border-border bg-muted/50 hover:bg-muted hover:border-border transition-colors text-left"
+					class="w-full flex items-start gap-3 p-3 rounded border border-border bg-muted/50 hover:bg-hover-wash hover:border-border transition-colors text-left"
 					onclick={() => {
 						onOpenRecording();
 						onClose();
 					}}
 				>
 					<div class="p-2 rounded bg-muted">
-						<Folder class="w-5 h-5 text-amber-400" />
+						<Folder class="w-5 h-5 text-yellow" />
 					</div>
 					<div class="flex-1 min-w-0">
 						<div class="font-mono text-sm text-foreground">Recording Folder</div>
@@ -71,14 +70,14 @@
 				<!-- Library folder option -->
 				{#if outputFile}
 					<button
-						class="w-full flex items-start gap-3 p-3 rounded border border-border bg-muted/50 hover:bg-muted hover:border-border transition-colors text-left"
+						class="w-full flex items-start gap-3 p-3 rounded border border-border bg-muted/50 hover:bg-hover-wash hover:border-border transition-colors text-left"
 						onclick={() => {
 							onOpenLibrary();
 							onClose();
 						}}
 					>
 						<div class="p-2 rounded bg-muted">
-							<FileVideo class="w-5 h-5 text-emerald-400" />
+							<FileVideo class="w-5 h-5 text-green" />
 						</div>
 						<div class="flex-1 min-w-0">
 							<div class="font-mono text-sm text-foreground">Library Folder</div>

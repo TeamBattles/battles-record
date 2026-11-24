@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { connectionStore } from '$lib/stores/connection.svelte';
+	import { connectionStore } from '#lib/stores/connection.svelte.ts';
 	import LoadingSpinner from './LoadingSpinner.svelte';
 	import ErrorMessage from './ErrorMessage.svelte';
 

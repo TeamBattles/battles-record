@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { sidebarStore, breakpointStore } from '$lib';
+	import { page } from '$app/state';
+	import { sidebarStore, breakpointStore } from '#lib';
+	import { cn } from '#lib/utils/cn.ts';
+	import { Tooltip } from 'bits-ui';
 	import {
 		LayoutDashboard,
 		Tv,
@@ -13,27 +15,36 @@
 		Users,
 		Settings,
 		X
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
-	const mainNav = [
-		{ href: '/', icon: LayoutDashboard, label: 'Dashboard' },
-		{ href: '/channels', icon: Tv, label: 'Channels' },
-		{ href: '/recordings', icon: Video, label: 'Recordings' },
-		{ href: '/downloads', icon: Download, label: 'Downloads' },
-		{ href: '/schedules', icon: Calendar, label: 'Schedules' },
-		{ href: '/activity', icon: Activity, label: 'Activity' },
-		{ href: '/storage', icon: HardDrive, label: 'Storage' }
+	const sections = [
+		{
+			label: 'Record',
+			items: [
+				{ href: '/', icon: LayoutDashboard, label: 'Dashboard' },
+				{ href: '/channels', icon: Tv, label: 'Channels' },
+				{ href: '/recordings', icon: Video, label: 'Recordings' },
+				{ href: '/downloads', icon: Download, label: 'Downloads' },
+				{ href: '/schedules', icon: Calendar, label: 'Schedules' },
+				{ href: '/activity', icon: Activity, label: 'Activity' },
+				{ href: '/storage', icon: HardDrive, label: 'Storage' }
+			]
+		},
+		{
+			label: 'Admin',
+			items: [
+				{ href: '/auth', icon: Key, label: 'Auth' },
+				{ href: '/users', icon: Users, label: 'Users' },
+				{ href: '/settings', icon: Settings, label: 'Settings' }
+			]
+		}
 	];
 
-	const adminNav = [
-		{ href: '/auth', icon: Key, label: 'Auth' },
-		{ href: '/users', icon: Users, label: 'Users' },
-		{ href: '/settings', icon: Settings, label: 'Settings' }
-	];
+	const collapsed = $derived(sidebarStore.state === 'collapsed');
 
 	function isActive(href: string): boolean {
-		if (href === '/') return $page.url.pathname === '/';
-		return $page.url.pathname.startsWith(href);
+		if (href === '/') return page.url.pathname === '/';
+		return page.url.pathname.startsWith(href);
 	}
 
 	function handleNavClick() {
@@ -43,102 +54,106 @@
 	}
 </script>
 
+<!--
+	The icon-only rail labels its links with a portalled tooltip. An in-place absolute label would
+	sit inside the nav's scroll box: overflow-y forces overflow-x to scroll too, so the label both
+	added a horizontal scrollbar and got clipped when it appeared.
+-->
+{#snippet navItem(item: (typeof sections)[number]['items'][number])}
+	{@const active = isActive(item.href)}
+	<Tooltip.Root disabled={!collapsed}>
+		<Tooltip.Trigger onclick={handleNavClick}>
+			{#snippet child({ props })}
+				<!-- The trigger adds type="button" for its default <button>; it means nothing on a link -->
+				<a
+					{...props}
+					type={undefined}
+					href={item.href}
+					aria-current={active ? 'page' : undefined}
+					aria-label={collapsed ? item.label : undefined}
+					class={cn(
+						'relative my-0.5 flex items-center rounded transition-colors',
+						collapsed ? 'mx-1.5 justify-center py-2.5' : 'mx-2 gap-3 px-3 py-2',
+						active
+							? 'bg-hover-wash text-foreground'
+							: 'text-muted-foreground hover:bg-hover-wash hover:text-foreground'
+					)}
+				>
+					{#if active}
+						<span
+							class={cn(
+								'absolute top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary',
+								collapsed ? '-left-1.5' : '-left-2'
+							)}
+							aria-hidden="true"
+						></span>
+					{/if}
+					<item.icon size={18} class={active ? 'text-primary' : ''} />
+					{#if !collapsed}
+						<span class="font-mono text-xs">{item.label}</span>
+					{/if}
+				</a>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Portal>
+			<Tooltip.Content
+				side="right"
+				sideOffset={8}
+				class="z-50 rounded border border-border bg-popover px-2 py-1 font-mono text-xs whitespace-nowrap text-popover-foreground shadow-lg"
+			>
+				{item.label}
+			</Tooltip.Content>
+		</Tooltip.Portal>
+	</Tooltip.Root>
+{/snippet}
+
 <!-- Mobile Overlay Backdrop -->
 {#if breakpointStore.isMobile && sidebarStore.isOpen}
 	<button
-		class="fixed inset-0 bg-black/50 z-40"
+		class="fixed inset-0 z-40 bg-black/50"
 		onclick={() => sidebarStore.close()}
 		aria-label="Close sidebar"
 	></button>
 {/if}
 
-<!-- Sidebar -->
 <aside
-	class="bg-card border-r border-border flex flex-col transition-all duration-200
-		{sidebarStore.state === 'hidden' && !sidebarStore.isOpen ? 'hidden' : ''}
-		{sidebarStore.state === 'hidden' && sidebarStore.isOpen
-		? 'fixed left-0 top-0 bottom-0 w-48 z-50'
-		: ''}
-		{sidebarStore.state === 'collapsed' ? 'w-14' : ''}
-		{sidebarStore.state === 'expanded' ? 'w-48' : ''}"
+	class={cn(
+		'flex flex-col border-r border-border bg-rail transition-all duration-200',
+		sidebarStore.state === 'hidden' && !sidebarStore.isOpen && 'hidden',
+		sidebarStore.state === 'hidden' &&
+			sidebarStore.isOpen &&
+			'fixed top-0 bottom-0 left-0 z-50 w-52',
+		collapsed && 'w-14',
+		sidebarStore.state === 'expanded' && 'w-52'
+	)}
 >
-	<!-- Mobile Close Button -->
 	{#if breakpointStore.isMobile && sidebarStore.isOpen}
-		<div class="flex justify-end p-2 border-b border-border">
+		<div class="flex justify-end border-b border-border p-2">
 			<button
-				class="p-2 hover:bg-muted rounded transition-colors"
+				class="rounded p-2 transition-colors hover:bg-hover-wash"
 				onclick={() => sidebarStore.close()}
 				aria-label="Close sidebar"
 			>
-				<X size={18} class="text-zinc-500" />
+				<X size={18} class="text-muted-foreground" />
 			</button>
 		</div>
 	{/if}
 
-	<!-- Navigation -->
-	<nav class="flex-1 py-2">
-		{#each mainNav as item (item.href)}
-			{@const active = isActive(item.href)}
-			{#if sidebarStore.state === 'collapsed'}
-				<a
-					href={item.href}
-					onclick={handleNavClick}
-					class="flex items-center justify-center py-3 mx-1 my-0.5 rounded relative group transition-colors
-						{active ? 'bg-muted text-foreground' : 'text-zinc-500 hover:text-foreground hover:bg-muted'}"
-					title={item.label}
-				>
-					<item.icon size={18} />
-					<!-- Tooltip -->
-					<span
-						class="absolute left-full ml-2 px-2 py-1 rounded bg-card border border-border font-mono text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 shadow-lg"
-					>
-						{item.label}
-					</span>
-				</a>
-			{:else}
-				<a
-					href={item.href}
-					onclick={handleNavClick}
-					class="flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded transition-colors
-						{active ? 'bg-muted text-foreground' : 'text-zinc-500 hover:text-foreground hover:bg-muted'}"
-				>
-					<item.icon size={18} />
-					<span class="font-mono text-xs">{item.label}</span>
-				</a>
-			{/if}
-		{/each}
-
-		<div class="border-t border-border mx-2 my-2"></div>
-
-		{#each adminNav as item (item.href)}
-			{@const active = isActive(item.href)}
-			{#if sidebarStore.state === 'collapsed'}
-				<a
-					href={item.href}
-					onclick={handleNavClick}
-					class="flex items-center justify-center py-3 mx-1 my-0.5 rounded relative group transition-colors
-						{active ? 'bg-muted text-foreground' : 'text-zinc-500 hover:text-foreground hover:bg-muted'}"
-					title={item.label}
-				>
-					<item.icon size={18} />
-					<!-- Tooltip -->
-					<span
-						class="absolute left-full ml-2 px-2 py-1 rounded bg-card border border-border font-mono text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50 shadow-lg"
-					>
-						{item.label}
-					</span>
-				</a>
-			{:else}
-				<a
-					href={item.href}
-					onclick={handleNavClick}
-					class="flex items-center gap-3 mx-2 my-0.5 px-3 py-2 rounded transition-colors
-						{active ? 'bg-muted text-foreground' : 'text-zinc-500 hover:text-foreground hover:bg-muted'}"
-				>
-					<item.icon size={18} />
-					<span class="font-mono text-xs">{item.label}</span>
-				</a>
-			{/if}
-		{/each}
+	<nav class="flex-1 overflow-x-hidden overflow-y-auto py-3">
+		<Tooltip.Provider delayDuration={200}>
+			{#each sections as section, index (section.label)}
+				{#if index > 0}
+					<div class="mx-3 my-3 border-t border-border"></div>
+				{/if}
+				{#if !collapsed}
+					<p class="mb-1 px-5 font-mono text-[10px] tracking-[0.18em] text-dim uppercase">
+						{section.label}
+					</p>
+				{/if}
+				{#each section.items as item (item.href)}
+					{@render navItem(item)}
+				{/each}
+			{/each}
+		</Tooltip.Provider>
 	</nav>
 </aside>

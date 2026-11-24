@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { Users, Plus, Edit, Trash2, Key, Shield, Eye } from 'lucide-svelte';
-	import { usersStore } from '$lib/stores/users.svelte';
-	import { connectionStore, breakpointStore, toastStore } from '$lib';
-	import AddUserModal from '$lib/components/AddUserModal.svelte';
-	import EditUserModal from '$lib/components/EditUserModal.svelte';
-	import UserSessionsPanel from '$lib/components/UserSessionsPanel.svelte';
-	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
+	import PageHeader from '#lib/components/ui/PageHeader.svelte';
+	import { Users, Plus, Edit, Trash2, Key, Shield, Eye } from '@lucide/svelte';
+	import { usersStore } from '#lib/stores/users.svelte.ts';
+	import { connectionStore, breakpointStore, toastStore } from '#lib';
+	import AddUserModal from '#lib/components/AddUserModal.svelte';
+	import EditUserModal from '#lib/components/EditUserModal.svelte';
+	import UserSessionsPanel from '#lib/components/UserSessionsPanel.svelte';
+	import LuxuryCornerSlivers from '#lib/components/ui/LuxuryCornerSlivers.svelte';
 	import { untrack } from 'svelte';
-	import type { User, CreateUserRequest, UpdateUserRequest } from '$lib/api/types';
+	import type { User, CreateUserRequest, UpdateUserRequest } from '#lib/api/types.ts';
 
 	let showAddModal = $state(false);
 	let editingUser = $state<User | null>(null);
@@ -86,58 +87,57 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Header Bar -->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-		<div class="flex items-center gap-3">
-			<span class="font-mono text-xs uppercase tracking-wider text-zinc-400">Users</span>
-			<span
-				class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
-			>
-				{usersStore.userCount}
-			</span>
+	<PageHeader
+		title="Users"
+		eyebrow="Admin"
+		subtitle="Accounts with access to this server"
+		icon={Users}
+		count={usersStore.userCount}
+	>
+		{#snippet badges()}
 			{#if usersStore.onlineCount > 0}
 				<span
-					class="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400"
+					class="rounded bg-green/20 px-1.5 py-0.5 font-mono text-[10px] text-green"
 				>
 					{usersStore.onlineCount} online
 				</span>
 			{/if}
-		</div>
-
-		<button
-			class="rounded border border-border bg-input px-3 py-1.5 font-mono text-xs flex items-center justify-center gap-2 hover:bg-muted transition-colors w-full sm:w-auto"
-			onclick={() => (showAddModal = true)}
-		>
-			<Plus class="w-3.5 h-3.5" />
-			Add User
-		</button>
-	</div>
+		{/snippet}
+		{#snippet actions()}
+			<button
+				class="rounded border border-border bg-btn-bg px-3 py-1.5 font-mono text-xs flex items-center justify-center gap-2 hover:bg-hover-wash transition-colors w-full sm:w-auto"
+				onclick={() => (showAddModal = true)}
+			>
+				<Plus class="w-3.5 h-3.5" />
+				Add User
+			</button>
+		{/snippet}
+	</PageHeader>
 
 	<!-- Users Table/Cards -->
 	{#if !connectionStore.isConnected}
-		<div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-			<p class="font-mono text-xs text-amber-400">Not connected to a server.</p>
+		<div class="rounded-lg border border-yellow/30 bg-yellow/5 p-4">
+			<p class="font-mono text-xs text-yellow">Not connected to a server.</p>
 		</div>
 	{:else if usersStore.isLoading}
-		<div class="flex items-center gap-2 text-zinc-500">
+		<div class="flex items-center gap-2 text-muted-foreground">
 			<div
-				class="size-4 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent"
+				class="size-4 animate-spin rounded-full border-2 border-line-3 border-t-transparent"
 			></div>
 			<span class="font-mono text-xs">Loading users...</span>
 		</div>
 	{:else if usersStore.error}
-		<div class="rounded-lg border border-red-500/30 bg-red-500/5 p-4">
-			<p class="font-mono text-xs text-red-400">{usersStore.error}</p>
+		<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+			<p class="font-mono text-xs text-destructive">{usersStore.error}</p>
 		</div>
 	{:else if usersStore.users.length === 0}
-		<div class="relative border border-border bg-card p-8">
-			<CornerBrackets />
+		<div class="relative rounded-lg border border-border bg-card p-8">
 
-			<div class="flex flex-col items-center justify-center gap-2 text-zinc-500">
+			<div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
 				<Users class="size-8 opacity-30" />
 				<p class="font-mono text-xs">No users found</p>
 				<button
-					class="mt-2 rounded border border-border bg-input px-3 py-1.5 font-mono text-xs hover:bg-muted transition-colors"
+					class="mt-2 rounded border border-border bg-btn-bg px-3 py-1.5 font-mono text-xs hover:bg-hover-wash transition-colors"
 					onclick={() => (showAddModal = true)}
 				>
 					Add your first user
@@ -149,23 +149,23 @@
 		<div class="space-y-2">
 			{#each usersStore.users as user (user.id)}
 				{@const isCurrentUser = usersStore.isCurrentUser(user)}
-				<div class="relative border border-border bg-card p-4">
-					<CornerBrackets size="sm" />
+				<div class="group relative rounded-lg border border-border bg-card p-4">
+					<LuxuryCornerSlivers corners="tl" length="md" hoverFadeIn />
 
 					<div class="flex items-start justify-between gap-3">
 						<div class="flex items-center gap-3">
 							<!-- Online indicator -->
 							<span
 								class="size-2.5 rounded-full flex-shrink-0 {user.is_online
-									? 'bg-emerald-400'
-									: 'bg-zinc-500'}"
+									? 'bg-green'
+									: 'bg-dim'}"
 							></span>
 							<div>
 								<div class="flex items-center gap-2">
-									<span class="font-mono text-sm text-zinc-100">{user.username}</span>
+									<span class="font-mono text-sm text-foreground">{user.username}</span>
 									{#if isCurrentUser}
 										<span
-											class="rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue-400"
+											class="rounded bg-blue/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue"
 										>
 											You
 										</span>
@@ -173,11 +173,11 @@
 								</div>
 								<div class="flex items-center gap-2 mt-1">
 									<span
-										class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[9px] uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
+										class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase bg-chip text-muted-foreground"
 									>
 										{user.role}
 									</span>
-									<span class="font-mono text-[10px] text-zinc-500">
+									<span class="font-mono text-[10px] text-muted-foreground">
 										{formatLastLogin(user.last_login)}
 									</span>
 								</div>
@@ -188,25 +188,25 @@
 						{#if !isCurrentUser}
 							<div class="flex items-center gap-1">
 								<button
-									class="p-1.5 hover:bg-muted rounded transition-colors"
+									class="p-1.5 hover:bg-hover-wash rounded transition-colors"
 									title="Edit"
 									onclick={() => (editingUser = user)}
 								>
-									<Edit class="w-3.5 h-3.5 text-zinc-500" />
+									<Edit class="w-3.5 h-3.5 text-muted-foreground" />
 								</button>
 								<button
-									class="p-1.5 hover:bg-muted rounded transition-colors"
+									class="p-1.5 hover:bg-hover-wash rounded transition-colors"
 									title="Sessions"
 									onclick={() => (sessionsUser = user)}
 								>
-									<Key class="w-3.5 h-3.5 text-zinc-500" />
+									<Key class="w-3.5 h-3.5 text-muted-foreground" />
 								</button>
 								<button
-									class="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+									class="p-1.5 hover:bg-destructive/10 rounded transition-colors"
 									title="Delete"
 									onclick={() => (deleteConfirmUser = user)}
 								>
-									<Trash2 class="w-3.5 h-3.5 text-red-400" />
+									<Trash2 class="w-3.5 h-3.5 text-destructive" />
 								</button>
 							</div>
 						{/if}
@@ -216,30 +216,29 @@
 		</div>
 	{:else}
 		<!-- Desktop/Tablet: Table Layout -->
-		<div class="relative border border-border bg-card overflow-hidden">
-			<CornerBrackets class="z-10" />
+		<div class="relative rounded-lg border border-border bg-card overflow-hidden">
 
 			<table class="w-full">
 				<thead>
 					<tr class="border-b border-border/60 bg-muted/30">
 						<th
-							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-zinc-500 w-16"
+							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-16"
 							>Status</th
 						>
 						<th
-							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 							>Username</th
 						>
 						<th
-							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-zinc-500 w-24"
+							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-24"
 							>Role</th
 						>
 						<th
-							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-zinc-500 w-32"
+							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-32"
 							>Last Login</th
 						>
 						<th
-							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-zinc-500 w-32"
+							class="px-4 py-2 text-left font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-32"
 							>Actions</th
 						>
 					</tr>
@@ -247,12 +246,12 @@
 				<tbody>
 					{#each usersStore.users as user (user.id)}
 						{@const isCurrentUser = usersStore.isCurrentUser(user)}
-						<tr class="border-b border-border/30 hover:bg-muted/30 transition-colors">
+						<tr class="border-b border-border/30 hover:bg-hover-wash transition-colors">
 							<!-- Status -->
 							<td class="px-4 py-3">
 								<div class="flex items-center gap-1.5">
 									<span
-										class="size-2 rounded-full {user.is_online ? 'bg-emerald-400' : 'bg-zinc-500'}"
+										class="size-2 rounded-full {user.is_online ? 'bg-green' : 'bg-dim'}"
 									></span>
 									<span class="sr-only">{user.is_online ? 'Online' : 'Offline'}</span>
 								</div>
@@ -264,7 +263,7 @@
 									<span class="font-mono text-sm">{user.username}</span>
 									{#if isCurrentUser}
 										<span
-											class="rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue-400"
+											class="rounded bg-blue/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue"
 										>
 											You
 										</span>
@@ -276,12 +275,12 @@
 							<td class="px-4 py-3">
 								<div class="flex items-center gap-1.5">
 									{#if user.role === 'admin'}
-										<Shield class="w-3.5 h-3.5 text-amber-400" />
+										<Shield class="w-3.5 h-3.5 text-yellow" />
 									{:else}
-										<Eye class="w-3.5 h-3.5 text-zinc-500" />
+										<Eye class="w-3.5 h-3.5 text-muted-foreground" />
 									{/if}
 									<span
-										class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[9px] uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
+										class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase bg-chip text-muted-foreground"
 									>
 										{user.role}
 									</span>
@@ -290,7 +289,7 @@
 
 							<!-- Last Login -->
 							<td class="px-4 py-3">
-								<span class="font-mono text-xs text-zinc-400">
+								<span class="font-mono text-xs text-muted-foreground">
 									{formatLastLogin(user.last_login)}
 								</span>
 							</td>
@@ -298,29 +297,29 @@
 							<!-- Actions -->
 							<td class="px-4 py-3">
 								{#if isCurrentUser}
-									<span class="font-mono text-[10px] text-zinc-500">-</span>
+									<span class="font-mono text-[10px] text-muted-foreground">-</span>
 								{:else}
 									<div class="flex items-center gap-1">
 										<button
-											class="p-1.5 hover:bg-muted rounded transition-colors"
+											class="p-1.5 hover:bg-hover-wash rounded transition-colors"
 											title="Edit"
 											onclick={() => (editingUser = user)}
 										>
-											<Edit class="w-3.5 h-3.5 text-zinc-500" />
+											<Edit class="w-3.5 h-3.5 text-muted-foreground" />
 										</button>
 										<button
-											class="p-1.5 hover:bg-muted rounded transition-colors"
+											class="p-1.5 hover:bg-hover-wash rounded transition-colors"
 											title="Sessions"
 											onclick={() => (sessionsUser = user)}
 										>
-											<Key class="w-3.5 h-3.5 text-zinc-500" />
+											<Key class="w-3.5 h-3.5 text-muted-foreground" />
 										</button>
 										<button
-											class="p-1.5 hover:bg-red-500/10 rounded transition-colors"
+											class="p-1.5 hover:bg-destructive/10 rounded transition-colors"
 											title="Delete"
 											onclick={() => (deleteConfirmUser = user)}
 										>
-											<Trash2 class="w-3.5 h-3.5 text-red-400" />
+											<Trash2 class="w-3.5 h-3.5 text-destructive" />
 										</button>
 									</div>
 								{/if}
@@ -356,30 +355,30 @@
 <!-- Delete Confirmation Modal -->
 {#if deleteConfirmUser}
 	{@const user = deleteConfirmUser}
-	<div class="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
-		<div class="relative border border-zinc-700 bg-zinc-900 w-full max-w-sm p-6">
-			<CornerBrackets size="lg" />
+	<div class="fixed inset-0 bg-black/70 z-40 flex items-center justify-center p-4">
+		<div class="animate-luxury-fade-scale relative rounded-xl border border-border bg-popover w-full max-w-sm p-6 shadow-2xl">
+			<LuxuryCornerSlivers />
 
-			<h3 class="font-mono text-xs uppercase tracking-wider text-zinc-400 mb-4">Delete User</h3>
-			<p class="font-mono text-sm text-zinc-300 mb-2">
+			<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-4">Delete User</h3>
+			<p class="font-mono text-sm text-text-2 mb-2">
 				Are you sure you want to delete "{user.username}"?
 			</p>
 			{#if user.is_online}
-				<p class="font-mono text-[10px] text-amber-400 mb-4">
+				<p class="font-mono text-[10px] text-yellow mb-4">
 					This user has active sessions that will be revoked.
 				</p>
 			{/if}
-			<p class="font-mono text-[10px] text-zinc-500 mb-6">This action cannot be undone.</p>
+			<p class="font-mono text-[10px] text-muted-foreground mb-6">This action cannot be undone.</p>
 
 			<div class="flex gap-2">
 				<button
-					class="flex-1 rounded bg-red-600 px-4 py-2 font-mono text-sm text-white hover:bg-red-500 transition-colors"
+					class="flex-1 rounded bg-destructive px-4 py-2 font-mono text-sm text-destructive-foreground hover:bg-destructive/90 transition-colors"
 					onclick={handleDeleteUser}
 				>
 					Delete
 				</button>
 				<button
-					class="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+					class="rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors"
 					onclick={() => (deleteConfirmUser = null)}
 				>
 					Cancel

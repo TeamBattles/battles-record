@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { channelsStore } from '$lib/stores/channels.svelte';
+	import { channelsStore } from '#lib/stores/channels.svelte.ts';
 
 	// Expose store state for testing via data attributes
 </script>

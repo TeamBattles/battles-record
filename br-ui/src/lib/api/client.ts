@@ -80,7 +80,7 @@ async function httpFetch(
 		return response;
 	} catch (e) {
 		if (controller.signal.aborted && !(fetchInit.signal?.aborted)) {
-			throw new Error(`Connection timed out after ${timeout / 1000}s`);
+			throw new Error(`Connection timed out after ${timeout / 1000}s`, { cause: e });
 		}
 		throw e;
 	} finally {

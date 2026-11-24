@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { ResponsiveModal } from '$lib';
-	import type { User, UserRole, UpdateUserRequest } from '$lib/api/types';
+	import { ResponsiveModal } from '#lib';
+	import type { User, UserRole, UpdateUserRequest } from '#lib/api/types.ts';
 	import Button from './ui/Button.svelte';
 	import Input from './ui/Input.svelte';
 	import Checkbox from './ui/Checkbox.svelte';
-	import { Shield, Eye, Check, X, AlertTriangle } from 'lucide-svelte';
+	import { Shield, Eye, Check, X, AlertTriangle } from '@lucide/svelte';
 
 	interface Props {
 		user: User;
@@ -37,11 +37,11 @@
 		if (/\d/.test(newPassword)) score++;
 		if (/[^a-zA-Z0-9]/.test(newPassword)) score++;
 
-		if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' };
-		if (score <= 2) return { score, label: 'Fair', color: 'bg-orange-500' };
-		if (score <= 3) return { score, label: 'Good', color: 'bg-amber-500' };
-		if (score <= 4) return { score, label: 'Strong', color: 'bg-emerald-500' };
-		return { score, label: 'Very Strong', color: 'bg-emerald-400' };
+		if (score <= 1) return { score, label: 'Weak', color: 'bg-destructive' };
+		if (score <= 2) return { score, label: 'Fair', color: 'bg-orange' };
+		if (score <= 3) return { score, label: 'Good', color: 'bg-yellow' };
+		if (score <= 4) return { score, label: 'Strong', color: 'bg-green' };
+		return { score, label: 'Very Strong', color: 'bg-green' };
 	});
 
 	const passwordsMatch = $derived(newPassword === confirmPassword && newPassword.length > 0);
@@ -79,14 +79,14 @@
 		>
 			<!-- Username (read-only) -->
 			<div>
-				<span class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Username
 				</span>
 				<div class="flex items-center gap-2">
-					<span class="font-mono text-sm text-zinc-300">{user.username}</span>
+					<span class="font-mono text-sm text-text-2">{user.username}</span>
 					{#if isCurrentUser}
 						<span
-							class="rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue-400"
+							class="rounded bg-blue/20 px-1.5 py-0.5 font-mono text-[9px] uppercase text-blue"
 						>
 							You
 						</span>
@@ -96,16 +96,16 @@
 
 			<!-- Role Selector -->
 			<div>
-				<span class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Role
 				</span>
-				<div class="flex rounded border border-zinc-700 overflow-hidden">
+				<div class="flex rounded border border-line-2 overflow-hidden">
 					<button
 						type="button"
 						class="flex-1 flex items-center justify-center gap-2 px-3 py-2 font-mono text-xs transition-colors {role ===
 						'admin'
-							? 'bg-zinc-700 text-zinc-100'
-							: 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700/50'}"
+							? 'bg-chip-strong text-foreground'
+							: 'bg-btn-bg text-muted-foreground hover:bg-hover-wash'}"
 						onclick={() => (role = 'admin')}
 					>
 						<Shield size={14} />
@@ -115,8 +115,8 @@
 						type="button"
 						class="flex-1 flex items-center justify-center gap-2 px-3 py-2 font-mono text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed {role ===
 						'viewer'
-							? 'bg-zinc-700 text-zinc-100'
-							: 'bg-zinc-800 text-zinc-500 hover:bg-zinc-700/50'}"
+							? 'bg-chip-strong text-foreground'
+							: 'bg-btn-bg text-muted-foreground hover:bg-hover-wash'}"
 						onclick={() => (role = 'viewer')}
 						disabled={isCurrentUser && user.role === 'admin'}
 					>
@@ -126,8 +126,8 @@
 				</div>
 				{#if isCurrentUser && user.role === 'admin'}
 					<div class="flex items-center gap-1.5 mt-2">
-						<AlertTriangle size={12} class="text-amber-400" />
-						<span class="font-mono text-[10px] text-amber-400">
+						<AlertTriangle size={12} class="text-yellow" />
+						<span class="font-mono text-[10px] text-yellow">
 							You cannot demote yourself from admin
 						</span>
 					</div>
@@ -135,10 +135,10 @@
 			</div>
 
 			<!-- Reset Password Toggle -->
-			<div class="flex items-center justify-between rounded border border-zinc-700 bg-zinc-800 p-3">
+			<div class="flex items-center justify-between rounded border border-line-2 bg-chip p-3">
 				<div>
-					<p class="font-mono text-sm text-zinc-200">Reset Password</p>
-					<p class="font-mono text-[10px] text-zinc-500">Set a new password for this user</p>
+					<p class="font-mono text-sm text-foreground">Reset Password</p>
+					<p class="font-mono text-[10px] text-muted-foreground">Set a new password for this user</p>
 				</div>
 				<Checkbox bind:checked={resetPassword} />
 			</div>
@@ -146,7 +146,7 @@
 			{#if resetPassword}
 				<!-- New Password -->
 				<div>
-					<span class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+					<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 						New Password
 					</span>
 					<div class="relative">
@@ -159,7 +159,7 @@
 						/>
 						<button
 							type="button"
-							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-zinc-300"
+							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
 							onclick={() => (showPassword = !showPassword)}
 						>
 							{#if showPassword}
@@ -178,18 +178,18 @@
 									<div
 										class="h-1 flex-1 rounded-full transition-colors {i < passwordStrength().score
 											? passwordStrength().color
-											: 'bg-zinc-700'}"
+											: 'bg-chip-strong'}"
 									></div>
 								{/each}
 							</div>
-							<span class="font-mono text-[10px] text-zinc-500">{passwordStrength().label}</span>
+							<span class="font-mono text-[10px] text-muted-foreground">{passwordStrength().label}</span>
 						</div>
 					{/if}
 				</div>
 
 				<!-- Confirm Password -->
 				<div>
-					<span class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+					<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 						Confirm Password
 					</span>
 					<div class="relative">
@@ -203,15 +203,15 @@
 						{#if confirmPassword.length > 0}
 							<span class="absolute right-2 top-1/2 -translate-y-1/2">
 								{#if passwordsMatch}
-									<Check size={16} class="text-emerald-400" />
+									<Check size={16} class="text-green" />
 								{:else}
-									<X size={16} class="text-red-400" />
+									<X size={16} class="text-destructive" />
 								{/if}
 							</span>
 						{/if}
 					</div>
 					{#if confirmPassword.length > 0 && !passwordsMatch}
-						<span class="font-mono text-[10px] text-red-400 mt-1 block">Passwords do not match</span
+						<span class="font-mono text-[10px] text-destructive mt-1 block">Passwords do not match</span
 						>
 					{/if}
 				</div>

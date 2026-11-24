@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SavedServer, AppSettings } from './settings.svelte';
 
 // Mock browser environment
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
 	browser: true
 }));
 
@@ -57,7 +57,6 @@ const mockSettings: AppSettings = {
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
 	localDaemonDownloadsDir: null,
-	showCornerBrackets: false,
 	debugConsole: false
 };
 
@@ -71,7 +70,6 @@ function resetStore() {
 			localDaemonDataDir: null,
 			localDaemonLibraryDir: null,
 			localDaemonDownloadsDir: null,
-			showCornerBrackets: false,
 			debugConsole: false
 		};
 		settingsStore.isLoaded = false;

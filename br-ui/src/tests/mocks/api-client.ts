@@ -9,7 +9,7 @@ import type {
 	PostProcessingConfig,
 	PlatformAuth,
 	User
-} from '$lib/api/types';
+} from '#lib/api/types.ts';
 import { mockChannels, mockRecordings } from './fixtures/channels';
 
 export function createMockApiClient() {

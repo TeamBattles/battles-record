@@ -6,150 +6,794 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Arena Onyx - the design language shared with teambattles.gg and Battles Replay.
+ *
+ * :root holds the NAVY fallback token set (the brand reference). [data-theme] re-points the
+ * surface/text ladder for onyx/graphite/bone; identity tokens (accent, status, fonts, hex mesh)
+ * stay put. The `.dark` CLASS is only the Tailwind dark: variant gate and carries no values.
+ * Appearance axes apply as data-* attributes on <html> (see lib/appearance.ts); their blocks sit
+ * AFTER @theme inline so equal-specificity overrides win the cascade. A default axis has no
+ * selector at all - the controller omits the attribute instead.
+ *
+ * Naming: `--muted` is a SURFACE, `--muted-foreground` is TEXT. The text ladder below it is
+ * `--text-2` > `--muted-foreground` > `--dim` > `--faint`.
+ *
+ * `--destructive` and the status colors never follow the accent: errors stay red and "live"
+ * stays green whatever accent is picked, because they carry meaning rather than identity.
+ */
 :root {
 	--font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 	--font-display: 'Bebas Neue', ui-sans-serif, system-ui, sans-serif;
 
-	/* Light mode - Industrial/Utilitarian */
-	--background: oklch(0.985 0 0);
-	--background-deep: oklch(0.97 0 0);
-	--background-elevated: oklch(0.99 0 0);
-	--foreground: oklch(0.145 0.005 285);
-	--card: oklch(0.99 0 0);
-	--card-foreground: oklch(0.145 0.005 285);
-	--muted: oklch(0.93 0.005 265);
-	--muted-foreground: oklch(0.45 0.01 265);
-	--border: oklch(0.87 0.005 265);
-	--input: oklch(0.93 0.005 265);
-	--ring: oklch(0.55 0.01 265);
+	/* Radius sources (Soft scheme); [data-radius] re-points them. `--radius-control-src` drives
+	   the bare `rounded` utility the app uses for buttons, inputs and chips. */
+	--radius-control-src: 6px;
+	--radius-md-src: 11px;
+	--radius-lg-src: 14px;
+	--radius-2xl-src: 16px;
+	--radius-pill: 9px;
+	--radius-window: var(--radius-md-src);
 
-	/* Zinc palette for light mode */
-	--zinc-50: oklch(0.985 0 0);
-	--zinc-100: oklch(0.97 0.002 265);
-	--zinc-200: oklch(0.92 0.004 265);
-	--zinc-300: oklch(0.87 0.006 265);
-	--zinc-400: oklch(0.55 0.01 265);
-	--zinc-500: oklch(0.45 0.01 265);
-	--zinc-600: oklch(0.35 0.01 265);
-	--zinc-700: oklch(0.28 0.01 265);
-	--zinc-800: oklch(0.2 0.01 265);
-	--zinc-900: oklch(0.14 0.008 265);
+	--background: #04080f;
+	--foreground: #eef4fc;
+	--card: #0e1b2c;
+	--card-foreground: #eef4fc;
+	--popover: #112034;
+	--popover-foreground: #eef4fc;
+	--primary: #ef4444;
+	--primary-foreground: #0a0a0a;
+	--secondary: #17293f;
+	--secondary-foreground: #eef4fc;
+	--muted: #122133;
+	--muted-foreground: #7589a2;
+	--accent: #1e3458;
+	--accent-foreground: #eef4fc;
+	--destructive: #ef4444;
+	--destructive-foreground: #0a0a0a;
+	--border: rgba(150, 186, 232, 0.12);
+	--input: rgba(150, 186, 232, 0.2);
+	--ring: #ef4444;
 
-	/* Accent colors */
-	--primary: oklch(0.637 0.237 25.331);
-	--primary-foreground: oklch(0.98 0.01 17);
-	--destructive: oklch(0.577 0.245 27.325);
-	--destructive-foreground: oklch(0.98 0.01 17);
+	/* Surface ladder, stepping outward */
+	--bg: #04080f;
+	--bg-soft: #070d17;
+	--surface: #0d1827;
+	--surface-2: #122133;
+	--surface-3: #182c44;
+	--panel: #0e1b2c;
+	--panel-lift: #13233a;
+	--panel-sunk: #0a1422;
+	--well: #060e1a;
+	--rail: #081523;
+	--pop: #112034;
+	--code-bg: #050b14;
+	--btn-bg: #17293f;
+	--btn-bg-hover: #1e3458;
+	--chip: #17293f;
+	--chip-strong: #1e3458;
 
-	/* Status colors */
-	--status-live: oklch(0.65 0.2 25);
-	--status-recording: oklch(0.65 0.2 25);
-	--status-online: oklch(0.72 0.17 142);
-	--status-offline: oklch(0.55 0.01 265);
-	--status-warning: oklch(0.8 0.15 85);
-	--status-info: oklch(0.7 0.15 250);
-}
+	/* Cool hairlines */
+	--line: rgba(150, 186, 232, 0.12);
+	--line-2: rgba(150, 186, 232, 0.2);
+	--line-3: rgba(150, 186, 232, 0.34);
 
-.dark {
-	--background: oklch(0.12 0.008 265);
-	--background-deep: oklch(0.09 0.008 265);
-	--background-elevated: oklch(0.14 0.008 265);
-	--foreground: oklch(0.95 0 0);
-	--card: oklch(0.14 0.008 265);
-	--card-foreground: oklch(0.95 0 0);
-	--muted: oklch(0.22 0.008 265);
-	--muted-foreground: oklch(0.55 0.01 265);
-	--border: oklch(0.28 0.01 265);
-	--input: oklch(0.18 0.008 265);
-	--ring: oklch(0.55 0.01 265);
+	/* Row/tile hover: a light wash on dark themes, bone overrides it with a dark one. `bg-muted`
+	   sits within a shade of the cards on navy, so hovers use this instead. */
+	--hover-wash: rgba(255, 255, 255, 0.05);
 
-	/* Zinc palette for dark mode */
-	--zinc-50: oklch(0.985 0 0);
-	--zinc-100: oklch(0.97 0.002 265);
-	--zinc-200: oklch(0.92 0.004 265);
-	--zinc-300: oklch(0.87 0.006 265);
-	--zinc-400: oklch(0.7 0.01 265);
-	--zinc-500: oklch(0.55 0.01 265);
-	--zinc-600: oklch(0.45 0.01 265);
-	--zinc-700: oklch(0.28 0.01 265);
-	--zinc-800: oklch(0.2 0.01 265);
-	--zinc-900: oklch(0.14 0.008 265);
+	/* Text ladder (--text == --foreground) */
+	--text: #eef4fc;
+	--text-2: #b1c3d9;
+	--dim: #53697f;
+	--faint: #2f4055;
 
-	/* Status colors - slightly brighter for dark mode */
-	--status-live: oklch(0.7 0.2 25);
-	--status-recording: oklch(0.7 0.2 25);
-	--status-online: oklch(0.75 0.17 142);
-	--status-offline: oklch(0.45 0.01 265);
-	--status-warning: oklch(0.8 0.16 85);
-	--status-info: oklch(0.72 0.15 250);
+	/* Status (theme-invariant on dark themes; bone deepens them for AA) */
+	--green: #46e08a;
+	--green-deep: #18a25a;
+	--yellow: #ffd23f;
+	--yellow-deep: #e0a500;
+	--orange: #ff9244;
+	--blue: #41c7f5;
+	--blue-deep: #1f8fd0;
+	--purple: #b07cff;
+
+	/* Legacy aliases the app shell still uses */
+	--background-deep: var(--bg);
+	--background-elevated: var(--surface);
+
+	/* Accent-aware glows and borders */
+	--glow-primary: color-mix(in oklab, var(--primary) 20%, transparent);
+	--glow-primary-intense: color-mix(in oklab, var(--primary) 40%, transparent);
+	--border-primary-glow: color-mix(in oklab, var(--primary) 30%, transparent);
+	--border-primary-hover: color-mix(in oklab, var(--primary) 60%, transparent);
+	--primary-bright: color-mix(in oklab, var(--primary) 75%, white);
+
+	/* Honeycomb hairline: the cool blue shared with teambattles.gg and Battles Replay */
+	--hexmesh-line: #96bae8;
+	--hexmesh-opacity: 0.42;
+
+	--ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
 	--font-family-sans: var(--font-sans);
 	--font-family-mono: var(--font-mono);
 	--font-family-display: var(--font-display);
+	--font-display: var(--font-display);
+
+	/* Radius ladder derived from the runtime sources so [data-radius] re-skins every utility. */
+	--radius: var(--radius-control-src);
+	--radius-sm: calc(var(--radius-control-src) - 2px);
+	--radius-md: var(--radius-md-src);
+	--radius-lg: var(--radius-lg-src);
+	--radius-xl: calc(var(--radius-lg-src) + 4px);
+	--radius-2xl: var(--radius-2xl-src);
+
 	--color-background: var(--background);
 	--color-background-deep: var(--background-deep);
 	--color-background-elevated: var(--background-elevated);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
 	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary-bright: var(--primary-bright);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
 	--color-muted: var(--muted);
 	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
-	--color-primary: var(--primary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-destructive: var(--destructive);
-	--color-destructive-foreground: var(--destructive-foreground);
-	--color-zinc-50: var(--zinc-50);
-	--color-zinc-100: var(--zinc-100);
-	--color-zinc-200: var(--zinc-200);
-	--color-zinc-300: var(--zinc-300);
-	--color-zinc-400: var(--zinc-400);
-	--color-zinc-500: var(--zinc-500);
-	--color-zinc-600: var(--zinc-600);
-	--color-zinc-700: var(--zinc-700);
-	--color-zinc-800: var(--zinc-800);
-	--color-zinc-900: var(--zinc-900);
+
+	--color-bg: var(--bg);
+	--color-bg-soft: var(--bg-soft);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-surface-3: var(--surface-3);
+	--color-panel: var(--panel);
+	--color-panel-lift: var(--panel-lift);
+	--color-panel-sunk: var(--panel-sunk);
+	--color-well: var(--well);
+	--color-rail: var(--rail);
+	--color-pop: var(--pop);
+	--color-code-bg: var(--code-bg);
+	--color-btn-bg: var(--btn-bg);
+	--color-btn-bg-hover: var(--btn-bg-hover);
+	--color-chip: var(--chip);
+	--color-chip-strong: var(--chip-strong);
+	--color-line: var(--line);
+	--color-line-2: var(--line-2);
+	--color-line-3: var(--line-3);
+	--color-hover-wash: var(--hover-wash);
+	--color-text: var(--text);
+	--color-text-2: var(--text-2);
+	--color-dim: var(--dim);
+	--color-faint: var(--faint);
+
+	--color-green: var(--green);
+	--color-green-deep: var(--green-deep);
+	--color-yellow: var(--yellow);
+	--color-yellow-deep: var(--yellow-deep);
+	--color-orange: var(--orange);
+	--color-blue: var(--blue);
+	--color-blue-deep: var(--blue-deep);
+	--color-purple: var(--purple);
+}
+
+/* =========================================================================
+   APPEARANCE (data-* on <html>; data-theme also on <body>)
+   ========================================================================= */
+
+/* --- Theme: surfaces and text re-point; accent, status and fonts stay --- */
+[data-theme='dark'] {
+	--hexmesh-opacity: 0.42;
+}
+
+[data-theme='graphite'] {
+	--background: #16181c;
+	--foreground: #f2f3f5;
+	--card: #1d2027;
+	--card-foreground: #f2f3f5;
+	--popover: #242a33;
+	--popover-foreground: #f2f3f5;
+	--secondary: #21262e;
+	--muted: #23272f;
+	--muted-foreground: #8a909b;
+	--accent: #2e333d;
+	--border: rgba(180, 188, 200, 0.18);
+	--input: rgba(180, 188, 200, 0.18);
+	--bg: #16181c;
+	--bg-soft: #191c21;
+	--surface: #1d2027;
+	--surface-2: #23272f;
+	--surface-3: #2b303a;
+	--panel: #1d2027;
+	--panel-lift: #242a33;
+	--panel-sunk: #16181c;
+	--well: #131519;
+	--rail: #131519;
+	--pop: #242a33;
+	--code-bg: #101216;
+	--btn-bg: #282e38;
+	--btn-bg-hover: #323a45;
+	--chip: #21262e;
+	--chip-strong: #2f3742;
+	--line: rgba(180, 188, 200, 0.1);
+	--line-2: rgba(180, 188, 200, 0.18);
+	--line-3: rgba(180, 188, 200, 0.3);
+	--text: #f2f3f5;
+	--text-2: #c2c7cf;
+	--dim: #5e646e;
+	--faint: #3c414a;
+	--hexmesh-opacity: 0.42;
+}
+
+[data-theme='light'] {
+	--background: #f4efe4;
+	--foreground: #1a1814;
+	--card: #fffdf7;
+	--card-foreground: #1a1814;
+	--popover: #fffdf7;
+	--popover-foreground: #1a1814;
+	--secondary: #ece6d8;
+	--secondary-foreground: #1a1814;
+	--muted: #f6f1e6;
+	--muted-foreground: #6b665c;
+	--accent: #f6f1e6;
+	--accent-foreground: #1a1814;
+	--border: rgba(40, 36, 27, 0.12);
+	--input: rgba(40, 36, 27, 0.2);
+	--primary: #dc2626;
+	--primary-foreground: #fffdf7;
+	--ring: #dc2626;
+	--destructive: #dc2626;
+	--destructive-foreground: #fffdf7;
+	--bg: #f4efe4;
+	--bg-soft: #ece6d8;
+	--surface: #fffdf7;
+	--surface-2: #f6f1e6;
+	--surface-3: #ece6d8;
+	--panel: #fffdf7;
+	--panel-lift: #f6f1e6;
+	--panel-sunk: #f6f1e6;
+	--well: #f1ebde;
+	--rail: #ede8db;
+	--pop: #fffdf7;
+	--code-bg: #1a1814;
+	--btn-bg: #fffdf7;
+	--btn-bg-hover: #f1ebde;
+	--chip: #ece6d8;
+	--chip-strong: #e2dac9;
+	--line: rgba(40, 36, 27, 0.12);
+	--line-2: rgba(40, 36, 27, 0.2);
+	--line-3: rgba(40, 36, 27, 0.32);
+	--hover-wash: rgba(26, 24, 20, 0.06);
+	--text: #1a1814;
+	--text-2: #45413a;
+	--dim: #918b7e;
+	--faint: #c4bdae;
+	--green: #15803d;
+	--green-deep: #166534;
+	--yellow: #a16207;
+	--yellow-deep: #854d0e;
+	--orange: #c2410c;
+	--blue: #0369a1;
+	--blue-deep: #075985;
+	--purple: #7e22ce;
+	/* The shared light blue all but vanishes on cream, so Bone draws the mesh in a deeper blue */
+	--hexmesh-line: #3d5f8a;
+	--hexmesh-opacity: 0.32;
+}
+
+/* Warm shadows on bone instead of heavy dark ones */
+[data-theme='light'] :is([data-slot='card'], [data-slot='panel']) {
+	box-shadow:
+		0 1px 2px rgba(40, 36, 27, 0.05),
+		0 6px 18px rgba(40, 36, 27, 0.07);
+}
+
+[data-theme='black'] {
+	--background: #0a0a0a;
+	--foreground: #fafafa;
+	--card: #0f0f0f;
+	--card-foreground: #fafafa;
+	--popover: #131313;
+	--popover-foreground: #fafafa;
+	--secondary: #131313;
+	--muted: #131313;
+	--muted-foreground: #888888;
+	--accent: #232323;
+	--border: #1f1f1f;
+	--input: #2a2a2a;
+	--bg: #0a0a0a;
+	--bg-soft: #0b0b0b;
+	--surface: #0f0f0f;
+	--surface-2: #131313;
+	--surface-3: #171717;
+	--panel: #0f0f0f;
+	--panel-lift: #151515;
+	--panel-sunk: #0a0a0a;
+	--well: #0a0a0a;
+	--rail: #0a0a0a;
+	--pop: #131313;
+	--code-bg: #050505;
+	--btn-bg: #1a1a1a;
+	--btn-bg-hover: #242424;
+	--chip: #131313;
+	--chip-strong: #242424;
+	--line: #1f1f1f;
+	--line-2: #2a2a2a;
+	--line-3: #353535;
+	--text: #fafafa;
+	--text-2: #c4c4c4;
+	--dim: #555555;
+	--faint: #333333;
+	--hexmesh-opacity: 0.1;
+}
+
+/* --- Accent (red is the :root default) --- */
+[data-accent='amber'] {
+	--primary: #f59e0b;
+	--ring: #f59e0b;
+}
+[data-accent='cyan'] {
+	--primary: #06b6d4;
+	--primary-foreground: #061018;
+	--ring: #06b6d4;
+}
+[data-accent='lime'] {
+	--primary: #a3e635;
+	--primary-foreground: #0a1408;
+	--ring: #a3e635;
+}
+
+/* Accent x theme tuning: brighter on graphite, deeper on bone */
+[data-theme='graphite'] {
+	--primary: #f87171;
+	--ring: #f87171;
+}
+[data-theme='graphite'][data-accent='amber'] {
+	--primary: #fbbf24;
+	--ring: #fbbf24;
+}
+[data-theme='graphite'][data-accent='cyan'] {
+	--primary: #22d3ee;
+	--primary-foreground: #061018;
+	--ring: #22d3ee;
+}
+[data-theme='graphite'][data-accent='lime'] {
+	--primary: #bef264;
+	--primary-foreground: #0a1408;
+	--ring: #bef264;
+}
+[data-theme='light'][data-accent='amber'] {
+	--primary: #b45309;
+	--primary-foreground: #fffdf7;
+	--ring: #b45309;
+}
+[data-theme='light'][data-accent='cyan'] {
+	--primary: #0e7490;
+	--primary-foreground: #fffdf7;
+	--ring: #0e7490;
+}
+[data-theme='light'][data-accent='lime'] {
+	--primary: #4d7c0f;
+	--primary-foreground: #fffdf7;
+	--ring: #4d7c0f;
+}
+
+/* --- Rounding (soft is the :root default) --- */
+[data-radius='sharp'] {
+	--radius-control-src: 2px;
+	--radius-md-src: 3px;
+	--radius-lg-src: 4px;
+	--radius-2xl-src: 4px;
+	--radius-pill: 4px;
+}
+[data-radius='round'] {
+	--radius-control-src: 10px;
+	--radius-md-src: 16px;
+	--radius-lg-src: 22px;
+	--radius-2xl-src: 28px;
+	--radius-pill: 999px;
+}
+
+/* --- Density (comfortable is the :root default): a proportional tighten through Tailwind's
+       --spacing and --text-* ramps, not a pixel-exact layout. --- */
+[data-density='compact'] {
+	--spacing: 0.1875rem;
+	--text-xs: 0.6875rem;
+	--text-sm: 0.78rem;
+	--text-base: 0.85rem;
+	--text-lg: 0.95rem;
+	--text-xl: 1.05rem;
+	--text-2xl: 1.3rem;
+	--text-3xl: 1.6rem;
+	--text-4xl: 1.9rem;
+}
+
+/* --- Contrast (normal is the :root default). High keeps each theme's identity but pushes
+       surfaces apart, makes hairlines and text opaque, thickens borders and boosts focus. --- */
+[data-contrast='high'] {
+	--background: #02060c;
+	--foreground: #f4f9ff;
+	--card: #0d1d33;
+	--card-foreground: #f4f9ff;
+	--popover: #14263f;
+	--secondary: #122742;
+	--muted: #122742;
+	--muted-foreground: #aac0dc;
+	--accent: #28486f;
+	--border: #5d7ba0;
+	--input: #88a6cc;
+	--primary: #ff4444;
+	--ring: #ff4444;
+	--bg: #02060c;
+	--bg-soft: #050b16;
+	--surface: #0c1a2e;
+	--surface-2: #122742;
+	--surface-3: #1b3556;
+	--panel: #0d1d33;
+	--line: #5d7ba0;
+	--line-2: #88a6cc;
+	--line-3: #b6cdec;
+	--text: #f4f9ff;
+	--text-2: #d4e3f6;
+	--dim: #8aa0bd;
+	--faint: #5d7ba0;
+}
+/* Thicken only the borders an element already draws. Setting border-width on every button also
+   boxed borderless ones (ghost buttons, titlebar and status bar triggers) and added 4px to their
+   height, which pushed the Compact status bar past the window and gave the page a scrollbar. */
+[data-contrast='high']
+	:is(
+		[data-slot='card'],
+		[data-slot='panel'],
+		input,
+		select,
+		textarea,
+		button,
+		[role='button']
+	)[class~='border'] {
+	border-width: 2px;
+}
+[data-contrast='high']
+	:is(input, select, textarea, button, [role='button']):is(
+		[class~='border-t'],
+		[class~='border-y']
+	) {
+	border-top-width: 2px;
+}
+[data-contrast='high']
+	:is(input, select, textarea, button, [role='button']):is(
+		[class~='border-b'],
+		[class~='border-y']
+	) {
+	border-bottom-width: 2px;
+}
+[data-contrast='high']
+	:is(input, select, textarea, button, [role='button']):is(
+		[class~='border-l'],
+		[class~='border-x']
+	) {
+	border-left-width: 2px;
+}
+[data-contrast='high']
+	:is(input, select, textarea, button, [role='button']):is(
+		[class~='border-r'],
+		[class~='border-x']
+	) {
+	border-right-width: 2px;
+}
+[data-contrast='high'] :focus-visible {
+	outline: 3px solid var(--primary);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 2px #000;
+}
+[data-theme='light'][data-contrast='high'] {
+	--background: #ffffff;
+	--foreground: #000000;
+	--card: #ffffff;
+	--card-foreground: #000000;
+	--popover: #ffffff;
+	--popover-foreground: #000000;
+	--secondary: #f0ebd9;
+	--muted: #f5f1e4;
+	--muted-foreground: #2a2a2a;
+	--accent: #e6e0cb;
+	--surface: #ffffff;
+	--surface-2: #f0ebd9;
+	--surface-3: #e6e0cb;
+	--bg: #ffffff;
+	--bg-soft: #f5f1e4;
+	--panel: #ffffff;
+	--panel-lift: #f5f1e4;
+	--panel-sunk: #f5f1e4;
+	--well: #f5f1e4;
+	--rail: #ffffff;
+	--pop: #ffffff;
+	--btn-bg: #ffffff;
+	--btn-bg-hover: #f0ebd9;
+	--chip: #f0ebd9;
+	--chip-strong: #e6e0cb;
+	--line: rgba(0, 0, 0, 0.55);
+	--line-2: rgba(0, 0, 0, 0.75);
+	--line-3: rgba(0, 0, 0, 0.92);
+	--hover-wash: rgba(0, 0, 0, 0.08);
+	--border: rgba(0, 0, 0, 0.55);
+	--input: rgba(0, 0, 0, 0.75);
+	--text: #000000;
+	--text-2: #0a0a0a;
+	--dim: #4a4a4a;
+	--faint: #6a6a6a;
+	--primary: #b91c1c;
+	--primary-foreground: #ffffff;
+	--ring: #b91c1c;
+	--destructive: #b91c1c;
+	--green: #166534;
+	--yellow: #854d0e;
+	--orange: #9a3412;
+	--blue: #075985;
+}
+[data-theme='graphite'][data-contrast='high'] {
+	--background: #080b10;
+	--card: #121822;
+	--popover: #1a212d;
+	--surface: #121822;
+	--surface-2: #1b2230;
+	--surface-3: #232c3b;
+	--panel: #121822;
+	--bg: #080b10;
+	--bg-soft: #0c1018;
+	--line: #6a7585;
+	--line-2: #909caa;
+	--line-3: #b8c2ce;
+	--border: #6a7585;
+	--input: #909caa;
+	--text: #ffffff;
+	--text-2: #f0f4fa;
+	--muted-foreground: #d4dae3;
+	--dim: #9aa3b0;
+	--faint: #6a7585;
+}
+[data-theme='black'][data-contrast='high'] {
+	--background: #000000;
+	--foreground: #ffffff;
+	--card: #050505;
+	--card-foreground: #ffffff;
+	--popover: #050505;
+	--popover-foreground: #ffffff;
+	--secondary: #101010;
+	--muted: #141414;
+	--muted-foreground: #e4e4e4;
+	--accent: #1f1f1f;
+	--border: #7a7a7a;
+	--input: #a3a3a3;
+	--bg: #000000;
+	--bg-soft: #050505;
+	--surface: #050505;
+	--surface-2: #101010;
+	--surface-3: #1a1a1a;
+	--panel: #050505;
+	--panel-lift: #101010;
+	--panel-sunk: #000000;
+	--well: #000000;
+	--rail: #000000;
+	--pop: #050505;
+	--code-bg: #000000;
+	--btn-bg: #141414;
+	--btn-bg-hover: #242424;
+	--chip: #101010;
+	--chip-strong: #242424;
+	--line: #7a7a7a;
+	--line-2: #a3a3a3;
+	--line-3: #d4d4d4;
+	--text: #ffffff;
+	--text-2: #f5f5f5;
+	--dim: #c4c4c4;
+	--faint: #7a7a7a;
+	--hexmesh-opacity: 0.16;
+}
+
+/* Accent x high contrast: keep the chosen accent instead of forcing red */
+[data-contrast='high'][data-accent='amber'] {
+	--primary: #ffb000;
+	--ring: #ffb000;
+}
+[data-contrast='high'][data-accent='cyan'] {
+	--primary: #00d4ff;
+	--ring: #00d4ff;
+}
+[data-contrast='high'][data-accent='lime'] {
+	--primary: #c4ff44;
+	--ring: #c4ff44;
+}
+[data-theme='light'][data-contrast='high'][data-accent='amber'] {
+	--primary: #92400e;
+	--ring: #92400e;
+	--primary-foreground: #fffdf7;
+}
+[data-theme='light'][data-contrast='high'][data-accent='cyan'] {
+	--primary: #0c4a6e;
+	--ring: #0c4a6e;
+	--primary-foreground: #fffdf7;
+}
+[data-theme='light'][data-contrast='high'][data-accent='lime'] {
+	--primary: #3f6212;
+	--ring: #3f6212;
+	--primary-foreground: #fffdf7;
+}
+
+/* --- Motion (on is the :root default). Reduced hard-zeros every animation and transition;
+       the OS prefers-reduced-motion setting is honoured separately by each animation. --- */
+[data-motion='reduced'] *,
+[data-motion='reduced'] *::before,
+[data-motion='reduced'] *::after {
+	animation-duration: 0s !important;
+	animation-iteration-count: 1 !important;
+	transition-duration: 0s !important;
+	scroll-behavior: auto !important;
+}
+
+/* --- Rounded desktop window (set by lib/utils/window-frame.ts). The Tauri window is transparent,
+       so html and body go clear and body paints the app background inside a rounded clip.
+       clip-path is used rather than overflow:hidden because it also clips position:fixed
+       overlays and portalled dialogs. body needs an explicit height: while only fixed screens
+       (welcome, wizard) are mounted it would otherwise collapse to 0 and clip everything. --- */
+html[data-window='rounded'],
+html[data-window='rounded'] body {
+	background-color: transparent;
+}
+html[data-window='rounded'] body {
+	height: 100vh;
+	clip-path: inset(0 round var(--radius-window));
+}
+html[data-window='rounded'] body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background-color: var(--background);
+}
+/* Undecorated windows get no compositor border, so a hairline keeps the edge legible */
+html[data-window='rounded'] body::after {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: 2147483647;
+	border: 1px solid var(--line-2);
+	border-radius: var(--radius-window);
+	pointer-events: none;
 }
 
 @layer base {
 	* {
-		@apply border-border;
+		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply bg-background-deep text-foreground antialiased;
+		@apply bg-background text-foreground antialiased;
 		font-family: var(--font-sans);
+		font-feature-settings:
+			'rlig' 1,
+			'calt' 1;
+	}
+	code,
+	kbd,
+	pre,
+	samp {
+		font-family: var(--font-mono);
+	}
+	button:not([disabled]),
+	[role='button']:not([disabled]) {
+		cursor: pointer;
+	}
+
+	/* The thumb reads from the TEXT token, never the --muted surface, which sits within a shade
+	   of the page on every dark theme and would vanish. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--muted-foreground) transparent;
+	}
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background: var(--muted-foreground);
+		border-radius: 9999px;
+		border: 2px solid transparent;
+		background-clip: padding-box;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--primary);
+		border: 2px solid transparent;
+		background-clip: padding-box;
+	}
+	::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+
+	/* Native controls follow the theme (date pickers, select popups, checkbox fills) */
+	:root {
+		color-scheme: dark;
+		accent-color: var(--primary);
+	}
+	[data-theme='light'] {
+		color-scheme: light;
+	}
+
+	/* WebKitGTK draws number spin buttons as a tiny GTK widget CSS cannot resize, so they are
+	   hidden everywhere; NumberInput draws its own steppers. */
+	input[type='number'] {
+		appearance: textfield;
+	}
+	input[type='number']::-webkit-inner-spin-button,
+	input[type='number']::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	/* Inline inputs across the app share the Arena focus triad without each restating it */
+	input:not([type='checkbox']):not([type='radio']):not([type='range']):focus-visible,
+	select:focus-visible,
+	textarea:focus-visible {
+		outline: none;
+		border-color: var(--ring);
+		box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
 	}
 }
 
-/* Industrial input focus states */
-input:focus,
-select:focus,
-textarea:focus {
-	outline: none;
-	border-color: var(--ring);
-	box-shadow: 0 0 0 1px var(--ring);
+@layer utilities {
+	.font-display {
+		font-family: var(--font-display);
+		letter-spacing: 0.02em;
+	}
+
+	.animate-luxury-fade-up {
+		animation: luxury-fade-up 0.6s var(--ease-out-expo) both;
+	}
+	.animate-luxury-fade-scale {
+		animation: luxury-fade-scale 0.5s var(--ease-out-expo) both;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.animate-luxury-fade-up,
+		.animate-luxury-fade-scale {
+			animation: none;
+		}
+	}
 }
 
-/* Scrollbar styling for dark mode */
-.dark ::-webkit-scrollbar {
-	width: 8px;
-	height: 8px;
+@keyframes luxury-fade-up {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
-.dark ::-webkit-scrollbar-track {
-	background: var(--background-deep);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-	background: var(--zinc-700);
-	border-radius: 4px;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-	background: var(--zinc-600);
+@keyframes luxury-fade-scale {
+	from {
+		opacity: 0;
+		transform: scale(0.97);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }

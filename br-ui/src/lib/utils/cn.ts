@@ -10,13 +10,13 @@ import { twMerge } from 'tailwind-merge';
  * cn('px-4 py-2', 'px-6')  // => 'py-2 px-6' (px-6 wins)
  *
  * // Conditional classes
- * cn('base', isActive && 'bg-blue-500', isDisabled && 'opacity-50')
+ * cn('base', isActive && 'bg-blue', isDisabled && 'opacity-50')
  *
  * // Object syntax
- * cn('base', { 'bg-blue-500': isActive, 'opacity-50': isDisabled })
+ * cn('base', { 'bg-blue': isActive, 'opacity-50': isDisabled })
  *
  * // Component with overridable classes
- * cn('px-4 py-2 bg-blue-500', props.class)  // props.class can override any default
+ * cn('px-4 py-2 bg-blue', props.class)  // props.class can override any default
  */
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { HardDrive, Loader2 } from 'lucide-svelte';
-	import { connectionStore } from '$lib/stores/connection.svelte';
-	import { channelsStore } from '$lib/stores/channels.svelte';
-	import { storageStore } from '$lib/stores/storage.svelte';
-	import { extensionsStore } from '$lib/stores/extensions.svelte';
+	import { HardDrive, Loader2 } from '@lucide/svelte';
+	import { connectionStore } from '#lib/stores/connection.svelte.ts';
+	import { channelsStore } from '#lib/stores/channels.svelte.ts';
+	import { storageStore } from '#lib/stores/storage.svelte.ts';
+	import { extensionsStore } from '#lib/stores/extensions.svelte.ts';
 	import ExtensionStatusBar from './ExtensionStatusBar.svelte';
 
 	// Load storage and extension data when connected, and refresh periodically
@@ -36,12 +36,12 @@
 	const statusColor = $derived.by(() => {
 		switch (connectionStore.connectionState) {
 			case 'connected':
-				return 'bg-emerald-400';
+				return 'bg-green';
 			case 'connecting':
 			case 'reconnecting':
-				return 'bg-amber-400';
+				return 'bg-yellow';
 			default:
-				return 'bg-red-400';
+				return 'bg-destructive';
 		}
 	});
 
@@ -64,17 +64,17 @@
 	);
 </script>
 
-<footer class="h-8 bg-card border-t border-border flex items-center px-4">
+<footer class="h-8 bg-rail border-t border-border flex items-center px-4">
 	<!-- Left: existing status indicators -->
 	<div class="flex items-center gap-4 sm:gap-6">
 		<!-- Connection Status -->
 		<div class="flex items-center gap-1.5">
 			{#if isAnimating}
-				<Loader2 size={12} class="text-amber-400 animate-spin" />
+				<Loader2 size={12} class="text-yellow animate-spin" />
 			{:else}
 				<span class="size-2 rounded-full {statusColor}"></span>
 			{/if}
-			<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+			<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 				<span class="hidden sm:inline">{statusText.full}</span>
 				<span class="sm:hidden">{statusText.short}</span>
 			</span>
@@ -84,10 +84,10 @@
 		<div class="flex items-center gap-1.5">
 			<span
 				class="size-2 rounded-full {activeRecordings > 0
-					? 'bg-orange-400 animate-pulse'
-					: 'bg-zinc-500'}"
+					? 'bg-orange animate-pulse'
+					: 'bg-dim'}"
 			></span>
-			<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+			<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 				{activeRecordings}
 				<span class="hidden lg:inline"> Recording</span>
 				<span class="hidden sm:inline lg:hidden"> Rec</span>
@@ -96,8 +96,8 @@
 
 		<!-- Disk Usage -->
 		<div class="flex items-center gap-1.5">
-			<HardDrive size={12} class="text-zinc-500" />
-			<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+			<HardDrive size={12} class="text-muted-foreground" />
+			<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 				<span class="hidden sm:inline">Disk: </span>{diskUsagePercent}%
 			</span>
 		</div>

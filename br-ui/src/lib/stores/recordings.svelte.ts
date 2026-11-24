@@ -1,6 +1,6 @@
-import { api } from '$lib/api/client';
-import { wsClient, type WebSocketEvent } from '$lib/api/websocket';
-import type { Recording, RecordingStatus } from '$lib/api/types';
+import { api } from '#lib/api/client.ts';
+import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
+import type { Recording, RecordingStatus } from '#lib/api/types.ts';
 
 class RecordingsStore {
 	recordings = $state<Recording[]>([]);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { recordingsStore } from '$lib/stores/recordings.svelte';
+	import { recordingsStore } from '#lib/stores/recordings.svelte.ts';
 
 	// Expose store state for testing via data attributes
 </script>

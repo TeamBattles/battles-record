@@ -7,17 +7,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/svelte';
 import ChannelDetailPanel from './ChannelDetailPanel.svelte';
-import type { Channel } from '$lib/api/types';
+import type { Channel } from '#lib/api/types.ts';
 
 // Mock the channels store
-vi.mock('$lib/stores/channels.svelte', () => ({
+vi.mock('#lib/stores/channels.svelte.ts', () => ({
 	channelsStore: {
 		stopRecording: vi.fn(),
 		checkChannel: vi.fn()
 	}
 }));
 
-import { channelsStore } from '$lib/stores/channels.svelte';
+import { channelsStore } from '#lib/stores/channels.svelte.ts';
 
 const mockChannel: Channel = {
 	id: 'ch-1',
@@ -207,7 +207,7 @@ describe('ChannelDetailPanel', () => {
 			renderPanel();
 
 			const generalTab = screen.getByRole('button', { name: 'General' });
-			expect(generalTab).toHaveClass('text-zinc-100');
+			expect(generalTab).toHaveClass('text-foreground');
 		});
 
 		it('switching tabs updates content', async () => {
@@ -258,8 +258,7 @@ describe('ChannelDetailPanel', () => {
 		it('shows quality dropdown with current value', () => {
 			renderPanel();
 
-			const qualitySelect = screen.getByRole('combobox');
-			expect(qualitySelect).toHaveValue('best');
+			expect(screen.getByRole('combobox', { name: 'Quality' })).toHaveTextContent('Best');
 		});
 
 		it('shows enabled checkbox', () => {

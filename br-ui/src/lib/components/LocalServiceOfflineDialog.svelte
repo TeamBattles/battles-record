@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ResponsiveModal from './ResponsiveModal.svelte';
 	import Button from './ui/Button.svelte';
-	import { ServerOff, Power, Loader2 } from 'lucide-svelte';
-	import { connectionStore } from '$lib';
+	import { ServerOff, Power, Loader2 } from '@lucide/svelte';
+	import { connectionStore } from '#lib';
 
 	interface Props {
 		open: boolean;
@@ -44,17 +44,17 @@
 
 <ResponsiveModal {open} {onOpenChange} title="Local Service Offline">
 	<div class="flex flex-col items-center text-center">
-		<div class="mb-4 rounded-full bg-zinc-800 p-4">
-			<ServerOff size={32} class="text-zinc-400" />
+		<div class="mb-4 rounded-full bg-chip p-4">
+			<ServerOff size={32} class="text-muted-foreground" />
 		</div>
-		<p class="mb-2 font-mono text-sm text-zinc-300">
+		<p class="mb-2 font-mono text-sm text-text-2">
 			The local recording service is not running.
 		</p>
-		<p class="mb-4 font-mono text-xs text-zinc-500">
+		<p class="mb-4 font-mono text-xs text-muted-foreground">
 			Start the service to enable recording functionality.
 		</p>
 		{#if error}
-			<p class="font-mono text-xs text-red-400">{error}</p>
+			<p class="font-mono text-xs text-destructive">{error}</p>
 		{/if}
 	</div>
 

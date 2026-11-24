@@ -14,7 +14,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 // Mock the API module
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api/index.ts', () => ({
 	api: {
 		getStatus: vi.fn(),
 		checkHealth: vi.fn(),
@@ -62,7 +62,7 @@ vi.mock('./settings.svelte', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { api, wsClient } from '$lib/api';
+import { api, wsClient } from '#lib/api/index.ts';
 import { settingsStore } from './settings.svelte';
 
 // Test data

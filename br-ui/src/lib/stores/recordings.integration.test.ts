@@ -8,11 +8,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import { RecordingsStoreWrapper } from '../../tests/wrappers';
 import { recordingsStore } from './recordings.svelte';
-import type { Recording } from '$lib/api/types';
-import type { WebSocketEvent } from '$lib/api/websocket';
+import type { Recording } from '#lib/api/types.ts';
+import type { WebSocketEvent } from '#lib/api/websocket.ts';
 
 // Mock the API client
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	api: {
 		getRecordings: vi.fn(),
 		deleteRecording: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('$lib/api/client', () => ({
 const handlers: Set<(event: WebSocketEvent) => void> = new Set();
 
 // Mock the WebSocket client
-vi.mock('$lib/api/websocket', () => ({
+vi.mock('#lib/api/websocket.ts', () => ({
 	wsClient: {
 		subscribe: vi.fn((handler: (event: WebSocketEvent) => void) => {
 			// Need to use a workaround - store via globalThis
@@ -42,7 +42,7 @@ vi.mock('$lib/api/websocket', () => ({
 	}
 }));
 
-import { api } from '$lib/api/client';
+import { api } from '#lib/api/client.ts';
 
 // Test data
 const mockRecordings: Recording[] = [

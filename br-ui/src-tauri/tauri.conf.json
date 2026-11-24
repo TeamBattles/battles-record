@@ -13,12 +13,13 @@
     "windows": [
       {
         "title": "Battles Record",
-        "width": 800,
-        "height": 600,
+        "width": 900,
+        "height": 800,
+        "center": true,
         "resizable": true,
         "fullscreen": false,
         "visible": false,
-        "backgroundColor": "#141418",
+        "transparent": true,
         "decorations": false
       }
     ],

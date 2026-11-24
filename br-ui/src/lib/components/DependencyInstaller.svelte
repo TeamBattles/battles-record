@@ -101,36 +101,36 @@
 </script>
 
 {#if loading}
-	<div class="rounded border border-zinc-700 bg-zinc-800 p-3">
-		<p class="font-mono text-xs text-zinc-400">Checking dependencies...</p>
+	<div class="rounded border border-line-2 bg-chip p-3">
+		<p class="font-mono text-xs text-muted-foreground">Checking dependencies...</p>
 	</div>
 {:else if isRemote && !allInstalled}
-	<div class="rounded border border-amber-500/30 bg-amber-500/10 p-3">
-		<p class="mb-2 font-mono text-[10px] uppercase tracking-wider text-amber-400">
+	<div class="rounded border border-yellow/30 bg-yellow/10 p-3">
+		<p class="mb-2 font-mono text-[10px] uppercase tracking-wider text-yellow">
 			Missing Dependencies
 		</p>
-		<p class="mb-2 font-mono text-xs text-zinc-300">Remote server missing Bun and/or yt-dlp.</p>
-		<p class="font-mono text-[10px] text-zinc-500">
+		<p class="mb-2 font-mono text-xs text-text-2">Remote server missing Bun and/or yt-dlp.</p>
+		<p class="font-mono text-[10px] text-muted-foreground">
 			Use the bundled Docker image or install manually on the server.
 		</p>
 	</div>
 {:else if status && !allInstalled}
-	<div class="rounded border border-amber-500/30 bg-amber-500/10 p-3">
-		<p class="mb-2 font-mono text-[10px] uppercase tracking-wider text-amber-400">
+	<div class="rounded border border-yellow/30 bg-yellow/10 p-3">
+		<p class="mb-2 font-mono text-[10px] uppercase tracking-wider text-yellow">
 			Required Dependencies
 		</p>
-		<p class="mb-2 font-mono text-xs text-zinc-300">YouTube recording requires Bun and yt-dlp.</p>
+		<p class="mb-2 font-mono text-xs text-text-2">YouTube recording requires Bun and yt-dlp.</p>
 
 		<div class="mb-3 flex gap-4 font-mono text-xs">
 			{#if status.bun_available}
-				<span class="text-emerald-400">✓ Bun {status.bun_version ?? ''}</span>
+				<span class="text-green">✓ Bun {status.bun_version ?? ''}</span>
 			{:else}
-				<span class="text-red-400">✗ Bun missing</span>
+				<span class="text-destructive">✗ Bun missing</span>
 			{/if}
 			{#if status.ytdlp_available}
-				<span class="text-emerald-400">✓ yt-dlp {status.ytdlp_version ?? ''}</span>
+				<span class="text-green">✓ yt-dlp {status.ytdlp_version ?? ''}</span>
 			{:else}
-				<span class="text-red-400">✗ yt-dlp missing</span>
+				<span class="text-destructive">✗ yt-dlp missing</span>
 			{/if}
 		</div>
 
@@ -138,9 +138,9 @@
 			<div class="mb-2">
 				<div class="flex items-center gap-2">
 					<div
-						class="size-3 animate-spin rounded-full border-2 border-amber-400 border-t-transparent"
+						class="size-3 animate-spin rounded-full border-2 border-yellow border-t-transparent"
 					></div>
-					<span class="font-mono text-xs text-amber-400">
+					<span class="font-mono text-xs text-yellow">
 						{#if currentProgress}
 							Installing {currentProgress.dependency}...
 						{:else}
@@ -156,9 +156,9 @@
 		{/if}
 
 		{#if installError}
-			<p class="mt-2 font-mono text-[10px] text-red-400">{installError}</p>
+			<p class="mt-2 font-mono text-[10px] text-destructive">{installError}</p>
 		{/if}
 
-		<p class="mt-2 font-mono text-[10px] text-zinc-500">Or download the bundled app version.</p>
+		<p class="mt-2 font-mono text-[10px] text-muted-foreground">Or download the bundled app version.</p>
 	</div>
 {/if}

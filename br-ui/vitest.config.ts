@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
 	plugins: [
+		// SvelteKit 3 has no svelte.config.js, so the preprocessor the app uses must be passed here
 		svelte({
-			hot: false
+			preprocess: vitePreprocess()
 		})
 	],
 	resolve: {
@@ -17,8 +18,7 @@ export default defineConfig({
 		globals: true,
 		setupFiles: ['./src/tests/setup.ts'],
 		alias: {
-			$lib: '/src/lib',
-			'$app/environment': '/src/tests/mocks/app-environment.ts'
+			'$app/env': '/src/tests/mocks/app-env.ts'
 		},
 		coverage: {
 			provider: 'v8',

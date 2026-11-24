@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Copy, Check } from 'lucide-svelte';
-	import { ResponsiveModal } from '$lib';
+	import { Copy, Check } from '@lucide/svelte';
+	import { ResponsiveModal } from '#lib';
 
 	interface Props {
 		open: boolean;
@@ -33,12 +33,12 @@
 		<div class="flex flex-col gap-3">
 			<div
 				bind:this={logsContainer}
-				class="h-80 overflow-y-auto bg-zinc-950 rounded border border-zinc-700 p-3"
+				class="h-80 overflow-y-auto bg-well rounded border border-line-2 p-3"
 			>
 				{#if logs.length === 0}
-					<p class="font-mono text-xs text-zinc-500">No logs available</p>
+					<p class="font-mono text-xs text-muted-foreground">No logs available</p>
 				{:else}
-					<pre class="font-mono text-xs text-zinc-300 whitespace-pre-wrap">{logs.join('\n')}</pre>
+					<pre class="font-mono text-xs text-text-2 whitespace-pre-wrap">{logs.join('\n')}</pre>
 				{/if}
 			</div>
 		</div>
@@ -46,12 +46,12 @@
 	{#snippet footer()}
 		<div class="flex gap-2">
 			<button
-				class="flex-1 rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+				class="flex-1 rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
 				onclick={copyLogs}
 				disabled={logs.length === 0}
 			>
 				{#if copied}
-					<Check size={14} class="text-emerald-400" />
+					<Check size={14} class="text-green" />
 					Copied
 				{:else}
 					<Copy size={14} />
@@ -59,7 +59,7 @@
 				{/if}
 			</button>
 			<button
-				class="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+				class="rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors"
 				onclick={() => onOpenChange(false)}
 			>
 				Close

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
+	import { browser } from '$app/env';
+	import HexMesh from './ui/HexMesh.svelte';
+	import LuxuryCornerSlivers from './ui/LuxuryCornerSlivers.svelte';
 
 	interface Props {
 		status?: string;
@@ -21,34 +22,33 @@
 			const window = getCurrentWindow();
 			await window.show();
 			await window.setFocus();
-		} catch (e) {
+		} catch {
 			// Not running in Tauri (dev mode), ignore
 		}
 	}
 </script>
 
-<div class="h-screen flex flex-col items-center justify-center bg-background-deep">
-	<!-- Main container with corner brackets -->
-	<div class="relative px-12 py-10">
-		<CornerBrackets size="lg" />
+<div
+	class="relative flex h-screen flex-col items-center justify-center overflow-hidden bg-background"
+>
+	<div class="pointer-events-none absolute inset-x-0 top-0 h-2/3" aria-hidden="true">
+		<HexMesh ripple />
+	</div>
 
-		<!-- Content -->
+	<div class="relative z-10 rounded-xl border border-border bg-card px-12 py-10">
+		<LuxuryCornerSlivers />
+
 		<div class="flex flex-col items-center gap-6">
-			<!-- App name -->
 			<h1 class="font-display text-4xl tracking-wide text-foreground">BATTLES RECORD</h1>
 
-			<!-- Animated spinner -->
 			<div class="relative size-8">
+				<div class="absolute inset-0 rounded-full border-2 border-line-2"></div>
 				<div
-					class="absolute inset-0 rounded-full border-2 border-zinc-700 dark:border-zinc-600"
-				></div>
-				<div
-					class="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-orange-400"
+					class="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-primary"
 				></div>
 			</div>
 
-			<!-- Status text -->
-			<p class="font-mono text-xs uppercase tracking-wider text-zinc-500">{status}</p>
+			<p class="font-mono text-xs tracking-wider text-muted-foreground uppercase">{status}</p>
 		</div>
 	</div>
 </div>

@@ -1,5 +1,5 @@
-import { api, wsClient } from '$lib/api';
-import type { DaemonStatus, Channel, Recording, WebSocketEvent } from '$lib/api';
+import { api, wsClient } from '#lib/api/index.ts';
+import type { DaemonStatus, Channel, Recording, WebSocketEvent } from '#lib/api/index.ts';
 import { versionStore } from './version.svelte';
 
 class DashboardStore {

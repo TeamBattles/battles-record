@@ -20,8 +20,11 @@
 		Download,
 		RefreshCw as UpdateIcon,
 		Info,
-		ChevronDown
-	} from 'lucide-svelte';
+		ChevronDown,
+		Power,
+		Film,
+		Settings as SettingsIcon
+	} from '@lucide/svelte';
 	import { Tooltip } from 'bits-ui';
 	import {
 		settingsStore,
@@ -29,17 +32,24 @@
 		extensionsStore,
 		ResponsiveModal,
 		toastStore,
+		welcomeStore,
+		Panel,
+		PageHeader,
+		AppearanceControls,
 		type SavedServer
-	} from '$lib';
-	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
-	import { api, type PostProcessingConfig, type DownloadsConfig } from '$lib/api';
+	} from '#lib';
+	import Switch from '#lib/components/ui/Switch.svelte';
+	import Button from '#lib/components/ui/Button.svelte';
+	import NumberInput from '#lib/components/ui/NumberInput.svelte';
+	import Select from '#lib/components/ui/Select.svelte';
+	import { api, type PostProcessingConfig, type DownloadsConfig } from '#lib/api/index.ts';
 	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { onMount } from 'svelte';
 	import { untrack } from 'svelte';
-	import DaemonLogsModal from '$lib/components/DaemonLogsModal.svelte';
-	import MessageLogViewer from '$lib/components/MessageLogViewer.svelte';
-	import { extractErrorMessage } from '$lib/utils/errors';
+	import DaemonLogsModal from '#lib/components/DaemonLogsModal.svelte';
+	import MessageLogViewer from '#lib/components/MessageLogViewer.svelte';
+	import { extractErrorMessage } from '#lib/utils/errors.ts';
 
 	// Local daemon paths
 	interface LocalDaemonPaths {
@@ -326,6 +336,53 @@
 	// Post-processing settings state
 	let postProcessingEnabled = $state(true);
 	let checkIntervalMinutes = $state(15);
+	const CLOSE_ACTION_OPTIONS: { value: 'ask' | 'background' | 'shutdown'; label: string }[] = [
+		{ value: 'ask', label: 'Ask every time' },
+		{ value: 'background', label: 'Keep running in background' },
+		{ value: 'shutdown', label: 'Shut down service and exit' }
+	];
+	const OUTPUT_FORMAT_OPTIONS = [
+		{ value: 'mp4_reencode', label: 'MP4 (Re-encode)' },
+		{ value: 'mp4_copy', label: 'MP4 (Stream Copy)' },
+		{ value: 'ts_concat', label: 'TS Concat Only' }
+	];
+	const SEGMENT_HANDLING_OPTIONS: { value: 'delete' | 'concatenate' | 'keep'; label: string }[] = [
+		{ value: 'delete', label: 'Delete original .ts segments' },
+		{ value: 'concatenate', label: 'Concatenate into single .ts file' },
+		{ value: 'keep', label: 'Keep all .ts segments' }
+	];
+	const PRESET_OPTIONS = [
+		{ value: 'ultrafast', label: 'Ultrafast (lowest quality)' },
+		{ value: 'superfast', label: 'Superfast' },
+		{ value: 'veryfast', label: 'Veryfast' },
+		{ value: 'faster', label: 'Faster' },
+		{ value: 'fast', label: 'Fast' },
+		{ value: 'medium', label: 'Medium (balanced)' },
+		{ value: 'slow', label: 'Slow' },
+		{ value: 'slower', label: 'Slower' },
+		{ value: 'veryslow', label: 'Veryslow (highest quality)' }
+	];
+	const VIDEO_CODEC_OPTIONS = [
+		{ value: 'libx264', label: 'H.264 (libx264)' },
+		{ value: 'libx265', label: 'H.265/HEVC (libx265)' },
+		{ value: 'h264_nvenc', label: 'H.264 NVENC (NVIDIA)' },
+		{ value: 'h264_qsv', label: 'H.264 QuickSync (Intel)' }
+	];
+	const AUDIO_CODEC_OPTIONS = [
+		{ value: 'aac', label: 'AAC' },
+		{ value: 'copy', label: 'Copy Original' }
+	];
+	const AUDIO_BITRATE_OPTIONS = [
+		{ value: '96k', label: '96 kbps' },
+		{ value: '128k', label: '128 kbps' },
+		{ value: '192k', label: '192 kbps' },
+		{ value: '256k', label: '256 kbps' }
+	];
+	const startupServerOptions = $derived([
+		{ value: null, label: 'Ask every time' },
+		...settingsStore.settings.servers.map((server) => ({ value: server.id, label: server.name }))
+	]);
+
 	let outputFormat = $state('mp4_reencode');
 	let segmentHandling = $state<'delete' | 'concatenate' | 'keep'>('delete');
 	let crf = $state(20);
@@ -590,39 +647,41 @@
 </script>
 
 <div class="space-y-8">
-	<div>
-		<h1 class="font-display text-4xl tracking-tight uppercase">Settings</h1>
-		<p class="text-muted-foreground mt-2">Manage servers and app preferences</p>
-	</div>
+	<PageHeader
+		title="Settings"
+		eyebrow="Admin"
+		subtitle="Manage servers and app preferences"
+		icon={SettingsIcon}
+	/>
 
 	<!-- Servers Section -->
 	<section>
-		<h2 class="font-display text-2xl uppercase tracking-tight mb-4 flex items-center gap-2">
-			<Server size={20} />
-			Servers
-		</h2>
+		<div class="mb-4 flex items-center gap-3">
+			<Server size={18} class="text-primary" />
+			<h2 class="font-display text-2xl leading-none tracking-wide uppercase">Servers</h2>
+			<span class="h-px flex-1 bg-gradient-to-r from-primary/40 to-transparent"></span>
+		</div>
 
 		<!-- Local Service -->
 		{#if localServer}
-			<div class="relative border border-border bg-card p-4 mb-4">
-				<CornerBrackets />
+			<div class="relative rounded-lg border border-border bg-card p-4 mb-4">
 				<div class="flex items-start justify-between gap-4">
 					<div class="flex items-center gap-3">
 						<div class="p-2 rounded bg-muted">
-							<Monitor size={20} class="text-emerald-400" />
+							<Monitor size={20} class="text-green" />
 						</div>
 						<div>
 							<div class="flex items-center gap-2">
 								<h3 class="font-mono text-sm text-foreground">Local Service</h3>
 								{#if isServerConnected(localServer)}
 									<span
-										class="px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono text-[10px] text-emerald-400"
+										class="px-1.5 py-0.5 rounded bg-green/20 font-mono text-[10px] text-green"
 									>
 										Connected
 									</span>
 								{:else if isDaemonRunning}
 									<span
-										class="px-1.5 py-0.5 rounded bg-blue-500/20 font-mono text-[10px] text-blue-400"
+										class="px-1.5 py-0.5 rounded bg-blue/20 font-mono text-[10px] text-blue"
 									>
 										Running
 									</span>
@@ -641,14 +700,14 @@
 					<div class="flex items-center gap-2">
 						{#if isDaemonRunning}
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50"
+								class="p-2 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 								title="View Logs"
 								onclick={handleViewLogs}
 							>
 								<FileText size={14} class="text-muted-foreground" />
 							</button>
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50"
+								class="p-2 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 								title="Restart"
 								onclick={handleRestart}
 								disabled={isRestarting || isStopping}
@@ -660,7 +719,7 @@
 								{/if}
 							</button>
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50"
+								class="p-2 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 								title="Stop"
 								onclick={handleStop}
 								disabled={isRestarting || isStopping}
@@ -675,17 +734,17 @@
 							</button>
 						{:else}
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors disabled:opacity-50"
+								class="p-2 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 								title="Start"
 								onclick={handleStart}
 								disabled={isStarting}
 							>
 								{#if isStarting}
 									<div
-										class="size-3.5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent"
+										class="size-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent"
 									></div>
 								{:else}
-									<Play size={14} class="text-emerald-400" />
+									<Play size={14} class="text-green" />
 								{/if}
 							</button>
 						{/if}
@@ -714,7 +773,7 @@
 										</p>
 									</div>
 									<button
-										class="p-1.5 rounded hover:bg-muted transition-colors shrink-0"
+										class="p-1.5 rounded hover:bg-hover-wash transition-colors shrink-0"
 										title="Open in folder"
 										onclick={() => openInFolder(localPaths!.config_path!)}
 									>
@@ -732,7 +791,7 @@
 									</div>
 									<div class="flex items-center gap-1 shrink-0">
 										<button
-											class="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
+											class="p-1.5 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 											title="Change directory"
 											onclick={handleEditDataDir}
 											disabled={isUpdatingPaths}
@@ -746,7 +805,7 @@
 											{/if}
 										</button>
 										<button
-											class="p-1.5 rounded hover:bg-muted transition-colors"
+											class="p-1.5 rounded hover:bg-hover-wash transition-colors"
 											title="Open in folder"
 											onclick={() => openInFolder(localPaths!.data_dir!)}
 										>
@@ -773,7 +832,7 @@
 								</div>
 								<div class="flex items-center gap-1 shrink-0">
 									<button
-										class="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
+										class="p-1.5 rounded hover:bg-hover-wash transition-colors disabled:opacity-50"
 										title="Change library directory"
 										onclick={handleEditLibraryDir}
 										disabled={isUpdatingLibraryDir}
@@ -787,7 +846,7 @@
 										{/if}
 									</button>
 									<button
-										class="p-1.5 rounded hover:bg-muted transition-colors"
+										class="p-1.5 rounded hover:bg-hover-wash transition-colors"
 										title="Open in folder"
 										onclick={() => openInFolder(localPaths!.library_dir ?? localPaths!.data_dir!)}
 									>
@@ -808,7 +867,7 @@
 									</div>
 								<div class="flex items-center gap-1 shrink-0">
 									<button
-										class="p-1.5 rounded hover:bg-muted transition-colors"
+										class="p-1.5 rounded hover:bg-hover-wash transition-colors"
 										title="Change downloads directory"
 										onclick={handleEditDownloadsDir}
 									>
@@ -816,7 +875,7 @@
 									</button>
 									{#if localPaths.downloads_dir || dlDirectory}
 										<button
-											class="p-1.5 rounded hover:bg-muted transition-colors"
+											class="p-1.5 rounded hover:bg-hover-wash transition-colors"
 											title="Open in folder"
 											onclick={() => openInFolder(localPaths!.downloads_dir ?? dlDirectory!)}
 										>
@@ -836,19 +895,18 @@
 			<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground">Remote Servers</h3>
 
 			{#each remoteServers as server}
-				<div class="relative border border-border bg-card p-4">
-					<CornerBrackets />
+				<div class="relative rounded-lg border border-border bg-card p-4">
 					<div class="flex items-start justify-between gap-4">
 						<div class="flex items-center gap-3">
 							<div class="p-2 rounded bg-muted">
-								<Cloud size={20} class="text-blue-400" />
+								<Cloud size={20} class="text-blue" />
 							</div>
 							<div>
 								<div class="flex items-center gap-2">
 									<h3 class="font-mono text-sm text-foreground">{server.name}</h3>
 									{#if isServerConnected(server)}
 										<span
-											class="px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono text-[10px] text-emerald-400"
+											class="px-1.5 py-0.5 rounded bg-green/20 font-mono text-[10px] text-green"
 										>
 											Connected
 										</span>
@@ -861,25 +919,25 @@
 
 						<div class="flex items-center gap-2">
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors"
+								class="p-2 rounded hover:bg-hover-wash transition-colors"
 								title="Edit"
 								onclick={() => openEditModal(server)}
 							>
 								<Pencil size={14} class="text-muted-foreground" />
 							</button>
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors"
+								class="p-2 rounded hover:bg-hover-wash transition-colors"
 								title="Reconnect"
 								onclick={() => openReconnectModal(server)}
 							>
 								<RefreshCw size={14} class="text-muted-foreground" />
 							</button>
 							<button
-								class="p-2 rounded hover:bg-muted transition-colors"
+								class="p-2 rounded hover:bg-hover-wash transition-colors"
 								title="Remove"
 								onclick={() => confirmDelete(server)}
 							>
-								<Trash2 size={14} class="text-red-500" />
+								<Trash2 size={14} class="text-destructive" />
 							</button>
 						</div>
 					</div>
@@ -901,719 +959,587 @@
 	</section>
 
 	<!-- Startup Behavior -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3">Startup Behavior</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<label for="settings-startup-server" class="block font-mono text-sm text-foreground mb-2">Connect on launch:</label>
-			<select
-				id="settings-startup-server"
-				class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-				value={settingsStore.settings.startupServerId ?? ''}
-				onchange={(e) => settingsStore.setStartupServer(e.currentTarget.value || null)}
-			>
-				<option value="">Ask every time</option>
-				{#each settingsStore.settings.servers as server}
-					<option value={server.id}>{server.name}</option>
-				{/each}
-			</select>
-		</div>
-	</section>
+	<Panel title="Startup Behavior" icon={Play}>
+		<label for="settings-startup-server" class="block font-mono text-sm text-foreground mb-2">Connect on launch:</label>
+		<Select
+			id="settings-startup-server"
+			class="max-w-xs"
+			value={settingsStore.settings.startupServerId ?? null}
+			options={startupServerOptions}
+			onValueChange={(id) => settingsStore.setStartupServer(id)}
+		/>
+	</Panel>
 
 	<!-- Shutdown Behavior -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3">Shutdown Behavior</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<label for="settings-close-action" class="block font-mono text-sm text-foreground mb-2"
-				>When closing with local service running:</label
-			>
-			<select
-				id="settings-close-action"
-				class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-				value={settingsStore.settings.closeAction}
-				onchange={(e) =>
-					settingsStore.setCloseAction(e.currentTarget.value as 'ask' | 'background' | 'shutdown')}
-			>
-				<option value="ask">Ask every time</option>
-				<option value="background">Keep running in background</option>
-				<option value="shutdown">Shut down service and exit</option>
-			</select>
-		</div>
-	</section>
+	<Panel title="Shutdown Behavior" icon={Power}>
+		<label for="settings-close-action" class="block font-mono text-sm text-foreground mb-2"
+			>When closing with local service running:</label
+		>
+		<Select
+			id="settings-close-action"
+			class="max-w-xs"
+			value={settingsStore.settings.closeAction}
+			options={CLOSE_ACTION_OPTIONS}
+			onValueChange={(action) => settingsStore.setCloseAction(action)}
+		/>
+	</Panel>
 
 	<!-- Appearance -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-			<Palette size={14} />
-			Appearance
-		</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<!-- Corner Brackets Toggle -->
-			<div class="flex items-center justify-between">
-				<div>
-					<span id="settings-corner-brackets-label" class="block font-mono text-sm text-foreground">Show Corner Brackets</span>
-					<p class="font-mono text-[10px] text-muted-foreground">
-						Display decorative corner brackets on cards and panels
-					</p>
-				</div>
-				<button
-					role="switch"
-					aria-checked={settingsStore.settings.showCornerBrackets}
-					aria-labelledby="settings-corner-brackets-label"
-					class="relative w-11 h-6 rounded-full transition-colors {settingsStore.settings.showCornerBrackets
-						? 'bg-emerald-600'
-						: 'bg-muted'}"
-					onclick={() => settingsStore.setShowCornerBrackets(!settingsStore.settings.showCornerBrackets)}
-				>
-					<span
-						class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {settingsStore.settings.showCornerBrackets
-							? 'translate-x-5'
-							: ''}"
-					></span>
-				</button>
+	<Panel
+		id="appearance"
+		title="Appearance"
+		icon={Palette}
+		description="Background, accent, rounding, density, contrast and motion"
+	>
+		<AppearanceControls />
+		<div
+			class="mt-6 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"
+		>
+			<div>
+				<span class="block font-mono text-sm text-foreground">Welcome screen</span>
+				<p class="font-mono text-[10px] text-muted-foreground">
+					Show the first-run introduction and appearance tour again
+				</p>
 			</div>
+			<Button size="sm" onclick={() => welcomeStore.reset()}>Show welcome screen</Button>
 		</div>
-	</section>
+	</Panel>
 
 	<!-- Advanced -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-			<Terminal size={14} />
-			Advanced
-		</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<div class="flex items-center justify-between">
-				<div>
-					<span id="settings-debug-console-label" class="block font-mono text-sm text-foreground">Debug Console</span>
-					<p class="font-mono text-[10px] text-muted-foreground">
-						Show in-app developer tools for debugging connections and errors
-						<kbd class="ml-1 px-1 py-0.5 rounded bg-muted text-[9px]">Ctrl+Shift+D</kbd>
-					</p>
-				</div>
-				<button
-					role="switch"
-					aria-checked={settingsStore.settings.debugConsole}
-					aria-labelledby="settings-debug-console-label"
-					class="relative w-11 h-6 rounded-full transition-colors {settingsStore.settings.debugConsole
-						? 'bg-emerald-600'
-						: 'bg-muted'}"
-					onclick={() => {
-						const newValue = !settingsStore.settings.debugConsole;
-						settingsStore.settings.debugConsole = newValue;
-						settingsStore.save();
-					}}
-				>
-					<span
-						class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {settingsStore.settings.debugConsole
-							? 'translate-x-5'
-							: ''}"
-					></span>
-				</button>
+	<Panel title="Advanced" icon={Terminal}>
+		<div class="flex items-center justify-between">
+			<div>
+				<span id="settings-debug-console-label" class="block font-mono text-sm text-foreground">Debug Console</span>
+				<p class="font-mono text-[10px] text-muted-foreground">
+					Show in-app developer tools for debugging connections and errors
+					<kbd class="ml-1 px-1 py-0.5 rounded bg-muted text-[9px]">Ctrl+Shift+D</kbd>
+				</p>
 			</div>
+			<Switch
+				checked={settingsStore.settings.debugConsole}
+				labelledby="settings-debug-console-label"
+				onCheckedChange={() => {
+				const newValue = !settingsStore.settings.debugConsole;
+				settingsStore.settings.debugConsole = newValue;
+				settingsStore.save();
+				}}
+			/>
 		</div>
-	</section>
+	</Panel>
 
 	<!-- Downloads -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-			<Download size={14} />
-			Downloads
-		</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<div class="space-y-4">
-				<!-- Default Format -->
-				<div>
-					<div class="flex items-center gap-1.5 mb-2">
-						<label
-							for="settings-dl-format"
-							class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-						>
-							Default Format
-						</label>
-						<Tooltip.Provider>
-							<Tooltip.Root delayDuration={200}>
-								<Tooltip.Trigger
-									class="text-muted-foreground hover:text-foreground transition-colors"
+	<Panel title="Downloads" icon={Download}>
+		<div class="space-y-4">
+			<!-- Default Format -->
+			<div>
+				<div class="flex items-center gap-1.5 mb-2">
+					<label
+						for="settings-dl-format"
+						class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+					>
+						Default Format
+					</label>
+					<Tooltip.Provider>
+						<Tooltip.Root delayDuration={200}>
+							<Tooltip.Trigger
+								class="text-muted-foreground hover:text-foreground transition-colors"
+							>
+								<Info size={12} />
+							</Tooltip.Trigger>
+							<Tooltip.Portal>
+								<Tooltip.Content
+									side="bottom"
+									align="start"
+									sideOffset={8}
+									class="z-50 rounded border border-border bg-card p-3 shadow-lg"
 								>
-									<Info size={12} />
-								</Tooltip.Trigger>
-								<Tooltip.Portal>
-									<Tooltip.Content
-										side="bottom"
-										align="start"
-										sideOffset={8}
-										class="z-50 rounded border border-border bg-card p-3 shadow-lg"
-									>
-										<div class="whitespace-nowrap">
-											<p class="text-xs text-muted-foreground mb-2.5">Combine video + audio with <code class="font-mono text-[11px] text-foreground bg-muted px-1 rounded">+</code> &mdash; use <code class="font-mono text-[11px] text-foreground bg-muted px-1 rounded">/</code> for fallback</p>
+									<div class="whitespace-nowrap">
+										<p class="text-xs text-muted-foreground mb-2.5">Combine video + audio with <code class="font-mono text-[11px] text-foreground bg-muted px-1 rounded">+</code> &mdash; use <code class="font-mono text-[11px] text-foreground bg-muted px-1 rounded">/</code> for fallback</p>
+										<table class="text-xs font-mono">
+											<tbody>
+												<tr><td class="text-green pr-5 py-0.5">bestvideo+bestaudio/best</td><td class="text-muted-foreground">Best quality</td></tr>
+												<tr><td class="text-foreground pr-5 py-0.5">bestvideo[height&lt;=1080]+bestaudio/best</td><td class="text-muted-foreground">Max 1080p</td></tr>
+												<tr><td class="text-foreground pr-5 py-0.5">bestvideo[height&lt;=720]+bestaudio/best</td><td class="text-muted-foreground">Max 720p</td></tr>
+												<tr><td class="text-foreground pr-5 py-0.5">bestaudio/best</td><td class="text-muted-foreground">Audio only</td></tr>
+												<tr><td class="text-foreground pr-5 py-0.5">bestaudio[ext=m4a]</td><td class="text-muted-foreground">M4A audio</td></tr>
+											</tbody>
+										</table>
+										<div class="border-t border-border mt-2 pt-2">
 											<table class="text-xs font-mono">
 												<tbody>
-													<tr><td class="text-emerald-400 pr-5 py-0.5">bestvideo+bestaudio/best</td><td class="text-zinc-500">Best quality</td></tr>
-													<tr><td class="text-foreground pr-5 py-0.5">bestvideo[height&lt;=1080]+bestaudio/best</td><td class="text-zinc-500">Max 1080p</td></tr>
-													<tr><td class="text-foreground pr-5 py-0.5">bestvideo[height&lt;=720]+bestaudio/best</td><td class="text-zinc-500">Max 720p</td></tr>
-													<tr><td class="text-foreground pr-5 py-0.5">bestaudio/best</td><td class="text-zinc-500">Audio only</td></tr>
-													<tr><td class="text-foreground pr-5 py-0.5">bestaudio[ext=m4a]</td><td class="text-zinc-500">M4A audio</td></tr>
+													<tr><td class="text-foreground pr-4 py-0.5">[height&lt;=N]</td><td class="text-muted-foreground">filter by resolution</td></tr>
+													<tr><td class="text-foreground pr-4 py-0.5">[ext=mp4]</td><td class="text-muted-foreground">filter by format</td></tr>
+													<tr><td class="text-foreground pr-4 py-0.5">[fps&lt;=30]</td><td class="text-muted-foreground">filter by framerate</td></tr>
 												</tbody>
 											</table>
-											<div class="border-t border-border mt-2 pt-2">
-												<table class="text-xs font-mono">
-													<tbody>
-														<tr><td class="text-foreground pr-4 py-0.5">[height&lt;=N]</td><td class="text-zinc-500">filter by resolution</td></tr>
-														<tr><td class="text-foreground pr-4 py-0.5">[ext=mp4]</td><td class="text-zinc-500">filter by format</td></tr>
-														<tr><td class="text-foreground pr-4 py-0.5">[fps&lt;=30]</td><td class="text-zinc-500">filter by framerate</td></tr>
-													</tbody>
-												</table>
-											</div>
 										</div>
-									</Tooltip.Content>
-								</Tooltip.Portal>
-							</Tooltip.Root>
-						</Tooltip.Provider>
-					</div>
-					<input
-						id="settings-dl-format"
-						type="text"
-						value={dlDefaultFormat}
-						onchange={(e) => { dlDefaultFormat = e.currentTarget.value; saveDownloadsConfig(); }}
-						class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-						placeholder="bestvideo[height<=1080]+bestaudio/best"
-					/>
+									</div>
+								</Tooltip.Content>
+							</Tooltip.Portal>
+						</Tooltip.Root>
+					</Tooltip.Provider>
 				</div>
-
-				<!-- Max Concurrent -->
-				<div>
-					<label
-						for="settings-dl-concurrent"
-						class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-					>
-						Max Concurrent Downloads
-					</label>
-					<input
-						id="settings-dl-concurrent"
-						type="number"
-						min="1"
-						max="5"
-						value={dlMaxConcurrent}
-						onchange={(e) => { dlMaxConcurrent = parseInt(e.currentTarget.value) || 2; saveDownloadsConfig(); }}
-						class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-					/>
-				</div>
-
-				<!-- Embed Thumbnail Toggle -->
-				<div class="flex items-center justify-between">
-					<div>
-						<span id="settings-dl-thumbnail-label" class="block font-mono text-sm text-foreground">Embed Thumbnail</span>
-						<p class="font-mono text-[10px] text-muted-foreground">
-							Embed video thumbnail in downloaded files
-						</p>
-					</div>
-					<button
-						role="switch"
-						aria-checked={dlEmbedThumbnail}
-						aria-labelledby="settings-dl-thumbnail-label"
-						class="relative w-11 h-6 rounded-full transition-colors {dlEmbedThumbnail
-							? 'bg-emerald-600'
-							: 'bg-muted'}"
-						onclick={() => { dlEmbedThumbnail = !dlEmbedThumbnail; saveDownloadsConfig(); }}
-					>
-						<span
-							class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {dlEmbedThumbnail
-								? 'translate-x-5'
-								: ''}"
-						></span>
-					</button>
-				</div>
-
-				<!-- Embed Metadata Toggle -->
-				<div class="flex items-center justify-between">
-					<div>
-						<span id="settings-dl-metadata-label" class="block font-mono text-sm text-foreground">Embed Metadata</span>
-						<p class="font-mono text-[10px] text-muted-foreground">
-							Embed video metadata (title, description, etc.) in downloaded files
-						</p>
-					</div>
-					<button
-						role="switch"
-						aria-checked={dlEmbedMetadata}
-						aria-labelledby="settings-dl-metadata-label"
-						class="relative w-11 h-6 rounded-full transition-colors {dlEmbedMetadata
-							? 'bg-emerald-600'
-							: 'bg-muted'}"
-						onclick={() => { dlEmbedMetadata = !dlEmbedMetadata; saveDownloadsConfig(); }}
-					>
-						<span
-							class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {dlEmbedMetadata
-								? 'translate-x-5'
-								: ''}"
-						></span>
-					</button>
-				</div>
-
-				<!-- Storage & Retention -->
-				<div class="border-t border-border pt-4 space-y-4">
-					<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-						Storage & Retention
-					</h4>
-
-					<!-- Max Total GB -->
-					<div>
-						<label
-							for="settings-dl-quota"
-							class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-						>
-							Max Total GB
-						</label>
-						<input
-							id="settings-dl-quota"
-							type="number"
-							min="0"
-							placeholder="Unlimited"
-							value={dlMaxTotalGb ?? ''}
-							onchange={(e) => {
-								const val = e.currentTarget.value;
-								dlMaxTotalGb = val ? parseInt(val) || null : null;
-								saveDownloadsConfig();
-							}}
-							class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-						/>
-						<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
-							Leave empty for unlimited storage
-						</p>
-					</div>
-
-					<!-- Retention Days -->
-					<div>
-						<label
-							for="settings-dl-retention"
-							class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-						>
-							Retention (Days)
-						</label>
-						<input
-							id="settings-dl-retention"
-							type="number"
-							min="0"
-							placeholder="Keep forever"
-							value={dlMaxAgeDays ?? ''}
-							onchange={(e) => {
-								const val = e.currentTarget.value;
-								dlMaxAgeDays = val ? parseInt(val) || null : null;
-								saveDownloadsConfig();
-							}}
-							class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-						/>
-						<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
-							Leave empty to keep downloads forever
-						</p>
-					</div>
-				</div>
-			</div>
-		</div>
-	</section>
-
-	<!-- Post-Processing Settings -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3">Post-Processing</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<div class="space-y-4">
-				<!-- Enable toggle -->
-				<div class="flex items-center justify-between">
-				<div>
-					<span id="settings-postprocess-label" class="block font-mono text-sm text-foreground">Enable Auto Post-Processing</span>
-					<p class="font-mono text-[10px] text-muted-foreground">
-						Automatically process recordings after they complete
-					</p>
-				</div>
-				<button
-					role="switch"
-					aria-checked={postProcessingEnabled}
-					aria-labelledby="settings-postprocess-label"
-					class="relative w-11 h-6 rounded-full transition-colors {postProcessingEnabled
-						? 'bg-emerald-600'
-						: 'bg-muted'}"
-					onclick={() => togglePostProcessing()}
-				>
-					<span
-						class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform {postProcessingEnabled
-							? 'translate-x-5'
-							: ''}"
-					></span>
-				</button>
-			</div>
-
-			<!-- Check Interval -->
-			<div>
-				<label
-					for="check-interval"
-					class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-				>
-					Check Interval (minutes)
-				</label>
 				<input
-					id="check-interval"
-					type="number"
-					min="1"
-					max="1440"
-					value={checkIntervalMinutes}
-					onchange={(e) => updateCheckInterval(parseInt(e.currentTarget.value))}
-					class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
+					id="settings-dl-format"
+					type="text"
+					value={dlDefaultFormat}
+					onchange={(e) => { dlDefaultFormat = e.currentTarget.value; saveDownloadsConfig(); }}
+					class="w-full max-w-xs rounded border border-border bg-btn-bg px-3 py-2 font-mono text-sm text-foreground"
+					placeholder="bestvideo[height<=1080]+bestaudio/best"
 				/>
 			</div>
 
-			<!-- Output Format -->
-			<div>
-				<label for="settings-output-format" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-					Output Format
-				</label>
-				<select
-					id="settings-output-format"
-					class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-					value={outputFormat}
-					onchange={(e) => updateOutputFormat(e.currentTarget.value)}
-				>
-					<option value="mp4_reencode">MP4 (Re-encode)</option>
-					<option value="mp4_copy">MP4 (Stream Copy)</option>
-					<option value="ts_concat">TS Concat Only</option>
-				</select>
-			</div>
-
-			<!-- Segment Handling -->
+			<!-- Max Concurrent -->
 			<div>
 				<label
-					for="segmentHandling"
+					for="settings-dl-concurrent"
 					class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
 				>
-					After Processing
+					Max Concurrent Downloads
 				</label>
-				<select
-					id="segmentHandling"
-					value={segmentHandling}
-					onchange={(e) =>
-						updateSegmentHandling(e.currentTarget.value as 'delete' | 'concatenate' | 'keep')}
-					class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-				>
-					<option value="delete">Delete original .ts segments</option>
-					<option value="concatenate">Concatenate into single .ts file</option>
-					<option value="keep">Keep all .ts segments</option>
-				</select>
+				<NumberInput
+					id="settings-dl-concurrent"
+					min="1"
+					max="5"
+					value={dlMaxConcurrent}
+					onchange={(e) => { dlMaxConcurrent = parseInt(e.currentTarget.value) || 2; saveDownloadsConfig(); }}
+					class="max-w-xs"
+				/>
 			</div>
 
-			<!-- Encoding Settings (only when mp4_reencode) -->
-			{#if outputFormat === 'mp4_reencode'}
-				<div class="border-t border-border pt-4 space-y-4">
-					<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-						Encoding Settings
-					</h4>
-
-					<!-- CRF Slider -->
-					<div>
-						<div class="flex items-center justify-between mb-2 max-w-xs">
-							<label
-								for="crf-slider"
-								class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-							>
-								Quality (CRF)
-							</label>
-							<span class="font-mono text-xs text-muted-foreground">{crf}</span>
-						</div>
-						<input
-							id="crf-slider"
-							type="range"
-							min="0"
-							max="51"
-							value={crf}
-							onchange={(e) => updateCrf(parseInt(e.currentTarget.value))}
-							class="w-full max-w-xs"
-						/>
-						<div class="flex justify-between max-w-xs">
-							<span class="font-mono text-[9px] text-muted-foreground/70">Best Quality</span>
-							<span class="font-mono text-[9px] text-muted-foreground/70">Smallest Size</span>
-						</div>
-					</div>
-
-					<!-- Preset -->
-					<div>
-						<label for="settings-preset" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-							Encoding Preset
-						</label>
-						<select
-							id="settings-preset"
-							class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-							value={preset}
-							onchange={(e) => updatePreset(e.currentTarget.value)}
-						>
-							<option value="ultrafast">Ultrafast (lowest quality)</option>
-							<option value="superfast">Superfast</option>
-							<option value="veryfast">Veryfast</option>
-							<option value="faster">Faster</option>
-							<option value="fast">Fast</option>
-							<option value="medium">Medium (balanced)</option>
-							<option value="slow">Slow</option>
-							<option value="slower">Slower</option>
-							<option value="veryslow">Veryslow (highest quality)</option>
-						</select>
-					</div>
-
-					<!-- Video Codec -->
-					<div>
-						<label for="settings-video-codec" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-							Video Codec
-						</label>
-						<select
-							id="settings-video-codec"
-							class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-							value={videoCodec}
-							onchange={(e) => updateVideoCodec(e.currentTarget.value)}
-						>
-							<option value="libx264">H.264 (libx264)</option>
-							<option value="libx265">H.265/HEVC (libx265)</option>
-							<option value="h264_nvenc">H.264 NVENC (NVIDIA)</option>
-							<option value="h264_qsv">H.264 QuickSync (Intel)</option>
-						</select>
-					</div>
-
-					<!-- Audio Codec -->
-					<div>
-						<label for="settings-audio-codec" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-							Audio Codec
-						</label>
-						<select
-							id="settings-audio-codec"
-							class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-							value={audioCodec}
-							onchange={(e) => updateAudioCodec(e.currentTarget.value)}
-						>
-							<option value="aac">AAC</option>
-							<option value="copy">Copy Original</option>
-						</select>
-					</div>
-
-					<!-- Audio Bitrate (only when aac) -->
-					{#if audioCodec === 'aac'}
-						<div>
-							<label
-								for="settings-audio-bitrate"
-								class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-							>
-								Audio Bitrate
-							</label>
-							<select
-								id="settings-audio-bitrate"
-								class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
-								value={audioBitrate}
-								onchange={(e) => updateAudioBitrate(e.currentTarget.value)}
-							>
-								<option value="96k">96 kbps</option>
-								<option value="128k">128 kbps</option>
-								<option value="192k">192 kbps</option>
-								<option value="256k">256 kbps</option>
-							</select>
-						</div>
-					{/if}
+			<!-- Embed Thumbnail Toggle -->
+			<div class="flex items-center justify-between">
+				<div>
+					<span id="settings-dl-thumbnail-label" class="block font-mono text-sm text-foreground">Embed Thumbnail</span>
+					<p class="font-mono text-[10px] text-muted-foreground">
+						Embed video thumbnail in downloaded files
+					</p>
 				</div>
-			{/if}
+				<Switch
+					checked={dlEmbedThumbnail}
+					labelledby="settings-dl-thumbnail-label"
+					onCheckedChange={() => { dlEmbedThumbnail = !dlEmbedThumbnail; saveDownloadsConfig(); }}
+				/>
 			</div>
-		</div>
-	</section>
 
-	<!-- Library Management -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-			<Download size={14} />
-			Library Management
-		</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			{#if extensionsStore.libraryStatus}
-				<div class="space-y-2">
-					{#each [
-						{ key: 'ytdlp' as const, label: 'yt-dlp', description: 'Video downloader' },
-						{ key: 'ffmpeg' as const, label: 'FFmpeg', description: 'Media processing' },
-						{ key: 'bun' as const, label: 'Bun', description: 'JavaScript runtime' }
-					] as lib}
-						{@const info = extensionsStore.libraryStatus[lib.key]}
-						{@const isBusy = updatingLibrary === lib.key || uninstallingLibrary === lib.key}
-						<div class="flex items-center justify-between gap-3 rounded border border-border bg-muted/30 px-3 py-2">
-							<div class="min-w-0">
-								<p class="font-mono text-sm text-foreground">
-									{lib.label}
-									<span class="text-muted-foreground/50 text-[10px] ml-1">{lib.description}</span>
-								</p>
-								<p class="font-mono text-[10px] text-muted-foreground">
-									{#if info.installed}
-										v{info.version ?? 'unknown'}
-										{#if info.path}
-											<span class="text-muted-foreground/50"> &middot; {info.path}</span>
-										{/if}
-									{:else}
-										Not installed
-									{/if}
-								</p>
-							</div>
-							<div class="flex items-center gap-2 shrink-0">
-								{#if !info.installed && !installingLibraries.has(lib.key)}
-									<button
-										class="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-[10px] text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
-										onclick={() => handleInstallLibrary(lib.key)}
-									>
-										Install
-									</button>
-								{:else if !info.installed && installingLibraries.has(lib.key)}
-									<button
-										class="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-[10px] text-emerald-400 opacity-50 cursor-not-allowed"
-										disabled
-									>
-										Installing...
-									</button>
-								{:else if info.installed}
-									{#if info.update_available}
-										<button
-											class="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 font-mono text-[10px] text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
-											disabled={isBusy}
-											onclick={() => handleUpdateLibrary(lib.key)}
-										>
-											{updatingLibrary === lib.key ? 'Updating...' : `Update to ${info.update_available}`}
-										</button>
-									{/if}
-									{#if info.path?.includes('com.battles.record')}
-										<button
-											class="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 font-mono text-[10px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-											disabled={isBusy}
-											onclick={() => handleUninstallLibrary(lib.key)}
-										>
-											{uninstallingLibrary === lib.key ? 'Uninstalling...' : 'Uninstall'}
-										</button>
-									{:else}
-										<Tooltip.Provider>
-											<Tooltip.Root delayDuration={200}>
-												<Tooltip.Trigger
-													class="text-muted-foreground hover:text-foreground transition-colors"
-												>
-													<Info size={14} />
-												</Tooltip.Trigger>
-												<Tooltip.Portal>
-													<Tooltip.Content
-														side="left"
-														sideOffset={8}
-														class="z-50 max-w-xs rounded border border-border bg-card p-3 shadow-lg"
-													>
-														<p class="text-xs text-muted-foreground mb-2">This library is installed system-wide, not managed by Battles Record.</p>
-														<p class="text-xs text-muted-foreground mb-1.5">To uninstall, use your system's package manager:</p>
-														<table class="text-[10px] font-mono">
-															<tbody>
-																<tr><td class="text-foreground pr-3 py-0.5">Windows</td><td class="text-zinc-500">Settings > Apps, or delete from install folder</td></tr>
-																<tr><td class="text-foreground pr-3 py-0.5">macOS</td><td class="text-zinc-500">brew uninstall {lib.label.toLowerCase()}</td></tr>
-																<tr><td class="text-foreground pr-3 py-0.5">Linux</td><td class="text-zinc-500">apt/dnf/pacman remove {lib.label.toLowerCase()}</td></tr>
-															</tbody>
-														</table>
-													</Tooltip.Content>
-												</Tooltip.Portal>
-											</Tooltip.Root>
-										</Tooltip.Provider>
-									{/if}
-								{/if}
-							</div>
-						</div>
-					{/each}
+			<!-- Embed Metadata Toggle -->
+			<div class="flex items-center justify-between">
+				<div>
+					<span id="settings-dl-metadata-label" class="block font-mono text-sm text-foreground">Embed Metadata</span>
+					<p class="font-mono text-[10px] text-muted-foreground">
+						Embed video metadata (title, description, etc.) in downloaded files
+					</p>
 				</div>
+				<Switch
+					checked={dlEmbedMetadata}
+					labelledby="settings-dl-metadata-label"
+					onCheckedChange={() => { dlEmbedMetadata = !dlEmbedMetadata; saveDownloadsConfig(); }}
+				/>
+			</div>
 
-			{:else}
-				<p class="font-mono text-xs text-muted-foreground/70 py-2">Loading library status...</p>
-			{/if}
-		</div>
-	</section>
+			<!-- Storage & Retention -->
+			<div class="border-t border-border pt-4 space-y-4">
+				<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+					Storage & Retention
+				</h4>
 
-	<!-- Browser Extension -->
-	<section>
-		<h3 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-			<Plug size={14} />
-			Browser Extension
-		</h3>
-		<div class="relative border border-border bg-card p-4">
-			<CornerBrackets />
-			<div class="space-y-4">
-				<!-- WebSocket Port -->
+				<!-- Max Total GB -->
 				<div>
 					<label
-						for="settings-ws-port"
+						for="settings-dl-quota"
 						class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
 					>
-						WebSocket Port
+						Max Total GB
 					</label>
-					<input
-						id="settings-ws-port"
-						type="number"
-						readonly
-						value={extensionsStore.config?.actual_port ?? extensionsStore.config?.port ?? 9849}
-						class="w-full max-w-xs rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground opacity-70 cursor-not-allowed"
+					<NumberInput
+						id="settings-dl-quota"
+						min="0"
+						placeholder="Unlimited"
+						value={dlMaxTotalGb}
+						onchange={(e) => {
+							const val = e.currentTarget.value;
+							dlMaxTotalGb = val ? parseInt(val) || null : null;
+							saveDownloadsConfig();
+						}}
+						class="max-w-xs"
 					/>
 					<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
-						Changing port requires daemon restart
+						Leave empty for unlimited storage
 					</p>
 				</div>
 
-				<!-- Paired Browsers -->
-				<div class="border-t border-border pt-4">
-					<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-3">
-						Paired Browsers
-					</span>
+				<!-- Retention Days -->
+				<div>
+					<label
+						for="settings-dl-retention"
+						class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
+					>
+						Retention (Days)
+					</label>
+					<NumberInput
+						id="settings-dl-retention"
+						min="0"
+						placeholder="Keep forever"
+						value={dlMaxAgeDays}
+						onchange={(e) => {
+							const val = e.currentTarget.value;
+							dlMaxAgeDays = val ? parseInt(val) || null : null;
+							saveDownloadsConfig();
+						}}
+						class="max-w-xs"
+					/>
+					<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
+						Leave empty to keep downloads forever
+					</p>
+				</div>
+			</div>
+		</div>
+	</Panel>
 
-					{#if extensionsStore.connections.length === 0}
-						<p class="font-mono text-xs text-muted-foreground/70 py-2">No paired browsers</p>
-					{:else}
-						<div class="space-y-2">
-							{#each extensionsStore.connections as conn (conn.client_id)}
-								<div class="rounded border border-border bg-muted/30">
-									<div class="flex items-center justify-between gap-3 px-3 py-2">
-										<div class="flex items-center gap-2 min-w-0">
-											<div class="size-2 rounded-full shrink-0 {conn.connected ? 'bg-emerald-500' : 'bg-red-500'}"></div>
-											<div class="min-w-0">
-												<p class="font-mono text-sm text-foreground truncate">{conn.identifier}</p>
-												<p class="font-mono text-[10px] text-muted-foreground">
-													Last connected: {new Date(conn.last_connected).toLocaleDateString()}
-												</p>
-											</div>
-										</div>
-										<div class="flex items-center gap-1.5 shrink-0">
-											{#if conn.connected}
-												<button
-													class="rounded border border-border bg-muted/50 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-													onclick={() => (expandedLogId = expandedLogId === conn.client_id ? null : conn.client_id)}
-													title="Message log"
-												>
-													<ChevronDown
-														size={12}
-														class="transition-transform {expandedLogId === conn.client_id ? 'rotate-180' : ''}"
-													/>
-												</button>
-											{/if}
-											<button
-												class="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 font-mono text-[10px] text-red-400 hover:bg-red-500/20 transition-colors"
-												onclick={() => extensionsStore.disconnect(conn.client_id)}
+	<!-- Post-Processing Settings -->
+	<Panel title="Post-Processing" icon={Film}>
+		<div class="space-y-4">
+			<!-- Enable toggle -->
+			<div class="flex items-center justify-between">
+			<div>
+				<span id="settings-postprocess-label" class="block font-mono text-sm text-foreground">Enable Auto Post-Processing</span>
+				<p class="font-mono text-[10px] text-muted-foreground">
+					Automatically process recordings after they complete
+				</p>
+			</div>
+			<Switch
+				checked={postProcessingEnabled}
+				labelledby="settings-postprocess-label"
+				onCheckedChange={() => togglePostProcessing()}
+			/>
+		</div>
+
+		<!-- Check Interval -->
+		<div>
+			<label
+				for="check-interval"
+				class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
+			>
+				Check Interval (minutes)
+			</label>
+			<NumberInput
+				id="check-interval"
+				min="1"
+				max="1440"
+				value={checkIntervalMinutes}
+				onchange={(e) => updateCheckInterval(parseInt(e.currentTarget.value))}
+				class="max-w-xs"
+			/>
+		</div>
+
+		<!-- Output Format -->
+		<div>
+			<label for="settings-output-format" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+				Output Format
+			</label>
+			<Select
+				id="settings-output-format"
+				class="max-w-xs"
+				value={outputFormat}
+				options={OUTPUT_FORMAT_OPTIONS}
+				onValueChange={updateOutputFormat}
+			/>
+		</div>
+
+		<!-- Segment Handling -->
+		<div>
+			<label
+				for="segmentHandling"
+				class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
+			>
+				After Processing
+			</label>
+			<Select
+				id="segmentHandling"
+				class="max-w-xs"
+				value={segmentHandling}
+				options={SEGMENT_HANDLING_OPTIONS}
+				onValueChange={updateSegmentHandling}
+			/>
+		</div>
+
+		<!-- Encoding Settings (only when mp4_reencode) -->
+		{#if outputFormat === 'mp4_reencode'}
+			<div class="border-t border-border pt-4 space-y-4">
+				<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+					Encoding Settings
+				</h4>
+
+				<!-- CRF Slider -->
+				<div>
+					<div class="flex items-center justify-between mb-2 max-w-xs">
+						<label
+							for="crf-slider"
+							class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+						>
+							Quality (CRF)
+						</label>
+						<span class="font-mono text-xs text-muted-foreground">{crf}</span>
+					</div>
+					<input
+						id="crf-slider"
+						type="range"
+						min="0"
+						max="51"
+						value={crf}
+						onchange={(e) => updateCrf(parseInt(e.currentTarget.value))}
+						class="w-full max-w-xs"
+					/>
+					<div class="flex justify-between max-w-xs">
+						<span class="font-mono text-[9px] text-muted-foreground/70">Best Quality</span>
+						<span class="font-mono text-[9px] text-muted-foreground/70">Smallest Size</span>
+					</div>
+				</div>
+
+				<!-- Preset -->
+				<div>
+					<label for="settings-preset" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+						Encoding Preset
+					</label>
+					<Select
+						id="settings-preset"
+						class="max-w-xs"
+						value={preset}
+						options={PRESET_OPTIONS}
+						onValueChange={updatePreset}
+					/>
+				</div>
+
+				<!-- Video Codec -->
+				<div>
+					<label for="settings-video-codec" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+						Video Codec
+					</label>
+					<Select
+						id="settings-video-codec"
+						class="max-w-xs"
+						value={videoCodec}
+						options={VIDEO_CODEC_OPTIONS}
+						onValueChange={updateVideoCodec}
+					/>
+				</div>
+
+				<!-- Audio Codec -->
+				<div>
+					<label for="settings-audio-codec" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+						Audio Codec
+					</label>
+					<Select
+						id="settings-audio-codec"
+						class="max-w-xs"
+						value={audioCodec}
+						options={AUDIO_CODEC_OPTIONS}
+						onValueChange={updateAudioCodec}
+					/>
+				</div>
+
+				<!-- Audio Bitrate (only when aac) -->
+				{#if audioCodec === 'aac'}
+					<div>
+						<label
+							for="settings-audio-bitrate"
+							class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
+						>
+							Audio Bitrate
+						</label>
+						<Select
+							id="settings-audio-bitrate"
+							class="max-w-xs"
+							value={audioBitrate}
+							options={AUDIO_BITRATE_OPTIONS}
+							onValueChange={updateAudioBitrate}
+						/>
+					</div>
+				{/if}
+			</div>
+		{/if}
+		</div>
+	</Panel>
+
+	<!-- Library Management -->
+	<Panel title="Library Management" icon={FolderOpen}>
+		{#if extensionsStore.libraryStatus}
+			<div class="space-y-2">
+				{#each [
+					{ key: 'ytdlp' as const, label: 'yt-dlp', description: 'Video downloader' },
+					{ key: 'ffmpeg' as const, label: 'FFmpeg', description: 'Media processing' },
+					{ key: 'bun' as const, label: 'Bun', description: 'JavaScript runtime' }
+				] as lib}
+					{@const info = extensionsStore.libraryStatus[lib.key]}
+					{@const isBusy = updatingLibrary === lib.key || uninstallingLibrary === lib.key}
+					<div class="flex items-center justify-between gap-3 rounded border border-border bg-muted/30 px-3 py-2">
+						<div class="min-w-0">
+							<p class="font-mono text-sm text-foreground">
+								{lib.label}
+								<span class="text-muted-foreground/50 text-[10px] ml-1">{lib.description}</span>
+							</p>
+							<p class="font-mono text-[10px] text-muted-foreground">
+								{#if info.installed}
+									v{info.version ?? 'unknown'}
+									{#if info.path}
+										<span class="text-muted-foreground/50"> &middot; {info.path}</span>
+									{/if}
+								{:else}
+									Not installed
+								{/if}
+							</p>
+						</div>
+						<div class="flex items-center gap-2 shrink-0">
+							{#if !info.installed && !installingLibraries.has(lib.key)}
+								<button
+									class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green hover:bg-green/20 transition-colors disabled:opacity-50"
+									onclick={() => handleInstallLibrary(lib.key)}
+								>
+									Install
+								</button>
+							{:else if !info.installed && installingLibraries.has(lib.key)}
+								<button
+									class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green opacity-50 cursor-not-allowed"
+									disabled
+								>
+									Installing...
+								</button>
+							{:else if info.installed}
+								{#if info.update_available}
+									<button
+										class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green hover:bg-green/20 transition-colors disabled:opacity-50"
+										disabled={isBusy}
+										onclick={() => handleUpdateLibrary(lib.key)}
+									>
+										{updatingLibrary === lib.key ? 'Updating...' : `Update to ${info.update_available}`}
+									</button>
+								{/if}
+								{#if info.path?.includes('com.battles.record')}
+									<button
+										class="rounded border border-destructive/30 bg-destructive/10 px-2 py-1 font-mono text-[10px] text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+										disabled={isBusy}
+										onclick={() => handleUninstallLibrary(lib.key)}
+									>
+										{uninstallingLibrary === lib.key ? 'Uninstalling...' : 'Uninstall'}
+									</button>
+								{:else}
+									<Tooltip.Provider>
+										<Tooltip.Root delayDuration={200}>
+											<Tooltip.Trigger
+												class="text-muted-foreground hover:text-foreground transition-colors"
 											>
-												{conn.connected ? 'Disconnect' : 'Remove'}
-											</button>
+												<Info size={14} />
+											</Tooltip.Trigger>
+											<Tooltip.Portal>
+												<Tooltip.Content
+													side="left"
+													sideOffset={8}
+													class="z-50 max-w-xs rounded border border-border bg-card p-3 shadow-lg"
+												>
+													<p class="text-xs text-muted-foreground mb-2">This library is installed system-wide, not managed by Battles Record.</p>
+													<p class="text-xs text-muted-foreground mb-1.5">To uninstall, use your system's package manager:</p>
+													<table class="text-[10px] font-mono">
+														<tbody>
+															<tr><td class="text-foreground pr-3 py-0.5">Windows</td><td class="text-muted-foreground">Settings > Apps, or delete from install folder</td></tr>
+															<tr><td class="text-foreground pr-3 py-0.5">macOS</td><td class="text-muted-foreground">brew uninstall {lib.label.toLowerCase()}</td></tr>
+															<tr><td class="text-foreground pr-3 py-0.5">Linux</td><td class="text-muted-foreground">apt/dnf/pacman remove {lib.label.toLowerCase()}</td></tr>
+														</tbody>
+													</table>
+												</Tooltip.Content>
+											</Tooltip.Portal>
+										</Tooltip.Root>
+									</Tooltip.Provider>
+								{/if}
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+
+		{:else}
+			<p class="font-mono text-xs text-muted-foreground/70 py-2">Loading library status...</p>
+		{/if}
+	</Panel>
+
+	<!-- Browser Extension -->
+	<Panel title="Browser Extension" icon={Plug}>
+		<div class="space-y-4">
+			<!-- WebSocket Port -->
+			<div>
+				<label
+					for="settings-ws-port"
+					class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
+				>
+					WebSocket Port
+				</label>
+				<input
+					id="settings-ws-port"
+					type="number"
+					readonly
+					value={extensionsStore.config?.actual_port ?? extensionsStore.config?.port ?? 9849}
+					class="w-full max-w-xs rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground opacity-70 cursor-not-allowed"
+				/>
+				<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
+					Changing port requires daemon restart
+				</p>
+			</div>
+
+			<!-- Paired Browsers -->
+			<div class="border-t border-border pt-4">
+				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-3">
+					Paired Browsers
+				</span>
+
+				{#if extensionsStore.connections.length === 0}
+					<p class="font-mono text-xs text-muted-foreground/70 py-2">No paired browsers</p>
+				{:else}
+					<div class="space-y-2">
+						{#each extensionsStore.connections as conn (conn.client_id)}
+							<div class="rounded border border-border bg-muted/30">
+								<div class="flex items-center justify-between gap-3 px-3 py-2">
+									<div class="flex items-center gap-2 min-w-0">
+										<div class="size-2 rounded-full shrink-0 {conn.connected ? 'bg-green' : 'bg-destructive'}"></div>
+										<div class="min-w-0">
+											<p class="font-mono text-sm text-foreground truncate">{conn.identifier}</p>
+											<p class="font-mono text-[10px] text-muted-foreground">
+												Last connected: {new Date(conn.last_connected).toLocaleDateString()}
+											</p>
 										</div>
 									</div>
-									{#if expandedLogId === conn.client_id && conn.connected}
-										<div class="border-t border-border px-3 py-2">
-											<MessageLogViewer connectionId={conn.client_id} />
-										</div>
-									{/if}
+									<div class="flex items-center gap-1.5 shrink-0">
+										{#if conn.connected}
+											<button
+												class="rounded border border-border bg-muted/50 p-1.5 text-muted-foreground hover:text-foreground hover:bg-hover-wash transition-colors"
+												onclick={() => (expandedLogId = expandedLogId === conn.client_id ? null : conn.client_id)}
+												title="Message log"
+											>
+												<ChevronDown
+													size={12}
+													class="transition-transform {expandedLogId === conn.client_id ? 'rotate-180' : ''}"
+												/>
+											</button>
+										{/if}
+										<button
+											class="rounded border border-destructive/30 bg-destructive/10 px-2 py-1 font-mono text-[10px] text-destructive hover:bg-destructive/20 transition-colors"
+											onclick={() => extensionsStore.disconnect(conn.client_id)}
+										>
+											{conn.connected ? 'Disconnect' : 'Remove'}
+										</button>
+									</div>
 								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
+								{#if expandedLogId === conn.client_id && conn.connected}
+									<div class="border-t border-border px-3 py-2">
+										<MessageLogViewer connectionId={conn.client_id} />
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
 
-				</div>
-		</div>
-	</section>
+			</div>
+	</Panel>
 
 
 </div>
@@ -1636,7 +1562,7 @@
 					id="edit-server-name"
 					type="text"
 					bind:value={editName}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground"
 				/>
 			</div>
 			<div>
@@ -1647,10 +1573,10 @@
 					id="edit-server-url"
 					type="text"
 					bind:value={editUrl}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground"
 				/>
 				{#if editingServer && editUrl !== editingServer.url && editingServer.type === 'remote'}
-					<p class="font-mono text-[10px] text-amber-400 mt-1">
+					<p class="font-mono text-[10px] text-yellow mt-1">
 						Changing URL will require re-authentication
 					</p>
 				{/if}
@@ -1660,13 +1586,13 @@
 	{#snippet footer()}
 		<div class="flex gap-2">
 			<button
-				class="flex-1 rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 transition-colors"
+				class="flex-1 rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
 				onclick={handleEditSave}
 			>
 				Save
 			</button>
 			<button
-				class="rounded border border-border bg-input px-4 py-2 font-mono text-sm text-foreground hover:bg-muted transition-colors"
+				class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-sm text-foreground hover:bg-hover-wash transition-colors"
 				onclick={() => (editModalOpen = false)}
 			>
 				Cancel
@@ -1690,8 +1616,8 @@
 			}}
 		>
 			{#if reconnectError}
-				<div class="rounded border border-red-500/30 bg-red-500/10 p-3">
-					<p class="font-mono text-xs text-red-400">{reconnectError}</p>
+				<div class="rounded border border-destructive/30 bg-destructive/10 p-3">
+					<p class="font-mono text-xs text-destructive">{reconnectError}</p>
 				</div>
 			{/if}
 			<p class="font-mono text-sm text-muted-foreground">
@@ -1706,7 +1632,7 @@
 					type="text"
 					bind:value={reconnectUsername}
 					disabled={isReconnecting}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 			<div>
@@ -1718,7 +1644,7 @@
 					type="password"
 					bind:value={reconnectPassword}
 					disabled={isReconnecting}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 		</form>
@@ -1726,14 +1652,14 @@
 	{#snippet footer()}
 		<div class="flex gap-2">
 			<button
-				class="flex-1 rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+				class="flex-1 rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
 				disabled={!reconnectUsername || !reconnectPassword || isReconnecting}
 				onclick={handleReconnect}
 			>
 				{isReconnecting ? 'Connecting...' : 'Connect'}
 			</button>
 			<button
-				class="rounded border border-border bg-input px-4 py-2 font-mono text-sm text-foreground hover:bg-muted transition-colors"
+				class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-sm text-foreground hover:bg-hover-wash transition-colors"
 				onclick={() => (reconnectModalOpen = false)}
 			>
 				Cancel
@@ -1759,8 +1685,8 @@
 			}}
 		>
 			{#if addError}
-				<div class="rounded border border-red-500/30 bg-red-500/10 p-3">
-					<p class="font-mono text-xs text-red-400">{addError}</p>
+				<div class="rounded border border-destructive/30 bg-destructive/10 p-3">
+					<p class="font-mono text-xs text-destructive">{addError}</p>
 				</div>
 			{/if}
 			<div>
@@ -1773,7 +1699,7 @@
 					placeholder="My Server"
 					bind:value={addName}
 					disabled={isAdding}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-50"
 				/>
 			</div>
 			<div>
@@ -1787,7 +1713,7 @@
 					bind:value={addUrl}
 					bind:this={addUrlInput}
 					disabled={isAdding}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground disabled:opacity-50"
 				/>
 			</div>
 			<div>
@@ -1799,7 +1725,7 @@
 					type="text"
 					bind:value={addUsername}
 					disabled={isAdding}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 			<div>
@@ -1811,7 +1737,7 @@
 					type="password"
 					bind:value={addPassword}
 					disabled={isAdding}
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
+					class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 		</form>
@@ -1821,14 +1747,14 @@
 			<button
 				type="submit"
 				form="add-server-form"
-				class="flex-1 rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+				class="flex-1 rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
 				disabled={!addUrl || !addUsername || !addPassword || isAdding}
 			>
 				{isAdding ? 'Connecting...' : 'Connect'}
 			</button>
 			<button
 				type="button"
-				class="rounded border border-border bg-input px-4 py-2 font-mono text-sm text-foreground hover:bg-muted transition-colors"
+				class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-sm text-foreground hover:bg-hover-wash transition-colors"
 				onclick={() => (addModalOpen = false)}
 			>
 				Cancel
@@ -1851,13 +1777,13 @@
 	{#snippet footer()}
 		<div class="flex gap-2">
 			<button
-				class="flex-1 rounded bg-red-600 px-4 py-2 font-mono text-sm text-white hover:bg-red-500 transition-colors"
+				class="flex-1 rounded bg-destructive px-4 py-2 font-mono text-sm text-destructive-foreground hover:bg-destructive/90 transition-colors"
 				onclick={handleDelete}
 			>
 				Remove
 			</button>
 			<button
-				class="rounded border border-border bg-input px-4 py-2 font-mono text-sm text-foreground hover:bg-muted transition-colors"
+				class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-sm text-foreground hover:bg-hover-wash transition-colors"
 				onclick={() => (deleteServer = null)}
 			>
 				Cancel

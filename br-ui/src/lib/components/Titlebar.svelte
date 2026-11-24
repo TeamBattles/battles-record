@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { Menu, Sun, Moon, Monitor, Minus, Square, X } from 'lucide-svelte';
-	import { sidebarStore, breakpointStore, themeStore } from '$lib';
+	import { Menu, Minus, Square, X } from '@lucide/svelte';
+	import { sidebarStore, breakpointStore } from '#lib';
 	import ServerDropdown from './ServerDropdown.svelte';
-	import { browser } from '$app/environment';
+	import ThemeDropdown from './ThemeDropdown.svelte';
+	import { browser } from '$app/env';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -62,27 +63,27 @@
 </script>
 
 <header
-	class="h-9 border-b border-border bg-card flex items-center select-none"
+	class="h-10 border-b border-border bg-rail flex items-center select-none"
 	class:pl-[70px]={isTauri && isMac}
 >
 	<!-- Left: App Icon + Title + Server Dropdown -->
 	<div class="flex items-center h-full">
 		{#if breakpointStore.isMobile}
 			<button
-				class="h-full px-3 hover:bg-muted transition-colors flex items-center"
+				class="h-full px-3 hover:bg-hover-wash transition-colors flex items-center"
 				onclick={() => sidebarStore.toggle()}
 				aria-label="Toggle menu"
 			>
-				<Menu size={16} class="text-zinc-500" />
+				<Menu size={16} class="text-muted-foreground" />
 			</button>
 		{:else}
 			<!-- App Icon + Title -->
 			<div
-				class="h-full flex items-center gap-2 px-3 border-r border-border"
-				data-tauri-drag-region
+				class="h-full flex items-center gap-2.5 px-3 border-r border-border"
+				data-tauri-drag-region="deep"
 			>
-				<img src="/favicon.svg" alt="" class="size-4" />
-				<span class="font-mono text-xs uppercase tracking-wider text-zinc-500">
+				<img src="/favicon.svg" alt="" class="size-6" />
+				<span class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
 					Battles Record
 				</span>
 			</div>
@@ -100,38 +101,24 @@
 
 	<!-- Right: Theme + Window Controls -->
 	<div class="flex items-center h-full">
-		<!-- Theme Toggle -->
-		<button
-			class="h-full px-3 hover:bg-muted transition-colors flex items-center border-l border-border"
-			onclick={() => themeStore.cycle()}
-			aria-label="Toggle theme"
-			title="Theme: {themeStore.mode}"
-		>
-			{#if themeStore.mode === 'system'}
-				<Monitor size={14} class="text-zinc-500" />
-			{:else if themeStore.mode === 'light'}
-				<Sun size={14} class="text-amber-500" />
-			{:else}
-				<Moon size={14} class="text-blue-400" />
-			{/if}
-		</button>
+		<ThemeDropdown class="border-l border-border" />
 
 		<!-- Window Controls (Tauri only) -->
 		{#if isTauri}
 			<button
-				class="h-full px-3 hover:bg-muted transition-colors flex items-center border-l border-border"
+				class="h-full px-3 hover:bg-hover-wash transition-colors flex items-center border-l border-border"
 				onclick={minimize}
 				aria-label="Minimize"
 			>
-				<Minus size={14} class="text-zinc-500" />
+				<Minus size={14} class="text-muted-foreground" />
 			</button>
 			<button
-				class="h-full px-3 hover:bg-muted transition-colors flex items-center"
+				class="h-full px-3 hover:bg-hover-wash transition-colors flex items-center"
 				onclick={toggleMaximize}
 				aria-label={isMaximized ? 'Restore' : 'Maximize'}
 			>
 				{#if isMaximized}
-					<svg viewBox="0 0 14 14" width="14" height="14" class="text-zinc-500">
+					<svg viewBox="0 0 14 14" width="14" height="14" class="text-muted-foreground">
 						<path
 							fill="none"
 							stroke="currentColor"
@@ -140,15 +127,15 @@
 						/>
 					</svg>
 				{:else}
-					<Square size={12} class="text-zinc-500" />
+					<Square size={12} class="text-muted-foreground" />
 				{/if}
 			</button>
 			<button
-				class="h-full px-3 hover:bg-red-500 transition-colors flex items-center group"
+				class="h-full px-3 hover:bg-destructive transition-colors flex items-center group"
 				onclick={close}
 				aria-label="Close"
 			>
-				<X size={14} class="text-zinc-500 group-hover:text-white" />
+				<X size={14} class="text-muted-foreground group-hover:text-white" />
 			</button>
 		{/if}
 	</div>

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-svelte';
-	import { connectionStore } from '$lib';
+	import { AlertTriangle, RefreshCw, Loader2 } from '@lucide/svelte';
+	import { connectionStore } from '#lib';
 
 	let isRetrying = $state(false);
 
@@ -16,16 +16,16 @@
 
 {#if connectionStore.shouldShowReconnectBanner}
 	<div
-		class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between gap-4"
+		class="bg-yellow/10 border-b border-yellow/30 px-4 py-2 flex items-center justify-between gap-4"
 	>
 		<div class="flex items-center gap-2">
-			<AlertTriangle size={14} class="text-amber-400 flex-shrink-0" />
-			<p class="font-mono text-xs text-amber-400">
+			<AlertTriangle size={14} class="text-yellow flex-shrink-0" />
+			<p class="font-mono text-xs text-yellow">
 				Connection to "{connectionStore.activeServer?.name}" lost. Reconnecting...
 			</p>
 		</div>
 		<button
-			class="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 font-mono text-xs text-amber-400 transition-colors disabled:opacity-50"
+			class="flex items-center gap-1.5 px-2 py-1 rounded bg-yellow/20 hover:bg-yellow/30 font-mono text-xs text-yellow transition-colors disabled:opacity-50"
 			onclick={handleRetry}
 			disabled={isRetrying}
 		>

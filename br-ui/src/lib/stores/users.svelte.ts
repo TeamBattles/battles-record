@@ -1,5 +1,5 @@
-import { api } from '$lib/api';
-import type { User, Session, CreateUserRequest, UpdateUserRequest, UserRole } from '$lib/api/types';
+import { api } from '#lib/api/index.ts';
+import type { User, Session, CreateUserRequest, UpdateUserRequest, UserRole } from '#lib/api/types.ts';
 import { toastStore } from './toast.svelte';
 
 class UsersStore {

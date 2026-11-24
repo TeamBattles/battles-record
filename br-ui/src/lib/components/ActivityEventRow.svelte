@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ActivityEvent } from '$lib/stores/activity.svelte';
+	import type { ActivityEvent } from '#lib/stores/activity.svelte.ts';
 	import {
 		Circle,
 		AlertCircle,
@@ -14,7 +14,7 @@
 		AlertTriangle,
 		CheckCircle,
 		XCircle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface Props {
 		event: ActivityEvent;
@@ -58,27 +58,27 @@
 	function getIconColor(type: string): string {
 		switch (type) {
 			case 'recording_started':
-				return 'text-orange-400';
+				return 'text-orange';
 			case 'recording_ended':
-				return 'text-zinc-400';
+				return 'text-muted-foreground';
 			case 'channel_status':
-				return (event.data.status as string) === 'live' ? 'text-emerald-400' : 'text-zinc-500';
+				return (event.data.status as string) === 'live' ? 'text-green' : 'text-muted-foreground';
 			case 'channel_error':
 			case 'processing_failed':
-				return 'text-red-400';
+				return 'text-destructive';
 			case 'processing_started':
-				return 'text-blue-400';
+				return 'text-blue';
 			case 'processing_complete':
-				return 'text-emerald-400';
+				return 'text-green';
 			case 'disk_warning':
-				return 'text-amber-400';
+				return 'text-yellow';
 			case 'schedule_skip':
 			case 'filter_skip':
-				return 'text-zinc-500';
+				return 'text-muted-foreground';
 			case 'connected':
-				return 'text-emerald-400';
+				return 'text-green';
 			default:
-				return 'text-zinc-500';
+				return 'text-muted-foreground';
 		}
 	}
 
@@ -115,7 +115,7 @@
 
 <button
 	type="button"
-	class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-muted/30 transition-colors border-b border-border/30 {isSelected
+	class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-hover-wash transition-colors border-b border-border/30 {isSelected
 		? 'bg-muted/50'
 		: ''}"
 	{onclick}
@@ -135,11 +135,11 @@
 		<!-- Meta row -->
 		<div class="flex items-center gap-2 mt-0.5">
 			<!-- Timestamp -->
-			<span class="font-mono text-[10px] text-zinc-500">{formatDate(event.timestamp)}</span>
+			<span class="font-mono text-[10px] text-muted-foreground">{formatDate(event.timestamp)}</span>
 
 			<!-- Category badge -->
 			<span
-				class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[9px] uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
+				class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase bg-chip text-muted-foreground"
 			>
 				{event.category}
 			</span>
@@ -147,7 +147,7 @@
 			<!-- Channel badge (if applicable) -->
 			{#if event.channelName}
 				<span
-					class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[9px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
+					class="rounded px-1.5 py-0.5 font-mono text-[9px] bg-chip text-muted-foreground"
 				>
 					{event.channelName}
 				</span>

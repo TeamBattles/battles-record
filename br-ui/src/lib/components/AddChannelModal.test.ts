@@ -35,7 +35,7 @@ describe('AddChannelModal', () => {
 
 			// Twitch button should have the selected style
 			const twitchButton = screen.getByRole('button', { name: /twitch/i });
-			expect(twitchButton).toHaveClass('bg-zinc-700');
+			expect(twitchButton).toHaveClass('bg-chip-strong');
 		});
 
 		it('shows correct placeholder for Twitch', () => {
@@ -183,7 +183,7 @@ describe('AddChannelModal', () => {
 			await fireEvent.input(input, { target: { value: 'ab' } }); // Too short for Twitch
 
 			await waitFor(() => {
-				expect(input).toHaveClass('border-amber-500/50');
+				expect(input).toHaveClass('border-yellow/50');
 			});
 		});
 	});
@@ -274,20 +274,20 @@ describe('AddChannelModal', () => {
 			const youtubeButton = screen.getByRole('button', { name: /youtube/i });
 			const kickButton = screen.getByRole('button', { name: /kick/i });
 
-			expect(twitchButton).toHaveClass('bg-zinc-700');
-			expect(youtubeButton).not.toHaveClass('bg-zinc-700');
+			expect(twitchButton).toHaveClass('bg-chip-strong');
+			expect(youtubeButton).not.toHaveClass('bg-chip-strong');
 
 			// Click YouTube
 			await fireEvent.click(youtubeButton);
 
-			expect(twitchButton).not.toHaveClass('bg-zinc-700');
-			expect(youtubeButton).toHaveClass('bg-zinc-700');
+			expect(twitchButton).not.toHaveClass('bg-chip-strong');
+			expect(youtubeButton).toHaveClass('bg-chip-strong');
 
 			// Click Kick
 			await fireEvent.click(kickButton);
 
-			expect(youtubeButton).not.toHaveClass('bg-zinc-700');
-			expect(kickButton).toHaveClass('bg-zinc-700');
+			expect(youtubeButton).not.toHaveClass('bg-chip-strong');
+			expect(kickButton).toHaveClass('bg-chip-strong');
 		});
 	});
 
@@ -295,17 +295,21 @@ describe('AddChannelModal', () => {
 		it('has "Best Available" selected by default', async () => {
 			renderModal();
 
-			const qualitySelect = screen.getByRole('combobox');
-			expect(qualitySelect).toHaveValue('best');
+			expect(screen.getByRole('combobox')).toHaveTextContent('Best Available');
 		});
 
-		it('allows changing quality', async () => {
+		it('submits the quality picked from the dropdown', async () => {
 			renderModal();
 
-			const qualitySelect = screen.getByRole('combobox');
-			await fireEvent.change(qualitySelect, { target: { value: '720p' } });
+			// The select is app-drawn (bits-ui): open it, then pick an option the way a mouse does
+			await fireEvent.click(screen.getByRole('combobox'));
+			await fireEvent.pointerUp(await screen.findByRole('option', { name: '720p' }));
+			expect(screen.getByRole('combobox')).toHaveTextContent('720p');
 
-			expect(qualitySelect).toHaveValue('720p');
+			await fireEvent.input(screen.getByRole('textbox'), { target: { value: 'testuser' } });
+			await fireEvent.click(screen.getByRole('button', { name: /create channel/i }));
+
+			expect(mockOncreate).toHaveBeenCalledWith(expect.objectContaining({ quality: '720p' }));
 		});
 
 		it('includes quality in submit data', async () => {

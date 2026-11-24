@@ -1,4 +1,4 @@
-import type { Channel, Recording } from '$lib/api/types';
+import type { Channel, Recording } from '#lib/api/types.ts';
 
 export const mockChannels: Channel[] = [
 	{

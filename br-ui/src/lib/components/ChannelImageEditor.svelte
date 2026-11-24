@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Upload, Trash2, ImageIcon, AlertCircle, Download } from 'lucide-svelte';
-	import type { ChannelProfile } from '$lib/api/types';
-	import { api } from '$lib/api';
-	import { toastStore } from '$lib/stores/toast.svelte';
-	import { extractErrorMessage } from '$lib/utils';
+	import { Upload, Trash2, ImageIcon, AlertCircle, Download } from '@lucide/svelte';
+	import type { ChannelProfile } from '#lib/api/types.ts';
+	import { api } from '#lib/api/index.ts';
+	import { toastStore } from '#lib/stores/toast.svelte.ts';
+	import { extractErrorMessage } from '#lib/utils/index.ts';
 	import ChannelAvatar from './ChannelAvatar.svelte';
 	import Card from './ui/Card.svelte';
 
@@ -125,10 +125,10 @@
 	<Card padding="md">
 		<div class="flex items-center justify-between">
 			<div>
-				<h4 class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-1">
+				<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
 					Platform Images
 				</h4>
-				<p class="text-xs text-zinc-400">
+				<p class="text-xs text-muted-foreground">
 					{#if profile.platform_profile_url || profile.platform_banner_url}
 						Refresh profile and banner images from {profile.platform}
 					{:else}
@@ -137,12 +137,12 @@
 				</p>
 			</div>
 			<button
-				class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs font-mono text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+				class="flex items-center gap-1.5 px-3 py-1.5 bg-green/10 border border-green/30 rounded text-xs font-mono text-green hover:bg-green/20 transition-colors disabled:opacity-50"
 				onclick={handleFetchPlatformImages}
 				disabled={fetchingPlatform}
 			>
 				{#if fetchingPlatform}
-					<div class="size-3 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent"></div>
+					<div class="size-3 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
 				{:else}
 					<Download class="size-3" />
 				{/if}
@@ -162,10 +162,10 @@
 				showBadge={false}
 			/>
 			<div class="flex-1">
-				<h4 class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Profile Image
 				</h4>
-				<p class="text-xs text-zinc-400 mb-3">
+				<p class="text-xs text-muted-foreground mb-3">
 					{#if hasCustomProfile}
 						Using custom image
 					{:else if profile.platform_profile_url}
@@ -183,12 +183,12 @@
 						onchange={handleProfileUpload}
 					/>
 					<button
-						class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-zinc-300 hover:bg-zinc-700 transition-colors disabled:opacity-50"
+						class="flex items-center gap-1.5 px-3 py-1.5 bg-btn-bg border border-line-2 rounded text-xs font-mono text-text-2 hover:bg-btn-bg-hover transition-colors disabled:opacity-50"
 						onclick={() => profileInput?.click()}
 						disabled={uploadingProfile}
 					>
 						{#if uploadingProfile}
-							<div class="size-3 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"></div>
+							<div class="size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"></div>
 						{:else}
 							<Upload class="size-3" />
 						{/if}
@@ -196,12 +196,12 @@
 					</button>
 					{#if hasCustomProfile}
 						<button
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded text-xs font-mono text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 border border-destructive/30 rounded text-xs font-mono text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
 							onclick={handleDeleteProfile}
 							disabled={deletingProfile}
 						>
 							{#if deletingProfile}
-								<div class="size-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+								<div class="size-3 animate-spin rounded-full border-2 border-destructive border-t-transparent"></div>
 							{:else}
 								<Trash2 class="size-3" />
 							{/if}
@@ -209,7 +209,7 @@
 						</button>
 					{/if}
 				</div>
-				<p class="text-[10px] text-zinc-500 mt-2">
+				<p class="text-[10px] text-muted-foreground mt-2">
 					Max 5MB. Will be resized to 300×300.
 				</p>
 			</div>
@@ -219,12 +219,12 @@
 	<!-- Banner Image Section -->
 	<Card padding="md">
 		<div>
-			<h4 class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+			<h4 class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 				Banner Image
 			</h4>
 
 			<!-- Banner Preview -->
-			<div class="relative w-full h-32 bg-zinc-800 rounded border border-zinc-700 mb-3 overflow-hidden">
+			<div class="relative w-full h-32 bg-chip rounded border border-line-2 mb-3 overflow-hidden">
 				{#if bannerUrl}
 					<img
 						src={bannerUrl}
@@ -232,13 +232,13 @@
 						class="w-full h-full object-cover"
 					/>
 				{:else}
-					<div class="flex items-center justify-center h-full text-zinc-600">
+					<div class="flex items-center justify-center h-full text-dim">
 						<ImageIcon class="size-8" />
 					</div>
 				{/if}
 			</div>
 
-			<p class="text-xs text-zinc-400 mb-3">
+			<p class="text-xs text-muted-foreground mb-3">
 				{#if hasCustomBanner}
 					Using custom banner
 				{:else if profile.platform_banner_url}
@@ -257,12 +257,12 @@
 					onchange={handleBannerUpload}
 				/>
 				<button
-					class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs font-mono text-zinc-300 hover:bg-zinc-700 transition-colors disabled:opacity-50"
+					class="flex items-center gap-1.5 px-3 py-1.5 bg-btn-bg border border-line-2 rounded text-xs font-mono text-text-2 hover:bg-btn-bg-hover transition-colors disabled:opacity-50"
 					onclick={() => bannerInput?.click()}
 					disabled={uploadingBanner}
 				>
 					{#if uploadingBanner}
-						<div class="size-3 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent"></div>
+						<div class="size-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"></div>
 					{:else}
 						<Upload class="size-3" />
 					{/if}
@@ -270,12 +270,12 @@
 				</button>
 				{#if hasCustomBanner}
 					<button
-						class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded text-xs font-mono text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+						class="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 border border-destructive/30 rounded text-xs font-mono text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
 						onclick={handleDeleteBanner}
 						disabled={deletingBanner}
 					>
 						{#if deletingBanner}
-							<div class="size-3 animate-spin rounded-full border-2 border-red-400 border-t-transparent"></div>
+							<div class="size-3 animate-spin rounded-full border-2 border-destructive border-t-transparent"></div>
 						{:else}
 							<Trash2 class="size-3" />
 						{/if}
@@ -283,7 +283,7 @@
 					</button>
 				{/if}
 			</div>
-			<p class="text-[10px] text-zinc-500 mt-2">
+			<p class="text-[10px] text-muted-foreground mt-2">
 				Max 10MB. Will be resized to 1200×400.
 			</p>
 		</div>

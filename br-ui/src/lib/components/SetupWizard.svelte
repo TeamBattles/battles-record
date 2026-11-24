@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { Monitor, Cloud, AlertTriangle, Check, Loader2, ArrowLeft, Plus } from 'lucide-svelte';
-	import { settingsStore, connectionStore, autofocus } from '$lib';
-	import type { SavedServer } from '$lib';
+	import { Monitor, Cloud, AlertTriangle, Check, Loader2, ArrowLeft, Plus } from '@lucide/svelte';
+	import { settingsStore, connectionStore, autofocus } from '#lib';
+	import type { SavedServer } from '#lib';
+	import HexMesh from './ui/HexMesh.svelte';
+	import LuxuryCornerSlivers from './ui/LuxuryCornerSlivers.svelte';
+	import Checkbox from './ui/Checkbox.svelte';
 
 	interface Props {
 		onComplete: () => void;
@@ -75,13 +78,13 @@
 		const health = serverHealth[serverId];
 		switch (health) {
 			case 'healthy':
-				return 'bg-emerald-400';
+				return 'bg-green';
 			case 'unreachable':
-				return 'bg-red-400';
+				return 'bg-destructive';
 			case 'checking':
-				return 'bg-amber-400';
+				return 'bg-yellow';
 			default:
-				return 'bg-zinc-600';
+				return 'bg-faint';
 		}
 	}
 
@@ -271,12 +274,23 @@
 	}
 </script>
 
-<div class="fixed inset-0 bg-background-deep flex justify-center overflow-y-auto p-4 z-50">
-	<div class="w-full max-w-2xl my-auto">
+<div class="fixed inset-0 bg-background flex justify-center overflow-y-auto p-4 z-50">
+	<div class="pointer-events-none fixed inset-x-0 top-0 h-[60vh] overflow-hidden" aria-hidden="true">
+		<HexMesh ripple />
+	</div>
+	<div class="relative z-10 w-full max-w-2xl my-auto">
 		<!-- Header -->
-		<div class="text-center mb-8">
-			<h1 class="font-display text-4xl tracking-tight uppercase text-zinc-100">Battles Record</h1>
-			<p class="font-mono text-sm text-zinc-500 mt-2">Choose how you want to connect</p>
+		<div class="mb-8 flex flex-col gap-1.5">
+			<span class="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+				Connect a server
+			</span>
+			<div class="flex items-center gap-4">
+				<h1 class="font-display text-4xl leading-none tracking-wide uppercase text-foreground">
+					Battles Record
+				</h1>
+				<span class="h-px flex-1 bg-gradient-to-r from-primary/50 to-transparent"></span>
+			</div>
+			<p class="text-sm text-muted-foreground">Choose how you want to connect</p>
 		</div>
 
 		{#if step === 'choose'}
@@ -284,49 +298,51 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
 				<!-- Local Option -->
 				<button
-					class="flex flex-col text-left p-6 rounded border border-zinc-700 bg-zinc-900 hover:border-zinc-500 transition-colors"
+					class="group relative flex flex-col text-left p-6 rounded-lg border border-border bg-card hover:border-line-3 transition-colors"
 					onclick={selectLocal}
 				>
+					<LuxuryCornerSlivers hoverFadeIn length="lg" />
 					<div class="flex items-center gap-3 mb-4">
-						<div class="p-2 rounded bg-zinc-800">
-							<Monitor size={24} class="text-emerald-400" />
+						<div class="p-2 rounded bg-chip">
+							<Monitor size={24} class="text-green" />
 						</div>
 						<h2 class="font-display text-xl uppercase tracking-tight">Local Service</h2>
 					</div>
 
 					<div class="space-y-2 mb-4">
-						<p class="font-mono text-xs text-emerald-400">+ No network setup required</p>
-						<p class="font-mono text-xs text-emerald-400">+ Full control over your data</p>
-						<p class="font-mono text-xs text-emerald-400">+ Works offline</p>
+						<p class="font-mono text-xs text-green">+ No network setup required</p>
+						<p class="font-mono text-xs text-green">+ Full control over your data</p>
+						<p class="font-mono text-xs text-green">+ Works offline</p>
 					</div>
 
 					<div class="space-y-2 mb-4">
-						<p class="font-mono text-xs text-zinc-500">- Must keep app running for recordings</p>
-						<p class="font-mono text-xs text-zinc-500">- Only accessible from this device</p>
+						<p class="font-mono text-xs text-muted-foreground">- Must keep app running for recordings</p>
+						<p class="font-mono text-xs text-muted-foreground">- Only accessible from this device</p>
 					</div>
 
 					<div
-						class="flex items-center gap-2 p-2 rounded bg-amber-500/10 border border-amber-500/30 self-start"
+						class="flex items-center gap-2 p-2 rounded bg-yellow/10 border border-yellow/30 self-start"
 					>
-						<AlertTriangle size={14} class="text-amber-400 flex-shrink-0" />
-						<p class="font-mono text-[10px] text-amber-400">Closing the app stops all recordings</p>
+						<AlertTriangle size={14} class="text-yellow flex-shrink-0" />
+						<p class="font-mono text-[10px] text-yellow">Closing the app stops all recordings</p>
 					</div>
 				</button>
 
 				<!-- Remote Option -->
 				<button
-					class="flex flex-col text-left p-6 rounded border border-zinc-700 bg-zinc-900 hover:border-zinc-500 transition-colors"
+					class="group relative flex flex-col text-left p-6 rounded-lg border border-border bg-card hover:border-line-3 transition-colors"
 					onclick={selectRemote}
 				>
+					<LuxuryCornerSlivers hoverFadeIn length="lg" />
 					<div class="flex items-center gap-3 mb-4">
-						<div class="p-2 rounded bg-zinc-800">
-							<Cloud size={24} class="text-blue-400" />
+						<div class="p-2 rounded bg-chip">
+							<Cloud size={24} class="text-blue" />
 						</div>
 						<div class="flex items-center gap-2">
 							<h2 class="font-display text-xl uppercase tracking-tight">Remote Server</h2>
 							{#if savedRemoteServers.length > 0}
 								<span
-									class="px-1.5 py-0.5 rounded bg-blue-500/20 font-mono text-[10px] text-blue-400"
+									class="px-1.5 py-0.5 rounded bg-blue/20 font-mono text-[10px] text-blue"
 								>
 									{savedRemoteServers.length} saved
 								</span>
@@ -335,35 +351,31 @@
 					</div>
 
 					<div class="space-y-2 mb-4">
-						<p class="font-mono text-xs text-emerald-400">+ Runs independently of this app</p>
-						<p class="font-mono text-xs text-emerald-400">+ Access from multiple devices</p>
-						<p class="font-mono text-xs text-emerald-400">+ Recordings continue if app closes</p>
+						<p class="font-mono text-xs text-green">+ Runs independently of this app</p>
+						<p class="font-mono text-xs text-green">+ Access from multiple devices</p>
+						<p class="font-mono text-xs text-green">+ Recordings continue if app closes</p>
 					</div>
 
 					<div class="space-y-2">
-						<p class="font-mono text-xs text-zinc-500">- Requires server setup</p>
-						<p class="font-mono text-xs text-zinc-500">- Network configuration needed</p>
+						<p class="font-mono text-xs text-muted-foreground">- Requires server setup</p>
+						<p class="font-mono text-xs text-muted-foreground">- Network configuration needed</p>
 					</div>
 				</button>
 			</div>
 
 			<!-- Remember Choice -->
-			<div class="flex items-center justify-center gap-2 mb-4">
-				<input
-					type="checkbox"
-					id="remember"
+			<div class="flex justify-center mb-4">
+				<Checkbox
 					bind:checked={rememberChoice}
-					class="size-4 accent-emerald-500"
+					label="Use this choice for future launches"
+					labelClass="text-muted-foreground"
 				/>
-				<label for="remember" class="font-mono text-sm text-zinc-400">
-					Use this choice for future launches
-				</label>
 			</div>
 
 			{#if showCancel && onCancel}
 				<div class="text-center">
 					<button
-						class="font-mono text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+						class="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
 						onclick={onCancel}
 					>
 						Cancel
@@ -374,22 +386,22 @@
 			<!-- Remote Server Selection -->
 			<div class="max-w-md mx-auto">
 				<button
-					class="flex items-center gap-2 font-mono text-sm text-zinc-500 hover:text-zinc-300 mb-6 transition-colors"
+					class="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
 					onclick={() => (step = 'choose')}
 				>
 					<ArrowLeft size={16} />
 					Back
 				</button>
 
-				<div class="p-6 rounded border border-zinc-700 bg-zinc-900">
-					<h2 class="font-mono text-xs uppercase tracking-wider text-zinc-500 mb-4">
+				<div class="p-6 rounded border border-line-2 bg-well">
+					<h2 class="font-mono text-xs uppercase tracking-wider text-muted-foreground mb-4">
 						Saved Servers
 					</h2>
 
 					<div class="space-y-2 mb-4">
 						{#each savedRemoteServers as server (server.id)}
 							<button
-								class="w-full flex items-center gap-3 p-3 rounded border border-zinc-700 bg-zinc-800 hover:border-zinc-500 transition-colors text-left"
+								class="w-full flex items-center gap-3 p-3 rounded border border-line-2 bg-chip hover:border-line-3 transition-colors text-left"
 								onclick={() => connectToExistingServer(server)}
 							>
 								<span
@@ -397,15 +409,15 @@
 									class:animate-pulse={isServerChecking(server.id)}
 								></span>
 								<div class="flex-1 min-w-0">
-									<p class="font-mono text-sm text-zinc-100 truncate">{server.name}</p>
-									<p class="font-mono text-[10px] text-zinc-500 truncate">{server.url}</p>
+									<p class="font-mono text-sm text-foreground truncate">{server.name}</p>
+									<p class="font-mono text-[10px] text-muted-foreground truncate">{server.url}</p>
 								</div>
 							</button>
 						{/each}
 					</div>
 
 					<button
-						class="w-full flex items-center justify-center gap-2 p-3 rounded border border-dashed border-zinc-600 hover:border-zinc-500 text-zinc-400 hover:text-zinc-300 transition-colors"
+						class="w-full flex items-center justify-center gap-2 p-3 rounded border border-dashed border-line-3 hover:border-line-3 text-muted-foreground hover:text-foreground transition-colors"
 						onclick={goToNewServerForm}
 					>
 						<Plus size={16} />
@@ -413,16 +425,12 @@
 					</button>
 
 					<!-- Remember Choice -->
-					<div class="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-800">
-						<input
-							type="checkbox"
-							id="remember-select"
+					<div class="mt-4 pt-4 border-t border-line">
+						<Checkbox
 							bind:checked={rememberChoice}
-							class="size-4 accent-emerald-500"
+							label="Use this choice for future launches"
+							labelClass="text-xs text-muted-foreground"
 						/>
-						<label for="remember-select" class="font-mono text-xs text-zinc-400">
-							Use this choice for future launches
-						</label>
 					</div>
 				</div>
 			</div>
@@ -430,7 +438,7 @@
 			<!-- Remote Server Form -->
 			<div class="max-w-md mx-auto">
 				<button
-					class="flex items-center gap-2 font-mono text-sm text-zinc-500 hover:text-zinc-300 mb-6 transition-colors"
+					class="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
 					onclick={goBack}
 				>
 					<ArrowLeft size={16} />
@@ -438,7 +446,7 @@
 				</button>
 
 				<form
-					class="p-6 rounded border border-zinc-700 bg-zinc-900 space-y-4"
+					class="p-6 rounded border border-line-2 bg-well space-y-4"
 					onsubmit={(e) => {
 						e.preventDefault();
 						if (canSubmitRemote) submitRemote();
@@ -446,17 +454,17 @@
 				>
 					{#if selectedServerId}
 						<div
-							class="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/30"
+							class="flex items-center gap-2 p-2 rounded bg-blue/10 border border-blue/30"
 						>
-							<Cloud size={14} class="text-blue-400 flex-shrink-0" />
-							<p class="font-mono text-[10px] text-blue-400">
+							<Cloud size={14} class="text-blue flex-shrink-0" />
+							<p class="font-mono text-[10px] text-blue">
 								Re-authenticating to existing server
 							</p>
 						</div>
 					{/if}
 
 					<div>
-						<label for="wizard-server-name" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+						<label for="wizard-server-name" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 							Server Name (optional)
 						</label>
 						<input
@@ -464,12 +472,12 @@
 							type="text"
 							placeholder="My Server"
 							bind:value={serverName}
-							class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600"
+							class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground placeholder:text-dim"
 						/>
 					</div>
 
 					<div>
-						<label for="wizard-server-url" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+						<label for="wizard-server-url" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 							Server URL
 						</label>
 						<input
@@ -479,55 +487,51 @@
 							bind:value={serverUrl}
 							use:autofocus
 							disabled={!!selectedServerId}
-							class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground placeholder:text-dim disabled:opacity-50 disabled:cursor-not-allowed"
 						/>
 						{#if selectedServerId}
-							<p class="font-mono text-[10px] text-zinc-500 mt-1">
+							<p class="font-mono text-[10px] text-muted-foreground mt-1">
 								URL cannot be changed when re-authenticating
 							</p>
 						{/if}
 					</div>
 
 					<div>
-						<label for="wizard-username" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+						<label for="wizard-username" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 							Username
 						</label>
 						<input
 							id="wizard-username"
 							type="text"
 							bind:value={username}
-							class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100"
+							class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground"
 						/>
 					</div>
 
 					<div>
-						<label for="wizard-password" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+						<label for="wizard-password" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 							Password
 						</label>
 						<input
 							id="wizard-password"
 							type="password"
 							bind:value={password}
-							class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100"
+							class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground"
 						/>
 					</div>
 
 					<!-- Remember Choice -->
-					<div class="flex items-center gap-2 pt-2">
-						<input
-							type="checkbox"
-							id="remember-remote"
+					<div class="pt-2">
+						<Checkbox
 							bind:checked={rememberChoice}
-							class="size-4 accent-emerald-500"
+							label="Use this choice for future launches"
+							labelClass="text-muted-foreground"
 						/>
-						<label for="remember-remote" class="font-mono text-sm text-zinc-400">
-							Use this choice for future launches
-						</label>
 					</div>
 
 					<button
 						type="submit"
-						class="w-full rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+						class="w-full rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 						disabled={!canSubmitRemote}
 					>
 						{selectedServerId ? 'Reconnect' : 'Connect'}
@@ -537,30 +541,30 @@
 		{:else if step === 'local-connecting' || step === 'remote-connecting'}
 			<!-- Connecting State -->
 			<div class="flex flex-col items-center justify-center py-12">
-				<Loader2 size={48} class="text-emerald-400 animate-spin mb-4" />
-				<p class="font-mono text-sm text-zinc-400">
+				<Loader2 size={48} class="text-green animate-spin mb-4" />
+				<p class="font-mono text-sm text-muted-foreground">
 					{step === 'local-connecting' ? 'Starting local service...' : 'Connecting to server...'}
 				</p>
 			</div>
 		{:else if step === 'success'}
 			<!-- Success State -->
 			<div class="flex flex-col items-center justify-center py-12">
-				<div class="p-4 rounded-full bg-emerald-500/20 mb-4">
-					<Check size={48} class="text-emerald-400" />
+				<div class="p-4 rounded-full bg-green/20 mb-4">
+					<Check size={48} class="text-green" />
 				</div>
-				<p class="font-mono text-sm text-zinc-400">Connected successfully!</p>
+				<p class="font-mono text-sm text-muted-foreground">Connected successfully!</p>
 			</div>
 		{:else if step === 'error'}
 			<!-- Error State -->
 			<div class="max-w-md mx-auto text-center py-12">
-				<div class="p-4 rounded-full bg-red-500/20 mb-4 inline-block">
-					<AlertTriangle size={48} class="text-red-400" />
+				<div class="p-4 rounded-full bg-destructive/20 mb-4 inline-block">
+					<AlertTriangle size={48} class="text-destructive" />
 				</div>
-				<p class="font-mono text-sm text-red-400 mb-6">{errorMessage}</p>
+				<p class="font-mono text-sm text-destructive mb-6">{errorMessage}</p>
 				<div class="flex items-center justify-center gap-3">
 					{#if errorSource === 'remote'}
 						<button
-							class="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+							class="rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors"
 							onclick={goBackToForm}
 						>
 							<span class="flex items-center gap-2">
@@ -570,7 +574,7 @@
 						</button>
 					{/if}
 					<button
-						class="rounded bg-emerald-600 px-6 py-2 font-mono text-sm text-white hover:bg-emerald-500 transition-colors"
+						class="rounded bg-primary px-6 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
 						onclick={retryConnection}
 					>
 						Try Again
@@ -583,34 +587,34 @@
 
 <!-- Duplicate Server Warning Modal -->
 {#if showDuplicateWarning && duplicateServer}
-	<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-		<div class="bg-zinc-900 border border-zinc-700 rounded-lg max-w-sm w-full p-6">
+	<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+		<div class="animate-luxury-fade-scale bg-popover border border-border rounded-xl max-w-sm w-full p-6 shadow-2xl">
 			<div class="flex items-center gap-3 mb-4">
-				<div class="p-2 rounded-full bg-amber-500/20">
-					<AlertTriangle size={20} class="text-amber-400" />
+				<div class="p-2 rounded-full bg-yellow/20">
+					<AlertTriangle size={20} class="text-yellow" />
 				</div>
 				<h3 class="font-display text-lg uppercase tracking-tight">Server Already Exists</h3>
 			</div>
 
-			<p class="font-mono text-sm text-zinc-400 mb-6">
-				A connection to this host already exists: <span class="text-zinc-100"
+			<p class="font-mono text-sm text-muted-foreground mb-6">
+				A connection to this host already exists: <span class="text-foreground"
 					>"{duplicateServer.name}"</span
 				>
 			</p>
 
-			<p class="font-mono text-xs text-zinc-500 mb-6">
+			<p class="font-mono text-xs text-muted-foreground mb-6">
 				Would you like to edit the existing connection instead?
 			</p>
 
 			<div class="flex gap-3">
 				<button
-					class="flex-1 rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 transition-colors"
+					class="flex-1 rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 transition-colors"
 					onclick={handleEditExisting}
 				>
 					Edit Existing
 				</button>
 				<button
-					class="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+					class="rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors"
 					onclick={cancelDuplicateWarning}
 				>
 					Cancel

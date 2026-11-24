@@ -1,14 +1,17 @@
 <script lang="ts">
-	import { X, Play, Square, RefreshCw, Users, Clock } from 'lucide-svelte';
-	import type { Channel, ChannelProfile, ScheduleRule } from '$lib/api/types';
+	import { X, Play, Square, RefreshCw, Users, Clock } from '@lucide/svelte';
+	import type { Channel, ChannelProfile, ScheduleRule } from '#lib/api/types.ts';
 	import ChannelAvatar from './ChannelAvatar.svelte';
 	import ChannelStatus from './ChannelStatus.svelte';
 	import ChannelImageEditor from './ChannelImageEditor.svelte';
 	import ScheduleRulesEditor from './ScheduleRulesEditor.svelte';
-	import { ResponsivePanel } from '$lib';
-	import { channelsStore } from '$lib/stores/channels.svelte';
-	import { api } from '$lib/api';
-	import { extractErrorMessage } from '$lib/utils';
+	import Checkbox from './ui/Checkbox.svelte';
+	import NumberInput from './ui/NumberInput.svelte';
+	import Select from './ui/Select.svelte';
+	import { ResponsivePanel } from '#lib';
+	import { channelsStore } from '#lib/stores/channels.svelte.ts';
+	import { api } from '#lib/api/index.ts';
+	import { extractErrorMessage } from '#lib/utils/index.ts';
 
 	interface Props {
 		channel: Channel;
@@ -90,6 +93,20 @@
 	}
 
 	// Form state (copy of channel data for editing)
+	const QUALITY_CHOICES = [
+		{ value: 'best', label: 'Best' },
+		{ value: '1080p', label: '1080p' },
+		{ value: '720p', label: '720p' },
+		{ value: '480p', label: '480p' },
+		{ value: 'audio', label: 'Audio Only' }
+	];
+	const TIMEZONE_CHOICES = [
+		{ value: 'UTC', label: 'UTC' },
+		{ value: 'America/New_York', label: 'Eastern Time' },
+		{ value: 'America/Los_Angeles', label: 'Pacific Time' },
+		{ value: 'Europe/London', label: 'London' }
+	];
+
 	let quality = $state('best');
 	let enabled = $state(true);
 	let scheduleEnabled = $state(false);
@@ -216,7 +233,7 @@
 						</div>
 					</div>
 				</div>
-				<button class="p-1 hover:bg-muted rounded transition-colors" onclick={onclose}>
+				<button class="p-1 hover:bg-hover-wash rounded transition-colors" onclick={onclose}>
 					<X class="w-5 h-5 text-muted-foreground" />
 				</button>
 			</div>
@@ -247,7 +264,7 @@
 			<div class="flex gap-2 mt-4">
 				{#if channel.status?.is_recording}
 					<button
-						class="flex-1 bg-orange-600 text-white px-3 py-2 text-sm font-mono font-medium flex items-center justify-center gap-2 rounded hover:bg-orange-500 transition-colors disabled:opacity-50"
+						class="flex-1 bg-orange text-background px-3 py-2 text-sm font-mono font-medium flex items-center justify-center gap-2 rounded hover:bg-orange/90 transition-colors disabled:opacity-50"
 						onclick={handleStopRecording}
 						disabled={isStopping}
 					>
@@ -262,14 +279,14 @@
 					</button>
 				{:else if channel.status?.is_live}
 					<button
-						class="flex-1 bg-emerald-600 text-white px-3 py-2 text-sm font-mono font-medium flex items-center justify-center gap-2 rounded hover:bg-emerald-500 transition-colors"
+						class="flex-1 bg-primary text-primary-foreground px-3 py-2 text-sm font-mono font-medium flex items-center justify-center gap-2 rounded hover:bg-primary/90 transition-colors"
 					>
 						<Play class="w-4 h-4" />
 						Start Recording
 					</button>
 				{/if}
 				<button
-					class="px-3 py-2 border border-border bg-input text-sm font-mono flex items-center gap-2 hover:bg-muted rounded transition-colors text-foreground disabled:opacity-50"
+					class="px-3 py-2 border border-border bg-btn-bg text-sm font-mono flex items-center gap-2 hover:bg-hover-wash rounded transition-colors text-foreground disabled:opacity-50"
 					onclick={handleCheckNow}
 					disabled={isChecking}
 				>
@@ -289,7 +306,7 @@
 				<button
 					class="flex-1 min-w-0 px-2 py-2 text-xs font-mono transition-colors whitespace-nowrap {activeTab === tab.id
 						? 'text-foreground border-b-2 border-muted-foreground bg-muted/50'
-						: 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}"
+						: 'text-muted-foreground hover:text-foreground hover:bg-hover-wash'}"
 					onclick={() => (activeTab = tab.id)}
 				>
 					{tab.label}
@@ -312,36 +329,23 @@
 						<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
 							>Quality</span
 						>
-						<select
-							class="w-full bg-input border border-border px-3 py-2 rounded font-mono text-sm text-foreground"
-							bind:value={quality}
-						>
-							<option value="best">Best</option>
-							<option value="1080p">1080p</option>
-							<option value="720p">720p</option>
-							<option value="480p">480p</option>
-							<option value="audio">Audio Only</option>
-						</select>
+						<Select ariaLabel="Quality" options={QUALITY_CHOICES} bind:value={quality} />
 					</div>
 
 					<div
-						class="flex items-center justify-between rounded border border-border bg-input p-3"
+						class="flex items-center justify-between rounded border border-border bg-btn-bg p-3"
 					>
 						<span class="text-sm font-mono text-foreground">Enabled</span>
-						<input type="checkbox" bind:checked={enabled} class="w-5 h-5 accent-emerald-500" />
+						<Checkbox bind:checked={enabled} aria-label="Enabled" />
 					</div>
 				</div>
 			{:else if activeTab === 'schedule'}
 				<div class="space-y-4">
 					<div
-						class="flex items-center justify-between rounded border border-border bg-input p-3"
+						class="flex items-center justify-between rounded border border-border bg-btn-bg p-3"
 					>
 						<span class="text-sm font-mono text-foreground">Enable Schedule</span>
-						<input
-							type="checkbox"
-							bind:checked={scheduleEnabled}
-							class="w-5 h-5 accent-emerald-500"
-						/>
+						<Checkbox bind:checked={scheduleEnabled} aria-label="Enable Schedule" />
 					</div>
 
 					{#if scheduleEnabled}
@@ -349,15 +353,7 @@
 							<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
 								>Timezone</span
 							>
-							<select
-								class="w-full bg-input border border-border px-3 py-2 rounded font-mono text-sm text-foreground"
-								bind:value={timezone}
-							>
-								<option value="UTC">UTC</option>
-								<option value="America/New_York">Eastern Time</option>
-								<option value="America/Los_Angeles">Pacific Time</option>
-								<option value="Europe/London">London</option>
-							</select>
+							<Select ariaLabel="Timezone" options={TIMEZONE_CHOICES} bind:value={timezone} />
 						</div>
 
 						<div>
@@ -376,7 +372,7 @@
 						>
 						<input
 							type="text"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
+							class="w-full bg-well border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
 							placeholder="comma-separated keywords"
 							value={titleIncludes.join(', ')}
 							onchange={(e) =>
@@ -393,7 +389,7 @@
 						>
 						<input
 							type="text"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
+							class="w-full bg-well border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
 							placeholder="comma-separated keywords"
 							value={titleExcludes.join(', ')}
 							onchange={(e) =>
@@ -410,7 +406,7 @@
 						>
 						<input
 							type="text"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
+							class="w-full bg-well border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
 							placeholder="comma-separated games"
 							value={gameIncludes.join(', ')}
 							onchange={(e) =>
@@ -427,7 +423,7 @@
 						>
 						<input
 							type="text"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
+							class="w-full bg-well border border-border px-3 py-2 text-sm rounded font-mono text-foreground placeholder:text-muted-foreground"
 							placeholder="comma-separated games"
 							value={gameExcludes.join(', ')}
 							onchange={(e) =>
@@ -442,9 +438,7 @@
 						<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
 							>Minimum Viewers</span
 						>
-						<input
-							type="number"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground"
+						<NumberInput
 							min="0"
 							bind:value={minViewers}
 						/>
@@ -456,9 +450,7 @@
 						<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
 							>Quota (GB)</span
 						>
-						<input
-							type="number"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground"
+						<NumberInput
 							min="0"
 							bind:value={quotaGb}
 						/>
@@ -469,9 +461,7 @@
 						<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
 							>Retention (days)</span
 						>
-						<input
-							type="number"
-							class="w-full bg-input border border-border px-3 py-2 text-sm rounded font-mono text-foreground"
+						<NumberInput
 							min="0"
 							bind:value={retentionDays}
 						/>
@@ -485,7 +475,7 @@
 					</div>
 				{:else if profileError}
 					<div class="text-center py-8">
-						<p class="text-sm text-red-400">{profileError}</p>
+						<p class="text-sm text-destructive">{profileError}</p>
 						<button
 							class="mt-2 text-sm text-muted-foreground hover:text-foreground"
 							onclick={refreshProfile}
@@ -504,15 +494,15 @@
 		</div>
 
 		{#if saveError}
-			<div class="px-4 py-2 bg-red-500/10 border-t border-red-500/30">
-				<p class="font-mono text-xs text-red-400">{saveError}</p>
+			<div class="px-4 py-2 bg-destructive/10 border-t border-destructive/30">
+				<p class="font-mono text-xs text-destructive">{saveError}</p>
 			</div>
 		{/if}
 
 		<!-- Footer -->
 		<div class="p-4 border-t border-border flex gap-2 bg-card flex-shrink-0">
 			<button
-				class="flex-1 bg-muted border border-border text-foreground px-4 py-2 font-mono text-sm rounded hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+				class="flex-1 bg-muted border border-border text-foreground px-4 py-2 font-mono text-sm rounded hover:bg-hover-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 				onclick={handleSave}
 				disabled={isSaving}
 			>
@@ -526,7 +516,7 @@
 				{/if}
 			</button>
 			<button
-				class="px-4 py-2 border border-border bg-input text-foreground font-mono text-sm rounded hover:bg-muted transition-colors"
+				class="px-4 py-2 border border-border bg-btn-bg text-foreground font-mono text-sm rounded hover:bg-hover-wash transition-colors"
 				onclick={onclose}
 			>
 				Cancel

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { activityStore, type EventCategory, type ActivityEvent } from './activity.svelte';
-import type { WebSocketEvent } from '$lib/api/websocket';
+import type { WebSocketEvent } from '#lib/api/websocket.ts';
 
 // Helper to reset store state
 function resetStore() {

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { api, wsClient, AuthenticationError, type AuthErrorCode } from '$lib/api';
+import { api, wsClient, AuthenticationError, type AuthErrorCode } from '#lib/api/index.ts';
 import { settingsStore, type SavedServer } from './settings.svelte';
-import { extractErrorMessage } from '$lib/utils/errors';
+import { extractErrorMessage } from '#lib/utils/errors.ts';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 export type AuthState = 'valid' | 'refreshing' | 'expired' | 'invalid';

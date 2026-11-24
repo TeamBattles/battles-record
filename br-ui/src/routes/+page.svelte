@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
-	import { Video, Tv, HardDrive, ListTodo, Circle, Terminal } from 'lucide-svelte';
-	import StatusCard from '$lib/components/StatusCard.svelte';
-	import { Panel } from '$lib';
-	import { dashboardStore } from '$lib/stores/dashboard.svelte';
-	import { connectionStore } from '$lib/stores/connection.svelte';
-	import { activityStore } from '$lib/stores/activity.svelte';
+	import { Video, Tv, HardDrive, ListTodo, Circle, Terminal, LayoutDashboard } from '@lucide/svelte';
+	import PageHeader from '#lib/components/ui/PageHeader.svelte';
+	import StatusCard from '#lib/components/StatusCard.svelte';
+	import { Panel } from '#lib';
+	import { dashboardStore } from '#lib/stores/dashboard.svelte.ts';
+	import { connectionStore } from '#lib/stores/connection.svelte.ts';
+	import { activityStore } from '#lib/stores/activity.svelte.ts';
 
 	// Reload dashboard when server changes or connection is established
 	$effect(() => {
@@ -36,27 +37,29 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Page Header -->
-	<div class="flex items-center gap-2">
-		<span class="font-mono text-xs uppercase tracking-wider text-zinc-400">Dashboard</span>
-	</div>
+	<PageHeader
+		title="Dashboard"
+		eyebrow="Record"
+		subtitle="Live status across your channels, recordings and storage"
+		icon={LayoutDashboard}
+	/>
 
 	{#if !connectionStore.isConnected}
-		<div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-			<p class="font-mono text-xs text-amber-400">
+		<div class="rounded-lg border border-yellow/30 bg-yellow/5 p-4">
+			<p class="font-mono text-xs text-yellow">
 				Not connected to a server. Go to Settings to connect.
 			</p>
 		</div>
 	{:else if dashboardStore.isLoading}
-		<div class="flex items-center gap-2 text-zinc-500">
+		<div class="flex items-center gap-2 text-muted-foreground">
 			<div
-				class="size-4 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent"
+				class="size-4 animate-spin rounded-full border-2 border-line-3 border-t-transparent"
 			></div>
 			<span class="font-mono text-xs">Loading...</span>
 		</div>
 	{:else if dashboardStore.error}
-		<div class="rounded-lg border border-red-500/30 bg-red-500/5 p-4">
-			<p class="font-mono text-xs text-red-400">{dashboardStore.error}</p>
+		<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+			<p class="font-mono text-xs text-destructive">{dashboardStore.error}</p>
 		</div>
 	{:else}
 		<!-- Status Cards -->
@@ -82,20 +85,20 @@
 			<!-- Active Recordings Panel -->
 			<Panel title="Active Recordings" icon={Video} count={dashboardStore.activeRecordings.length} class="h-full">
 				{#if dashboardStore.activeRecordings.length === 0}
-					<div class="flex h-full flex-col items-center justify-center gap-2 py-8 text-zinc-500">
+					<div class="flex h-full flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
 						<Terminal class="size-8 opacity-30" />
 						<p class="font-mono text-xs">No active recordings</p>
 					</div>
 				{:else}
 					<div class="space-y-2">
 						{#each dashboardStore.activeRecordings as recording (recording.id)}
-							<div class="flex items-center gap-3 rounded border border-border bg-input p-3">
-								<span class="size-2 rounded-full bg-orange-400 animate-pulse"></span>
+							<div class="flex items-center gap-3 rounded border border-border bg-btn-bg p-3">
+								<span class="size-2 rounded-full bg-orange animate-pulse"></span>
 								<div class="flex-1 min-w-0">
 									<p class="font-mono text-sm truncate">{recording.channel_name}</p>
-									<p class="font-mono text-[10px] text-zinc-500 truncate">{recording.title}</p>
+									<p class="font-mono text-[10px] text-muted-foreground truncate">{recording.title}</p>
 								</div>
-								<span class="font-mono text-xs text-zinc-500">
+								<span class="font-mono text-xs text-muted-foreground">
 									{Math.floor((recording.duration_secs ?? 0) / 60)}m
 								</span>
 							</div>
@@ -107,7 +110,7 @@
 			<!-- Recent Activity Panel -->
 			<Panel title="Recent Activity" count={activityStore.events.length} class="h-full">
 				{#if activityStore.events.length === 0}
-					<div class="flex h-full flex-col items-center justify-center gap-2 py-8 text-zinc-500">
+					<div class="flex h-full flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
 						<Terminal class="size-8 opacity-30" />
 						<p class="font-mono text-xs">No recent activity</p>
 					</div>
@@ -115,7 +118,7 @@
 					<div class="h-full space-y-1 overflow-auto">
 						{#each activityStore.events.slice(0, 10) as event (event.id)}
 							<div class="flex gap-3 py-1.5 text-sm">
-								<span class="font-mono text-[10px] text-zinc-500 shrink-0">
+								<span class="font-mono text-[10px] text-muted-foreground shrink-0">
 									{event.timestamp.toLocaleTimeString()}
 								</span>
 								<span class="font-mono text-xs truncate">{event.message}</span>
@@ -130,27 +133,27 @@
 		<Panel title="System Health">
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 				<div class="flex flex-col gap-1">
-					<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"> Uptime </span>
+					<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"> Uptime </span>
 					<span class="font-mono text-sm">
 						{Math.floor((dashboardStore.status?.uptime_secs ?? 0) / 3600)}h
 						{Math.floor(((dashboardStore.status?.uptime_secs ?? 0) % 3600) / 60)}m
 					</span>
 				</div>
 				<div class="flex flex-col gap-1">
-					<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+					<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 						Version
 					</span>
 					<span class="font-mono text-sm">{dashboardStore.status?.version ?? 'Unknown'}</span>
 				</div>
 				<div class="flex flex-col gap-1">
-					<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"> Status </span>
+					<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"> Status </span>
 					<div class="flex items-center gap-1.5">
-						<span class="size-2 rounded-full bg-emerald-400"></span>
+						<span class="size-2 rounded-full bg-green"></span>
 						<span class="font-mono text-sm">Operational</span>
 					</div>
 				</div>
 				<div class="flex flex-col gap-1">
-					<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+					<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 						Disk Free
 					</span>
 					<span class="font-mono text-sm">{100 - diskPercent}%</span>

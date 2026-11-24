@@ -1,36 +1,47 @@
 <script lang="ts">
-	import type { ComponentType } from 'svelte';
-	import Card from './ui/Card.svelte';
+	import type { LucideIcon } from '@lucide/svelte';
+	import { cn } from '#lib/utils/cn.ts';
 
+	/**
+	 * Arena metric tile: a lifted panel with the accent corner bloom, mono label, display-font value
+	 * and a status-tinted icon box.
+	 */
 	interface Props {
 		label: string;
 		value: string | number;
-		icon: ComponentType<any>;
+		icon: LucideIcon;
 		status?: 'default' | 'success' | 'warning' | 'danger' | 'info';
 	}
 
 	let { label, value, icon: Icon, status = 'default' }: Props = $props();
 
 	const statusColors: Record<string, string> = {
-		default: 'text-zinc-500',
-		success: 'text-emerald-400',
-		warning: 'text-amber-400',
-		danger: 'text-orange-400',
-		info: 'text-blue-400'
+		default: 'text-muted-foreground bg-chip',
+		success: 'text-green bg-green/10',
+		warning: 'text-yellow bg-yellow/10',
+		danger: 'text-orange bg-orange/10',
+		info: 'text-blue bg-blue/10'
 	};
-
-	const iconColor = $derived(statusColors[status]);
 </script>
 
-<Card>
-	<div class="flex items-start justify-between">
-		<div>
-			<!-- Label -->
-			<p class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">{label}</p>
-			<!-- Value -->
-			<p class="mt-1 font-mono text-2xl font-bold tabular-nums">{value}</p>
+<div
+	data-slot="card"
+	class="relative overflow-hidden rounded-lg border border-border bg-panel-lift p-4 bg-[radial-gradient(120px_circle_at_0_0,color-mix(in_oklab,var(--primary)_14%,transparent),transparent)]"
+>
+	<div class="flex items-start justify-between gap-3">
+		<div class="min-w-0">
+			<p class="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">{label}</p>
+			<p class="mt-2 font-display text-3xl leading-none tracking-wide text-foreground tabular-nums">
+				{value}
+			</p>
 		</div>
-		<!-- Icon -->
-		<Icon class="size-5 {iconColor}" />
+		<span
+			class={cn(
+				'flex size-9 shrink-0 items-center justify-center rounded-md',
+				statusColors[status]
+			)}
+		>
+			<Icon class="size-4" />
+		</span>
 	</div>
-</Card>
+</div>

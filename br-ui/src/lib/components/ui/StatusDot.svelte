@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props {
 		status: 'recording' | 'live' | 'offline' | 'error' | 'success' | 'warning' | 'info';
@@ -11,13 +11,13 @@
 	let { status, pulse = false, size = 'md', class: className }: Props = $props();
 
 	const statusColors = {
-		recording: 'bg-orange-500',
-		live: 'bg-emerald-500',
-		offline: 'bg-zinc-500',
-		error: 'bg-red-500',
-		success: 'bg-emerald-500',
-		warning: 'bg-amber-500',
-		info: 'bg-blue-500'
+		recording: 'bg-orange',
+		live: 'bg-green',
+		offline: 'bg-dim',
+		error: 'bg-destructive',
+		success: 'bg-green',
+		warning: 'bg-yellow',
+		info: 'bg-blue'
 	};
 
 	const sizeClasses = {

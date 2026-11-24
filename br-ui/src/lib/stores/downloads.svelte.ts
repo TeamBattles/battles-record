@@ -1,7 +1,7 @@
-import { api } from '$lib/api/client';
-import { wsClient, type WebSocketEvent } from '$lib/api/websocket';
-import type { DownloadSummary, DownloadStatus } from '$lib/api/types';
-import { extractErrorMessage } from '$lib/utils/errors';
+import { api } from '#lib/api/client.ts';
+import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
+import type { DownloadSummary, DownloadStatus } from '#lib/api/types.ts';
+import { extractErrorMessage } from '#lib/utils/errors.ts';
 
 class DownloadsStore {
 	downloads = $state<DownloadSummary[]>([]);

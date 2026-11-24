@@ -1,10 +1,10 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import AppShell from '$lib/components/AppShell.svelte';
+	import AppShell from '#lib/components/AppShell.svelte';
 	import {
 		breakpointStore,
-		themeStore,
+		appearanceStore,
+		welcomeStore,
 		settingsStore,
 		connectionStore,
 		SetupWizard,
@@ -12,18 +12,27 @@
 		ReconnectOverlay,
 		ToastContainer,
 		LoadingScreen,
-		SessionExpiredModal
-	} from '$lib';
-	import { versionStore } from '$lib/stores/version.svelte';
-	import CloseConfirmationDialog from '$lib/components/CloseConfirmationDialog.svelte';
-	import { onMount } from 'svelte';
+		SessionExpiredModal,
+		WelcomeScreen
+	} from '#lib';
+	import { versionStore } from '#lib/stores/version.svelte.ts';
+	import CloseConfirmationDialog from '#lib/components/CloseConfirmationDialog.svelte';
+	import { trackWindowFrame } from '#lib/utils/window-frame.ts';
+	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 
+	// Runs during init rather than onMount: LoadingScreen shows the window from its own onMount,
+	// which fires first, and the first visible frame should already have rounded corners.
+	onDestroy(trackWindowFrame());
+
 	let showWizard = $state(false);
 	let showAddServerModal = $state(false);
 	let isInitialized = $state(false);
+
+	// Settings > Appearance can bring the Welcome Screen back, so this stays reactive.
+	const showWelcome = $derived(isInitialized && !welcomeStore.isComplete);
 
 	// Check if we need to show auth form in overlay (token expired for remote)
 	const needsReauth = $derived.by(() => {
@@ -37,7 +46,7 @@
 	});
 
 	let cleanupBreakpoint: (() => void) | undefined;
-	let cleanupTheme: (() => void) | undefined;
+	let cleanupAppearance: (() => void) | undefined;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let eruda: any = null;
 
@@ -85,14 +94,15 @@
 
 	onMount(() => {
 		cleanupBreakpoint = breakpointStore.init();
-		cleanupTheme = themeStore.init();
+		cleanupAppearance = appearanceStore.init();
+		welcomeStore.init();
 
 		// Initialize async
 		initializeApp();
 
 		return () => {
 			cleanupBreakpoint?.();
-			cleanupTheme?.();
+			cleanupAppearance?.();
 			versionStore.destroy();
 			// Clean up eruda
 			if (eruda) {
@@ -106,6 +116,12 @@
 		await settingsStore.init();
 		versionStore.init();
 
+		// The Welcome Screen is for new installs; anyone upgrading with servers already saved has
+		// been using the app and skips it.
+		if (!welcomeStore.isComplete && settingsStore.settings.servers.length > 0) {
+			welcomeStore.complete();
+		}
+
 		// Auto-init debug console if previously enabled
 		if (settingsStore.settings.debugConsole) {
 			toggleDebugConsole();
@@ -114,7 +130,7 @@
 		// Determine what to do on startup
 		if (settingsStore.hasStartupServer) {
 			const startupServer = settingsStore.startupServer;
-			let success = false;
+			let success: boolean;
 
 			if (startupServer?.type === 'local') {
 				// For local server, use connectToLocal which starts the daemon
@@ -162,11 +178,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
-
-{#if showWizard}
+{#if showWelcome}
+	<WelcomeScreen onComplete={() => welcomeStore.complete()} />
+{:else if showWizard}
 	<SetupWizard onComplete={handleWizardComplete} />
 {:else if isInitialized}
 	<AppShell onAddServer={handleAddServer} onManageServers={handleManageServers}>

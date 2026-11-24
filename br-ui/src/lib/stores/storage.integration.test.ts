@@ -8,17 +8,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import { StorageStoreWrapper } from '../../tests/wrappers';
 import { storageStore } from './storage.svelte';
-import type { StorageStats } from '$lib/api/types';
+import type { StorageStats } from '#lib/api/types.ts';
 
 // Mock the API
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	api: {
 		getStorageStats: vi.fn(),
 		cleanupStorage: vi.fn()
 	}
 }));
 
-import { api } from '$lib/api/client';
+import { api } from '#lib/api/client.ts';
 
 // Test data
 const mockStats: StorageStats = {

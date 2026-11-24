@@ -1,11 +1,11 @@
-import { api } from '$lib/api';
+import { api } from '#lib/api/index.ts';
 import type {
 	Platform,
 	PlatformAuth,
 	PlatformAuthStatus,
 	SetPlatformAuthRequest,
 	TestConnectionResponse
-} from '$lib/api/types';
+} from '#lib/api/types.ts';
 import { toastStore } from './toast.svelte';
 
 class PlatformAuthStore {

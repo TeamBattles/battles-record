@@ -14,7 +14,7 @@
 	let { children, onAddServer, onManageServers }: Props = $props();
 </script>
 
-<div class="h-screen flex flex-col bg-background-deep">
+<div class="h-screen flex flex-col bg-background">
 	<Titlebar {onAddServer} {onManageServers} />
 	<ReconnectBanner />
 	<UpdateBanner />

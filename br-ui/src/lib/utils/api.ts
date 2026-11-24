@@ -1,5 +1,5 @@
 // Re-export BackendChannel and transformChannel from the canonical location
-export { type BackendChannel, transformChannel } from '$lib/api/backend-types';
+export { type BackendChannel, transformChannel } from '#lib/api/backend-types.ts';
 
 /**
  * Normalize URL by removing trailing slashes

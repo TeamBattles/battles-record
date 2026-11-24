@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- First-run Welcome Screen introducing the app and letting new users pick their appearance before server setup; drag anywhere on it to move the window, and Settings can show it again
+- Rounded app window corners on Windows and Linux, following the Rounding setting and squaring off when maximized
+- Appearance settings shared with teambattles.gg and Battles Replay: background (Onyx, Navy, Graphite, Bone, System), accent (red, amber, cyan, lime), rounding (sharp, soft, round), density (comfortable, compact), high contrast and reduced motion
+- Honeycomb (hex mesh) pattern on page headers, panel headers and dialog headers, with an accent ripple on page headers
+
+### Changed
+
+- Desktop app restyled to the Arena Onyx design language used by teambattles.gg and Battles Replay: onyx surfaces, accent-colored primary actions, status color tokens and Bebas Neue page titles
+- Cards, panels and dialogs now use rounded hairline borders with gradient corner accents instead of corner brackets
+- Titlebar theme button is now a menu of the five backgrounds; the previous light/dark/system choice is migrated automatically
+- Titlebar is slightly taller with a larger app icon
+- Sidebar groups navigation into Record and Admin sections with an accent marker on the active page
+- Daemon dependencies updated to their latest major versions (axum 0.8, reqwest 0.13, jsonwebtoken 12, rand 0.10, sysinfo 0.40, tokio-tungstenite 0.30, zip 9 and others)
+- Daemon HTTPS now uses rustls instead of the system TLS library, so builds no longer need OpenSSL
+- Desktop app updated to SvelteKit 3, Vite 8, TypeScript 6, Vitest 5, ESLint 10 and @lucide/svelte 1.x
+- Docker images build with Rust 1.96
+- Checkboxes are drawn in the app's theme instead of the operating system's native style
+- Number fields have larger − / + buttons in place of the tiny native up/down arrows
+- Dropdowns (page filters, Settings, cleanup tools, channel settings) use the app's own menu instead of the system dropdown, fixing their doubled border and the focus outline that reappeared after picking an option
+- New Battles Record icon (scroll and quill) for the app window, taskbar, tray, installers, Store tiles, favicon and README
+- Default window size raised to 900x800 so the Welcome Screen fits without scrolling; a window that would open larger than the screen is shrunk to fit
+
+### Removed
+
+- "Show Corner Brackets" setting, replaced by the new appearance settings
+- Unused `notify` and `@sveltejs/adapter-auto` dependencies
+
+### Fixed
+
+- "Enter token manually" on a platform card now opens the manual token form for that platform instead of only changing its selection
+- An empty `jwt_secret` now falls back to a generated temporary secret instead of signing tokens with an empty key
+- Treat explicit empty extension cookie lists as anonymous for previews and downloads; explicit cookies bypass automatic yt-dlp account configuration, while omitted cookies retain daemon-local fallback.
+
 ## [1.4.0] - 2026-03-26
 
 ### Added

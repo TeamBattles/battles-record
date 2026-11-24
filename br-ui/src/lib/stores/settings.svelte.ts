@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 export interface SavedServer {
 	id: string;
@@ -17,8 +17,6 @@ export interface AppSettings {
 	localDaemonDataDir: string | null;
 	localDaemonLibraryDir: string | null;
 	localDaemonDownloadsDir: string | null;
-	// Appearance
-	showCornerBrackets: boolean;
 	// Debug
 	debugConsole: boolean;
 }
@@ -30,11 +28,22 @@ const DEFAULT_SETTINGS: AppSettings = {
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
 	localDaemonDownloadsDir: null,
-	showCornerBrackets: false,
 	debugConsole: false
 };
 
 const SETTINGS_FILE = 'settings.json';
+
+/** Keys from older versions that no longer mean anything (corner brackets went with the redesign). */
+const RETIRED_KEYS = ['showCornerBrackets'];
+
+function withDefaults(stored: unknown): AppSettings {
+	const merged: Record<string, unknown> = {
+		...DEFAULT_SETTINGS,
+		...(stored && typeof stored === 'object' ? stored : {})
+	};
+	for (const key of RETIRED_KEYS) delete merged[key];
+	return merged as unknown as AppSettings;
+}
 
 class SettingsStore {
 	settings = $state<AppSettings>(DEFAULT_SETTINGS);
@@ -65,8 +74,7 @@ class SettingsStore {
 			const appDataDir = await this.tauriPath.appDataDir();
 			const filePath = await this.tauriPath.join(appDataDir, SETTINGS_FILE);
 			const contents = await this.tauriFs.readTextFile(filePath);
-			// Merge with defaults to handle new settings fields
-			this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(contents) };
+			this.settings = withDefaults(JSON.parse(contents));
 		} catch (e) {
 			// File doesn't exist yet, use defaults
 			this.settings = { ...DEFAULT_SETTINGS };
@@ -77,8 +85,7 @@ class SettingsStore {
 		try {
 			const stored = localStorage.getItem('br-settings');
 			if (stored) {
-				// Merge with defaults to handle new settings fields
-				this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+				this.settings = withDefaults(JSON.parse(stored));
 			}
 		} catch (e) {
 			this.settings = { ...DEFAULT_SETTINGS };
@@ -171,11 +178,6 @@ class SettingsStore {
 
 	setLocalDaemonDownloadsDir(dir: string | null) {
 		this.settings.localDaemonDownloadsDir = dir;
-		this.save();
-	}
-
-	setShowCornerBrackets(show: boolean) {
-		this.settings.showCornerBrackets = show;
 		this.save();
 	}
 

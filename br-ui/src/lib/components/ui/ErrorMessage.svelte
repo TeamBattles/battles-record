@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props {
 		message: string;
@@ -10,8 +10,8 @@
 	let { message, class: className, variant = 'error' }: Props = $props();
 
 	const variantClasses = {
-		error: 'border-red-500/30 bg-red-500/5 text-red-400',
-		warning: 'border-amber-500/30 bg-amber-500/5 text-amber-400'
+		error: 'border-destructive/30 bg-destructive/5 text-destructive',
+		warning: 'border-yellow/30 bg-yellow/5 text-yellow'
 	};
 </script>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ScheduleRule } from '$lib/api/types';
+	import type { ScheduleRule } from '#lib/api/types.ts';
 
 	interface Props {
 		rules: ScheduleRule[];
@@ -55,11 +55,11 @@
 </script>
 
 {#if rules.length === 0}
-	<span class="font-mono text-xs text-zinc-500 {className}">No schedule</span>
+	<span class="font-mono text-xs text-muted-foreground {className}">No schedule</span>
 {:else}
 	<div class="space-y-1 {className}">
 		{#each rules as rule}
-			<p class="font-mono text-xs text-zinc-400">{formatRule(rule)}</p>
+			<p class="font-mono text-xs text-muted-foreground">{formatRule(rule)}</p>
 		{/each}
 	</div>
 {/if}

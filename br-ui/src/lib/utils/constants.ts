@@ -61,33 +61,33 @@ export const OUTPUT_FORMATS = [
 
 // Status colors for recordings
 export const RECORDING_STATUS_COLORS: Record<string, string> = {
-	recording: 'bg-orange-500',
-	stopping: 'bg-amber-500',
-	pending_processing: 'bg-blue-500',
-	processing: 'bg-blue-500',
-	processed: 'bg-emerald-500',
-	processing_failed: 'bg-orange-500',
-	failed: 'bg-red-500',
-	completed: 'bg-emerald-500'
+	recording: 'bg-orange',
+	stopping: 'bg-yellow',
+	pending_processing: 'bg-blue',
+	processing: 'bg-blue',
+	processed: 'bg-green',
+	processing_failed: 'bg-orange',
+	failed: 'bg-destructive',
+	completed: 'bg-green'
 } as const;
 
 // Status colors for channels
 export const CHANNEL_STATUS_COLORS = {
-	live: 'bg-emerald-500',
-	recording: 'bg-orange-500',
-	offline: 'bg-zinc-500'
+	live: 'bg-green',
+	recording: 'bg-orange',
+	offline: 'bg-dim'
 } as const;
 
 // Status text colors
 export const RECORDING_STATUS_TEXT_COLORS: Record<string, string> = {
-	recording: 'text-orange-400',
-	stopping: 'text-amber-400',
-	pending_processing: 'text-blue-400',
-	processing: 'text-blue-400',
-	processed: 'text-emerald-400',
-	processing_failed: 'text-orange-400',
-	failed: 'text-red-400',
-	completed: 'text-emerald-400'
+	recording: 'text-orange',
+	stopping: 'text-yellow',
+	pending_processing: 'text-blue',
+	processing: 'text-blue',
+	processed: 'text-green',
+	processing_failed: 'text-orange',
+	failed: 'text-destructive',
+	completed: 'text-green'
 } as const;
 
 // CRF slider settings

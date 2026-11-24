@@ -6,9 +6,9 @@
  * needing an actual WebSocket connection.
  */
 
-import type { BackendChannel } from '$lib/api/backend-types';
-import type { WebSocketEvent } from '$lib/api/websocket';
-import type { QuotaStatus } from '$lib/api/types';
+import type { BackendChannel } from '#lib/api/backend-types.ts';
+import type { WebSocketEvent } from '#lib/api/websocket.ts';
+import type { QuotaStatus } from '#lib/api/types.ts';
 
 /**
  * Creates mock backend channel data

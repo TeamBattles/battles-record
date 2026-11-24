@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { StorageStats, ChannelStorageStats } from '$lib/api/types';
+import type { StorageStats, ChannelStorageStats } from '#lib/api/types.ts';
 
 // Mock the API module before importing the store
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	api: {
 		getStorageStats: vi.fn(),
 		cleanupStorage: vi.fn()

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { input, type InputVariants } from './input.variants';
 	import type { HTMLInputAttributes } from 'svelte/elements';
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props extends InputVariants, Omit<HTMLInputAttributes, 'class' | 'size'> {
 		value?: string;

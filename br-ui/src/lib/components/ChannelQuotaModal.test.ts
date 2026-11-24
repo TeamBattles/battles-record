@@ -7,10 +7,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/svelte';
 import ChannelQuotaModal from './ChannelQuotaModal.svelte';
-import type { Channel } from '$lib/api/types';
+import type { Channel } from '#lib/api/types.ts';
 
 // Mock the channels store
-vi.mock('$lib/stores/channels.svelte', () => ({
+vi.mock('#lib/stores/channels.svelte.ts', () => ({
 	channelsStore: {
 		updateChannel: vi.fn(),
 		error: null
@@ -18,15 +18,15 @@ vi.mock('$lib/stores/channels.svelte', () => ({
 }));
 
 // Mock the toast store
-vi.mock('$lib/stores/toast.svelte', () => ({
+vi.mock('#lib/stores/toast.svelte.ts', () => ({
 	toastStore: {
 		success: vi.fn(),
 		error: vi.fn()
 	}
 }));
 
-import { channelsStore } from '$lib/stores/channels.svelte';
-import { toastStore } from '$lib/stores/toast.svelte';
+import { channelsStore } from '#lib/stores/channels.svelte.ts';
+import { toastStore } from '#lib/stores/toast.svelte.ts';
 
 const mockChannel: Channel = {
 	id: 'ch-1',
@@ -83,14 +83,14 @@ describe('ChannelQuotaModal', () => {
 
 			// 50 GB should be initially selected
 			const fiftyButton = screen.getByRole('button', { name: '50 GB' });
-			expect(fiftyButton).toHaveClass('border-emerald-500');
+			expect(fiftyButton).toHaveClass('border-primary');
 
 			// Click Unlimited
 			const unlimitedButton = screen.getAllByRole('button', { name: 'Unlimited' })[0];
 			await fireEvent.click(unlimitedButton);
 
 			// Unlimited should now be selected
-			expect(unlimitedButton).toHaveClass('border-emerald-500');
+			expect(unlimitedButton).toHaveClass('border-primary');
 		});
 
 		it('clicking number preset sets specific value', async () => {
@@ -100,16 +100,16 @@ describe('ChannelQuotaModal', () => {
 			await fireEvent.click(tenGbButton);
 
 			// 10 GB should be selected
-			expect(tenGbButton).toHaveClass('border-emerald-500');
+			expect(tenGbButton).toHaveClass('border-primary');
 		});
 
-		it('active preset shows emerald styling', () => {
+		it('active preset shows accent styling', () => {
 			const channelWithQuota = { ...mockChannel, quota_gb: 25 };
 			renderModal(channelWithQuota);
 
 			const twentyFiveButton = screen.getByRole('button', { name: '25 GB' });
-			expect(twentyFiveButton).toHaveClass('border-emerald-500');
-			expect(twentyFiveButton).toHaveClass('bg-emerald-500/10');
+			expect(twentyFiveButton).toHaveClass('border-primary');
+			expect(twentyFiveButton).toHaveClass('bg-primary/10');
 		});
 
 		it('inactive preset shows default styling', () => {
@@ -117,7 +117,7 @@ describe('ChannelQuotaModal', () => {
 			renderModal(channelWithQuota);
 
 			const tenGbButton = screen.getByRole('button', { name: '10 GB' });
-			expect(tenGbButton).not.toHaveClass('border-emerald-500');
+			expect(tenGbButton).not.toHaveClass('border-primary');
 			expect(tenGbButton).toHaveClass('border-border');
 		});
 	});
@@ -131,7 +131,7 @@ describe('ChannelQuotaModal', () => {
 			const unlimitedButtons = screen.getAllByRole('button', { name: 'Unlimited' });
 			await fireEvent.click(unlimitedButtons[1]); // Second one is for retention
 
-			expect(unlimitedButtons[1]).toHaveClass('border-emerald-500');
+			expect(unlimitedButtons[1]).toHaveClass('border-primary');
 		});
 
 		it('clicking days preset sets specific value', async () => {
@@ -140,7 +140,7 @@ describe('ChannelQuotaModal', () => {
 			const sevenDaysButton = screen.getByRole('button', { name: '7 days' });
 			await fireEvent.click(sevenDaysButton);
 
-			expect(sevenDaysButton).toHaveClass('border-emerald-500');
+			expect(sevenDaysButton).toHaveClass('border-primary');
 		});
 	});
 

@@ -8,12 +8,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import { ChannelsStoreWrapper } from '../../tests/wrappers';
 import { channelsStore } from './channels.svelte';
-import type { Channel } from '$lib/api/types';
-import type { BackendChannel } from '$lib/api/backend-types';
-import type { WebSocketEvent } from '$lib/api/websocket';
+import type { Channel } from '#lib/api/types.ts';
+import type { BackendChannel } from '#lib/api/backend-types.ts';
+import type { WebSocketEvent } from '#lib/api/websocket.ts';
 
 // Mock the API client
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api/index.ts', () => ({
 	api: {
 		getChannels: vi.fn(),
 		getChannel: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('$lib/api', () => ({
 }));
 
 // Mock the WebSocket client
-vi.mock('$lib/api/websocket', () => ({
+vi.mock('#lib/api/websocket.ts', () => ({
 	wsClient: {
 		subscribe: vi.fn(() => vi.fn())
 	}
@@ -42,8 +42,8 @@ vi.mock('./toast.svelte', () => ({
 	}
 }));
 
-import { api } from '$lib/api';
-import { wsClient } from '$lib/api/websocket';
+import { api } from '#lib/api/index.ts';
+import { wsClient } from '#lib/api/websocket.ts';
 import { toastStore } from './toast.svelte';
 
 // Mock channel data

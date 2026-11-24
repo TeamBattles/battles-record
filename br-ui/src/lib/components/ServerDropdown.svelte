@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
 	import { Drawer } from 'vaul-svelte';
-	import { ChevronDown, Plus, Settings, Check, Loader2 } from 'lucide-svelte';
-	import { breakpointStore, settingsStore, connectionStore } from '$lib';
-	import type { SavedServer } from '$lib';
+	import { ChevronDown, Plus, Settings, Check, Loader2 } from '@lucide/svelte';
+	import { breakpointStore, settingsStore, connectionStore } from '#lib';
+	import type { SavedServer } from '#lib';
 	import LocalServiceOfflineDialog from './LocalServiceOfflineDialog.svelte';
 
 	interface Props {
@@ -85,37 +85,37 @@
 		if (server.type === 'local') {
 			// If daemon definitely not running, always show red
 			if (localDaemonRunning === false) {
-				return 'bg-red-400';
+				return 'bg-destructive';
 			}
 
 			if (server.id === connectionStore.activeServerId) {
 				// Active local server - use connection state
 				switch (connectionStore.connectionState) {
 					case 'connected':
-						return 'bg-emerald-400';
+						return 'bg-green';
 					case 'connecting':
 					case 'reconnecting':
 						// Only show yellow if daemon is actually running
-						return localDaemonRunning ? 'bg-amber-400' : 'bg-red-400';
+						return localDaemonRunning ? 'bg-yellow' : 'bg-destructive';
 					default:
-						return 'bg-red-400';
+						return 'bg-destructive';
 				}
 			}
 
 			// Non-active local server with daemon running
-			return localDaemonRunning ? 'bg-emerald-400' : 'bg-red-400';
+			return localDaemonRunning ? 'bg-green' : 'bg-destructive';
 		}
 
 		if (server.id === connectionStore.activeServerId) {
 			// Active remote server uses connection state
 			switch (connectionStore.connectionState) {
 				case 'connected':
-					return 'bg-emerald-400';
+					return 'bg-green';
 				case 'connecting':
 				case 'reconnecting':
-					return 'bg-amber-400';
+					return 'bg-yellow';
 				default:
-					return 'bg-red-400';
+					return 'bg-destructive';
 			}
 		}
 
@@ -123,13 +123,13 @@
 		const health = serverHealth[server.id];
 		switch (health) {
 			case 'healthy':
-				return 'bg-emerald-400';
+				return 'bg-green';
 			case 'unreachable':
-				return 'bg-red-400';
+				return 'bg-destructive';
 			case 'checking':
-				return 'bg-amber-400';
+				return 'bg-yellow';
 			default:
-				return 'bg-zinc-600';
+				return 'bg-faint';
 		}
 	}
 
@@ -153,21 +153,21 @@
 
 		// If local server is active, check daemon status
 		if (activeServer?.type === 'local' && localDaemonRunning === false) {
-			return 'bg-red-400';
+			return 'bg-destructive';
 		}
 
 		switch (connectionStore.connectionState) {
 			case 'connected':
-				return 'bg-emerald-400';
+				return 'bg-green';
 			case 'connecting':
 			case 'reconnecting':
 				// For local server, only show yellow if daemon is running
 				if (activeServer?.type === 'local' && localDaemonRunning === false) {
-					return 'bg-red-400';
+					return 'bg-destructive';
 				}
-				return 'bg-amber-400';
+				return 'bg-yellow';
 			default:
-				return 'bg-red-400';
+				return 'bg-destructive';
 		}
 	});
 
@@ -217,39 +217,39 @@
 	<div class="py-1">
 		{#each settingsStore.settings.servers as server (server.id)}
 			<button
-				class="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-800 transition-colors text-left"
+				class="w-full flex items-center gap-3 px-3 py-2 hover:bg-hover-wash transition-colors text-left"
 				onclick={() => handleServerClick(server)}
 			>
 				<span
 					class="size-2 rounded-full {getServerStatusColor(server)}"
 					class:animate-pulse={isServerAnimating(server)}
 				></span>
-				<span class="flex-1 font-mono text-sm text-zinc-300">{server.name}</span>
+				<span class="flex-1 font-mono text-sm text-text-2">{server.name}</span>
 				{#if server.id === connectionStore.activeServerId}
-					<Check size={14} class="text-emerald-400" />
+					<Check size={14} class="text-green" />
 				{/if}
 			</button>
 		{/each}
 
 		{#if settingsStore.settings.servers.length === 0}
-			<p class="px-3 py-2 font-mono text-xs text-zinc-500">No servers configured</p>
+			<p class="px-3 py-2 font-mono text-xs text-muted-foreground">No servers configured</p>
 		{/if}
 	</div>
 
-	<div class="border-t border-zinc-700 py-1">
+	<div class="border-t border-line-2 py-1">
 		<button
-			class="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-800 transition-colors text-left"
+			class="w-full flex items-center gap-3 px-3 py-2 hover:bg-hover-wash transition-colors text-left"
 			onclick={handleAddServer}
 		>
-			<Plus size={14} class="text-zinc-500" />
-			<span class="font-mono text-sm text-zinc-400">Add Remote Server</span>
+			<Plus size={14} class="text-muted-foreground" />
+			<span class="font-mono text-sm text-muted-foreground">Add Remote Server</span>
 		</button>
 		<button
-			class="w-full flex items-center gap-3 px-3 py-2 hover:bg-zinc-800 transition-colors text-left"
+			class="w-full flex items-center gap-3 px-3 py-2 hover:bg-hover-wash transition-colors text-left"
 			onclick={handleManageServers}
 		>
-			<Settings size={14} class="text-zinc-500" />
-			<span class="font-mono text-sm text-zinc-400">Manage Servers</span>
+			<Settings size={14} class="text-muted-foreground" />
+			<span class="font-mono text-sm text-muted-foreground">Manage Servers</span>
 		</button>
 	</div>
 {/snippet}
@@ -257,33 +257,33 @@
 {#if breakpointStore.isMobile}
 	<!-- Mobile: Bottom Sheet -->
 	<button
-		class="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded transition-colors {compact ? '' : 'border border-border bg-input'}"
+		class="flex items-center gap-2 px-3 py-1.5 hover:bg-hover-wash rounded transition-colors {compact ? '' : 'border border-border bg-btn-bg'}"
 		onclick={() => (open = true)}
 	>
 		{#if !compact}
 			{#if triggerAnimating}
-				<Loader2 size={12} class="text-amber-400 animate-spin" />
+				<Loader2 size={12} class="text-yellow animate-spin" />
 			{:else}
 				<span class="size-2 rounded-full {triggerStatusColor}"></span>
 			{/if}
 		{/if}
-		<span class="font-mono text-xs text-zinc-400">
+		<span class="font-mono text-xs text-muted-foreground">
 			{connectionStore.activeServer?.name ?? 'Select'}
 		</span>
-		<ChevronDown size={12} class="text-zinc-500" />
+		<ChevronDown size={12} class="text-muted-foreground" />
 	</button>
 
 	<Drawer.Root bind:open>
 		<Drawer.Portal>
 			<Drawer.Overlay class="fixed inset-0 bg-black/60 z-40" />
 			<Drawer.Content
-				class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 z-50 rounded-t-lg"
+				class="fixed bottom-0 left-0 right-0 bg-well border-t border-line-2 z-50 rounded-t-lg"
 			>
 				<div class="flex justify-center py-3">
-					<div class="w-10 h-1 bg-zinc-600 rounded-full"></div>
+					<div class="w-10 h-1 bg-faint rounded-full"></div>
 				</div>
 				<div class="px-4 pb-2">
-					<Drawer.Title class="font-mono text-xs uppercase tracking-wider text-zinc-400">
+					<Drawer.Title class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
 						Servers
 					</Drawer.Title>
 				</div>
@@ -299,25 +299,25 @@
 			{#snippet child({ props })}
 				<button
 					{...props}
-					class="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded transition-colors {compact ? '' : 'border border-border bg-input'}"
+					class="flex items-center gap-2 px-3 py-1.5 hover:bg-hover-wash rounded transition-colors {compact ? '' : 'border border-border bg-btn-bg'}"
 				>
-					<span class="font-mono text-xs text-zinc-400">
+					<span class="font-mono text-xs text-muted-foreground">
 						{connectionStore.activeServer?.name ?? 'Not Connected'}
 					</span>
 					{#if !compact}
 						{#if triggerAnimating}
-							<Loader2 size={12} class="text-amber-400 animate-spin" />
+							<Loader2 size={12} class="text-yellow animate-spin" />
 						{:else}
 							<span class="size-2 rounded-full {triggerStatusColor}"></span>
 						{/if}
 					{/if}
-					<ChevronDown size={12} class="text-zinc-500" />
+					<ChevronDown size={12} class="text-muted-foreground" />
 				</button>
 			{/snippet}
 		</DropdownMenu.Trigger>
 
 		<DropdownMenu.Content
-			class="z-50 min-w-[200px] rounded border border-zinc-700 bg-zinc-900 shadow-lg"
+			class="z-50 min-w-[200px] rounded border border-line-2 bg-well shadow-lg"
 			sideOffset={4}
 			align="start"
 		>

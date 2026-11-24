@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { QuotaStatus } from '$lib/api/types';
-	import { AlertTriangle } from 'lucide-svelte';
+	import type { QuotaStatus } from '#lib/api/types.ts';
+	import { AlertTriangle } from '@lucide/svelte';
 
 	interface Props {
 		isRecording: boolean;
@@ -13,12 +13,12 @@
 
 	const dotClass = $derived(
 		quotaStatus === 'exceeded'
-			? 'bg-red-400'
+			? 'bg-destructive'
 			: isRecording
-				? 'bg-orange-400 animate-pulse'
+				? 'bg-orange animate-pulse'
 				: isLive
-					? 'bg-emerald-400'
-					: 'bg-zinc-500'
+					? 'bg-green'
+					: 'bg-dim'
 	);
 
 	const statusLabel = $derived(
@@ -35,9 +35,9 @@
 <div class="flex items-center gap-1.5">
 	<span class="size-2 rounded-full {dotClass}"></span>
 	{#if quotaStatus === 'exceeded'}
-		<AlertTriangle class="size-3 text-red-400" />
+		<AlertTriangle class="size-3 text-destructive" />
 	{:else if quotaStatus === 'warning'}
-		<AlertTriangle class="size-3 text-amber-400" />
+		<AlertTriangle class="size-3 text-yellow" />
 	{/if}
 	<span class="sr-only">{statusLabel}</span>
 </div>

@@ -1,22 +1,21 @@
 import { tv, type VariantProps } from 'tailwind-variants';
 
+/** Arena button recipes; the focus triad matches teambattles.gg's canonical contract. */
 export const button = tv({
 	base: [
 		'inline-flex items-center justify-center gap-2',
 		'font-mono text-sm font-medium select-none',
-		'rounded transition-colors',
-		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+		'rounded border border-transparent transition-colors',
+		'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
 		'disabled:pointer-events-none disabled:opacity-50'
 	],
 	variants: {
 		intent: {
-			primary: 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:ring-emerald-500',
-			secondary:
-				'border border-border bg-input text-zinc-300 hover:bg-muted focus-visible:ring-zinc-500',
-			danger:
-				'border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 focus-visible:ring-red-500',
-			ghost: 'hover:bg-muted text-zinc-400 focus-visible:ring-zinc-500',
-			link: 'text-emerald-400 underline-offset-4 hover:underline focus-visible:ring-emerald-500'
+			primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+			secondary: 'border-border bg-btn-bg text-text-2 hover:bg-btn-bg-hover hover:text-foreground',
+			danger: 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20',
+			ghost: 'text-muted-foreground hover:bg-hover-wash hover:text-foreground',
+			link: 'text-primary underline-offset-4 hover:underline'
 		},
 		size: {
 			sm: 'h-7 px-2 text-xs',

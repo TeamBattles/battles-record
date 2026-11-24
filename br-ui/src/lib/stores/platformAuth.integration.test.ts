@@ -6,10 +6,10 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { platformAuthStore } from './platformAuth.svelte';
-import type { PlatformAuth, Platform } from '$lib/api/types';
+import type { PlatformAuth, Platform } from '#lib/api/types.ts';
 
 // Mock the API
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api/index.ts', () => ({
 	api: {
 		getPlatformAuth: vi.fn(),
 		setPlatformAuth: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('./toast.svelte', () => ({
 	}
 }));
 
-import { api } from '$lib/api';
+import { api } from '#lib/api/index.ts';
 import { toastStore } from './toast.svelte';
 
 // Test data

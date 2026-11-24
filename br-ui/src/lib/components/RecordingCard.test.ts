@@ -6,16 +6,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import RecordingCard from './RecordingCard.svelte';
-import type { Recording } from '$lib/api/types';
+import type { Recording } from '#lib/api/types.ts';
 
 // Mock the recordings store
-vi.mock('$lib/stores/recordings.svelte', () => ({
+vi.mock('#lib/stores/recordings.svelte.ts', () => ({
 	recordingsStore: {
 		getProcessingProgress: vi.fn()
 	}
 }));
 
-import { recordingsStore } from '$lib/stores/recordings.svelte';
+import { recordingsStore } from '#lib/stores/recordings.svelte.ts';
 
 // Base recording fixture
 const baseRecording: Recording = {

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { platformAuthStore } from '$lib/stores/platformAuth.svelte';
-	import { Loader2, CheckCircle, XCircle } from 'lucide-svelte';
+	import { page } from '$app/state';
+	import { platformAuthStore } from '#lib/stores/platformAuth.svelte.ts';
+	import { Loader2, CheckCircle, XCircle } from '@lucide/svelte';
 
 	let status = $state<'processing' | 'success' | 'error'>('processing');
 	let errorMessage = $state<string | null>(null);
 
 	onMount(async () => {
-		const searchParams = $page.url.searchParams;
+		const searchParams = page.url.searchParams;
 		const code = searchParams.get('code');
 		const state = searchParams.get('state');
 		const error = searchParams.get('error');
@@ -56,20 +56,20 @@
 <div class="flex min-h-screen items-center justify-center p-4">
 	<div class="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center">
 		{#if status === 'processing'}
-			<Loader2 class="mx-auto size-12 animate-spin text-zinc-400" />
+			<Loader2 class="mx-auto size-12 animate-spin text-muted-foreground" />
 			<h1 class="mt-4 font-mono text-lg uppercase tracking-wider">Completing Authentication</h1>
-			<p class="mt-2 text-sm text-zinc-500">Please wait...</p>
+			<p class="mt-2 text-sm text-muted-foreground">Please wait...</p>
 		{:else if status === 'success'}
-			<CheckCircle class="mx-auto size-12 text-emerald-400" />
+			<CheckCircle class="mx-auto size-12 text-green" />
 			<h1 class="mt-4 font-mono text-lg uppercase tracking-wider">Connected Successfully</h1>
-			<p class="mt-2 text-sm text-zinc-500">Redirecting back to settings...</p>
+			<p class="mt-2 text-sm text-muted-foreground">Redirecting back to settings...</p>
 		{:else}
-			<XCircle class="mx-auto size-12 text-red-400" />
+			<XCircle class="mx-auto size-12 text-destructive" />
 			<h1 class="mt-4 font-mono text-lg uppercase tracking-wider">Authentication Failed</h1>
-			<p class="mt-2 text-sm text-red-400">{errorMessage}</p>
+			<p class="mt-2 text-sm text-destructive">{errorMessage}</p>
 			<a
 				href="/auth"
-				class="mt-4 inline-block rounded border border-border bg-input px-4 py-2 font-mono text-xs transition-colors hover:bg-muted"
+				class="mt-4 inline-block rounded border border-border bg-btn-bg px-4 py-2 font-mono text-xs transition-colors hover:bg-hover-wash"
 			>
 				Return to Settings
 			</a>

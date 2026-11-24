@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { Pause, Play, X, ArrowUp, Trash2, AlertTriangle, RefreshCw, GitMerge } from 'lucide-svelte';
+	import { Pause, Play, X, ArrowUp, Trash2, AlertTriangle, RefreshCw, GitMerge } from '@lucide/svelte';
 	import { Tween } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
-	import type { DownloadSummary } from '$lib/api/types';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
+	import type { DownloadSummary } from '#lib/api/types.ts';
+	import LuxuryCornerSlivers from '#lib/components/ui/LuxuryCornerSlivers.svelte';
 	import StatusDot from './ui/StatusDot.svelte';
 	import Button from './ui/Button.svelte';
-	import { cn } from '$lib/utils/cn';
-	import { formatBytes, formatDate, formatEta, formatPlatformName } from '$lib/utils';
-	import { DOWNLOAD_STATUS_COLORS, DOWNLOAD_STATUS_LABELS } from '$lib/utils/constants';
+	import { cn } from '#lib/utils/cn.ts';
+	import { formatBytes, formatDate, formatEta, formatPlatformName } from '#lib/utils/index.ts';
+	import { DOWNLOAD_STATUS_COLORS, DOWNLOAD_STATUS_LABELS } from '#lib/utils/constants.ts';
 
 	interface Props {
 		download: DownloadSummary;
@@ -50,19 +50,19 @@
 	});
 </script>
 
-<div class="relative rounded border border-border bg-card p-3">
-	<CornerBrackets size="sm" />
+<div class="group relative rounded border border-border bg-card p-3">
+	<LuxuryCornerSlivers corners="tl" length="md" hoverFadeIn />
 
 	<!-- Header: status + platform badge -->
 	<div class="flex items-start justify-between gap-3">
 		<div class="flex items-center gap-2 min-w-0">
 			<StatusDot status={statusColor} pulse={isActive} size="sm" />
-			<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+			<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 				{statusLabel}
 			</span>
 		</div>
 		<span
-			class="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400"
+			class="shrink-0 rounded bg-chip px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
 		>
 			{formatPlatformName(download.source_platform)}
 		</span>
@@ -70,31 +70,31 @@
 
 	<!-- Title -->
 	{#if download.title}
-		<p class="font-mono text-xs text-zinc-100 mt-2 truncate" title={download.title}>
+		<p class="font-mono text-xs text-foreground mt-2 truncate" title={download.title}>
 			{download.title}
 		</p>
 	{:else}
-		<p class="font-mono text-xs text-zinc-400 mt-2 truncate" title={download.url}>
+		<p class="font-mono text-xs text-muted-foreground mt-2 truncate" title={download.url}>
 			{download.url}
 		</p>
 	{/if}
 
 	<!-- Channel name -->
-	<p class="font-mono text-[10px] text-zinc-500 mt-1">{download.channel_name}</p>
+	<p class="font-mono text-[10px] text-muted-foreground mt-1">{download.channel_name}</p>
 
 	<!-- Progress bar (when downloading) -->
 	{#if download.status === 'downloading' || download.status === 'processing'}
 		<div class="mt-2 space-y-1">
-			<div class="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+			<div class="h-1.5 w-full rounded-full bg-chip overflow-hidden">
 				<div
 					class={cn(
 						'h-full rounded-full',
-						download.status === 'processing' ? 'bg-blue-500' : 'bg-emerald-500'
+						download.status === 'processing' ? 'bg-blue' : 'bg-green'
 					)}
 					style="width: {Math.min(progress.current, 100)}%"
 				></div>
 			</div>
-			<div class="flex items-center gap-3 text-zinc-500">
+			<div class="flex items-center gap-3 text-muted-foreground">
 				<span class="font-mono text-[10px]">{progress.current.toFixed(1)}%</span>
 				{#if download.speed}
 					<span class="font-mono text-[10px]">{download.speed}</span>
@@ -113,7 +113,7 @@
 		</div>
 	{:else if download.downloaded_bytes > 0}
 		<!-- Size info for non-active states -->
-		<div class="flex items-center gap-3 mt-2 text-zinc-500">
+		<div class="flex items-center gap-3 mt-2 text-muted-foreground">
 			<span class="font-mono text-[10px]">
 				{formatBytes(download.downloaded_bytes)}{download.total_bytes
 					? ` / ${formatBytes(download.total_bytes)}`
@@ -127,16 +127,16 @@
 
 	<!-- Error message -->
 	{#if download.status === 'failed' && download.error}
-		<div class="mt-2 rounded border border-red-500/20 bg-red-500/5 px-2 py-1.5">
+		<div class="mt-2 rounded border border-destructive/20 bg-destructive/5 px-2 py-1.5">
 			<div class="flex items-start gap-1.5">
-				<AlertTriangle class="w-3 h-3 text-red-400 mt-0.5 shrink-0" />
-				<span class="font-mono text-[10px] text-red-400 break-all">{download.error}</span>
+				<AlertTriangle class="w-3 h-3 text-destructive mt-0.5 shrink-0" />
+				<span class="font-mono text-[10px] text-destructive break-all">{download.error}</span>
 			</div>
 			{#if download.update_available}
 				<Button
 					intent="ghost"
 					size="sm"
-					class="mt-1.5 border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+					class="mt-1.5 border border-yellow/30 bg-yellow/10 text-yellow hover:bg-yellow/20"
 					onclick={() => {
 						/* TODO: trigger yt-dlp update */
 					}}
@@ -151,12 +151,12 @@
 	{/if}
 
 	<!-- Date -->
-	<div class="flex items-center gap-3 mt-2 text-zinc-500">
+	<div class="flex items-center gap-3 mt-2 text-muted-foreground">
 		<span class="font-mono text-[10px]">{formatDate(download.created_at)}</span>
 	</div>
 
 	<!-- Action buttons -->
-	<div class="flex items-center gap-1 mt-3 pt-3 border-t border-zinc-800">
+	<div class="flex items-center gap-1 mt-3 pt-3 border-t border-line">
 		{#if download.status === 'downloading' || download.status === 'extracting_info' || download.status === 'processing'}
 			{#if onPause}
 				<Button

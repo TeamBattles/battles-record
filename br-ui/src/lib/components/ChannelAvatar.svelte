@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { tv, type VariantProps } from 'tailwind-variants';
 	import PlatformIcon from './PlatformIcon.svelte';
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	const avatar = tv({
-		base: 'relative rounded-full bg-zinc-800 flex items-center justify-center border border-border',
+		base: 'relative rounded-full bg-chip flex items-center justify-center border border-border',
 		variants: {
 			size: {
 				sm: 'size-8',
@@ -89,7 +89,7 @@
 		{#if showBadge}
 			<div
 				class={cn(
-					'absolute -bottom-0.5 -right-0.5 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center',
+					'absolute -bottom-0.5 -right-0.5 rounded-full bg-well border border-line-2 flex items-center justify-center',
 					badgeSizes[size ?? 'md']
 				)}
 			>

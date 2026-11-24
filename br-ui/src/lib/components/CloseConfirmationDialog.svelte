@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { AlertTriangle } from 'lucide-svelte';
+	import { AlertTriangle } from '@lucide/svelte';
 	import { listen } from '@tauri-apps/api/event';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { exit } from '@tauri-apps/plugin-process';
-	import { connectionStore, settingsStore } from '$lib';
+	import { connectionStore, settingsStore } from '#lib';
 	import { onMount } from 'svelte';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
+	import LuxuryCornerSlivers from '#lib/components/ui/LuxuryCornerSlivers.svelte';
+	import Checkbox from '#lib/components/ui/Checkbox.svelte';
 
 	let showDialog = $state(false);
 	let choice = $state<'background' | 'shutdown'>('background');
@@ -70,13 +71,13 @@
 </script>
 
 {#if showDialog}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-		<div class="relative w-full max-w-md border border-border bg-card p-6">
-			<CornerBrackets size="lg" />
+	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+		<div class="animate-luxury-fade-scale relative rounded-xl w-full max-w-md border border-border bg-popover p-6 shadow-2xl">
+			<LuxuryCornerSlivers />
 
 			<div class="mb-4 flex items-center gap-3">
-				<div class="rounded-full bg-amber-500/20 p-2">
-					<AlertTriangle class="size-6 text-amber-400" />
+				<div class="rounded-full bg-yellow/20 p-2">
+					<AlertTriangle class="size-6 text-yellow" />
 				</div>
 				<h2 class="font-display text-xl uppercase tracking-tight">Local Service Running</h2>
 			</div>
@@ -88,7 +89,7 @@
 			<div class="mb-6 space-y-3">
 				<label
 					class="flex cursor-pointer items-start gap-3 rounded border border-border p-3 transition-colors hover:border-muted-foreground"
-					class:border-emerald-500={choice === 'background'}
+					class:border-primary={choice === 'background'}
 				>
 					<input
 						type="radio"
@@ -105,7 +106,7 @@
 
 				<label
 					class="flex cursor-pointer items-start gap-3 rounded border border-border p-3 transition-colors hover:border-muted-foreground"
-					class:border-emerald-500={choice === 'shutdown'}
+					class:border-primary={choice === 'shutdown'}
 				>
 					<input
 						type="radio"
@@ -121,27 +122,23 @@
 				</label>
 			</div>
 
-			<div class="mb-6 flex items-center gap-2">
-				<input
-					type="checkbox"
-					id="remember-close"
+			<div class="mb-6">
+				<Checkbox
 					bind:checked={rememberChoice}
-					class="size-4 accent-emerald-500"
+					label="Remember my choice"
+					labelClass="text-muted-foreground"
 				/>
-				<label for="remember-close" class="font-mono text-sm text-muted-foreground">
-					Remember my choice
-				</label>
 			</div>
 
 			<div class="flex justify-end gap-3">
 				<button
-					class="rounded border border-border bg-input px-4 py-2 font-mono text-sm text-foreground transition-colors hover:bg-muted"
+					class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-sm text-foreground transition-colors hover:bg-hover-wash"
 					onclick={cancel}
 				>
 					Cancel
 				</button>
 				<button
-					class="rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white transition-colors hover:bg-emerald-500"
+					class="rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground transition-colors hover:bg-primary/90"
 					onclick={confirm}
 				>
 					Confirm

@@ -1,7 +1,7 @@
-import { api } from '$lib/api/client';
-import { wsClient, type WebSocketEvent } from '$lib/api/websocket';
-import type { ExtensionConnection, ExtensionConfig, LibraryStatus } from '$lib/api/types';
-import { extractErrorMessage } from '$lib/utils/errors';
+import { api } from '#lib/api/client.ts';
+import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
+import type { ExtensionConnection, ExtensionConfig, LibraryStatus } from '#lib/api/types.ts';
+import { extractErrorMessage } from '#lib/utils/errors.ts';
 
 class ExtensionsStore {
 	connections = $state<ExtensionConnection[]>([]);

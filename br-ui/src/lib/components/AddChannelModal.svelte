@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { ResponsiveModal } from '$lib';
+	import { ResponsiveModal } from '#lib';
 	import DependencyInstaller from './DependencyInstaller.svelte';
 	import PlatformIcon from './PlatformIcon.svelte';
 	import Button from './ui/Button.svelte';
 	import Input from './ui/Input.svelte';
 	import Select from './ui/Select.svelte';
 	import Checkbox from './ui/Checkbox.svelte';
-	import { extractChannelName, validateChannelName } from '$lib/utils/channel';
+	import { extractChannelName, validateChannelName } from '#lib/utils/channel.ts';
 
 	interface Props {
 		onclose: () => void;
@@ -102,7 +102,7 @@
 							class="flex-1 flex items-center justify-center gap-2 px-3 py-2 font-mono text-xs transition-colors {platform ===
 							p.id
 								? 'bg-muted text-foreground'
-								: 'bg-input text-muted-foreground hover:bg-muted/50'}"
+								: 'bg-btn-bg text-muted-foreground hover:bg-hover-wash'}"
 							onclick={() => (platform = p.id)}
 						>
 							<PlatformIcon platform={p.id} class="w-3.5 h-3.5" />
@@ -119,12 +119,12 @@
 				</span>
 				<Input
 					type="text"
-					class={validation.warning ? 'border-amber-500/50' : ''}
+					class={validation.warning ? 'border-yellow/50' : ''}
 					placeholder={placeholders[platform]}
 					bind:value={channelName}
 				/>
 				{#if validation.warning}
-					<p class="mt-1 font-mono text-[10px] text-amber-400">{validation.warning}</p>
+					<p class="mt-1 font-mono text-[10px] text-yellow">{validation.warning}</p>
 				{:else if extractedName && extractedName !== channelName.trim()}
 					<p class="mt-1 font-mono text-[10px] text-muted-foreground">Will use: {extractedName}</p>
 				{/if}
@@ -139,7 +139,7 @@
 			</div>
 
 			<!-- Schedule Toggle -->
-			<div class="flex items-center justify-between rounded border border-border bg-input p-3">
+			<div class="flex items-center justify-between rounded border border-border bg-btn-bg p-3">
 				<div>
 					<p class="font-mono text-sm text-foreground">Enable Schedule</p>
 					<p class="font-mono text-[10px] text-muted-foreground">Only record during specific times</p>
@@ -148,15 +148,15 @@
 			</div>
 
 			{#if scheduleEnabled}
-				<div class="rounded border border-amber-500/30 bg-amber-500/10 p-3">
-					<p class="font-mono text-[10px] text-amber-400">
+				<div class="rounded border border-yellow/30 bg-yellow/10 p-3">
+					<p class="font-mono text-[10px] text-yellow">
 						Configure schedule after creating channel.
 					</p>
 				</div>
 			{/if}
 
 			<!-- Filters Toggle -->
-			<div class="flex items-center justify-between rounded border border-border bg-input p-3">
+			<div class="flex items-center justify-between rounded border border-border bg-btn-bg p-3">
 				<div>
 					<p class="font-mono text-sm text-foreground">Enable Filters</p>
 					<p class="font-mono text-[10px] text-muted-foreground">Filter by title, game, or viewers</p>
@@ -165,8 +165,8 @@
 			</div>
 
 			{#if filtersEnabled}
-				<div class="rounded border border-amber-500/30 bg-amber-500/10 p-3">
-					<p class="font-mono text-[10px] text-amber-400">
+				<div class="rounded border border-yellow/30 bg-yellow/10 p-3">
+					<p class="font-mono text-[10px] text-yellow">
 						Configure filters after creating channel.
 					</p>
 				</div>

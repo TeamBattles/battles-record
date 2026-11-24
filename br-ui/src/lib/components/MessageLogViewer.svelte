@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Collapsible } from 'bits-ui';
-	import { Copy, Check, ChevronRight } from 'lucide-svelte';
-	import { api } from '$lib/api/client';
-	import type { MessageLogEntry } from '$lib/api/types';
-	import { cn } from '$lib/utils/cn';
-	import { toastStore } from '$lib';
+	import { Copy, Check, ChevronRight } from '@lucide/svelte';
+	import { api } from '#lib/api/client.ts';
+	import type { MessageLogEntry } from '#lib/api/types.ts';
+	import { cn } from '#lib/utils/cn.ts';
+	import { toastStore } from '#lib';
 
 	let { connectionId }: { connectionId: string } = $props();
 
@@ -44,19 +44,19 @@
 		if (!text) return '';
 		return text.replace(
 			/("(?:\\.|[^"\\])*")\s*:/g, // keys
-			'<span class="text-sky-400">$1</span>:'
+			'<span class="text-blue">$1</span>:'
 		).replace(
 			/:\s*("(?:\\.|[^"\\])*")/g, // string values
-			': <span class="text-emerald-400">$1</span>'
+			': <span class="text-green">$1</span>'
 		).replace(
 			/:\s*(\d+\.?\d*)/g, // numbers
-			': <span class="text-amber-400">$1</span>'
+			': <span class="text-yellow">$1</span>'
 		).replace(
 			/:\s*(true|false)/g, // booleans
-			': <span class="text-purple-400">$1</span>'
+			': <span class="text-purple">$1</span>'
 		).replace(
 			/:\s*(null)/g, // null
-			': <span class="text-zinc-500">$1</span>'
+			': <span class="text-muted-foreground">$1</span>'
 		);
 	}
 
@@ -120,7 +120,7 @@
 					<Collapsible.Trigger
 						class={cn(
 							'flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors',
-							'hover:bg-muted/50',
+							'hover:bg-hover-wash',
 							expandedKey === key && 'bg-muted/50'
 						)}
 						disabled={!hasPayload}
@@ -140,7 +140,7 @@
 						<span
 							class={cn(
 								'font-mono text-xs font-medium shrink-0',
-								entry.direction === 'sent' ? 'text-emerald-500' : 'text-blue-400'
+								entry.direction === 'sent' ? 'text-green' : 'text-blue'
 							)}
 						>
 							{entry.direction === 'sent' ? '\u2192' : '\u2190'}
@@ -165,12 +165,12 @@
 						<Collapsible.Content class="overflow-hidden">
 							<div class="relative ml-5 mt-1 mb-1">
 								<button
-									class="absolute right-2 top-2 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+									class="absolute right-2 top-2 rounded p-1 text-muted-foreground hover:text-foreground hover:bg-hover-wash transition-colors"
 									onclick={() => copyPayload(entry.payload, key)}
 									title="Copy JSON"
 								>
 									{#if copiedKey === key}
-										<Check size={12} class="text-emerald-400" />
+										<Check size={12} class="text-green" />
 									{:else}
 										<Copy size={12} />
 									{/if}

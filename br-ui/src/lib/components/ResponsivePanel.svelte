@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Drawer } from 'vaul-svelte';
-	import { breakpointStore } from '$lib';
+	import { breakpointStore } from '#lib';
 	import type { Snippet } from 'svelte';
 
 	interface Props {

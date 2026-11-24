@@ -1,17 +1,18 @@
 <script lang="ts">
-	import { ChevronDown, ChevronUp, Save, ExternalLink, Eye, EyeOff } from 'lucide-svelte';
-	import type { Platform, SetPlatformAuthRequest } from '$lib/api/types';
-	import { platformAuthStore } from '$lib/stores/platformAuth.svelte';
-	import { api } from '$lib/api';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
+	import { ChevronDown, ChevronUp, Save, ExternalLink, Eye, EyeOff } from '@lucide/svelte';
+	import type { Platform, SetPlatformAuthRequest } from '#lib/api/types.ts';
+	import { platformAuthStore } from '#lib/stores/platformAuth.svelte.ts';
+	import { api } from '#lib/api/index.ts';
+	import Select from './ui/Select.svelte';
 
+	/** Collapsible manual token form. `expanded` is bindable so a platform card can open it. */
 	interface Props {
 		initialPlatform?: Platform;
+		expanded?: boolean;
 	}
 
-	let { initialPlatform = 'twitch' }: Props = $props();
+	let { initialPlatform = 'twitch', expanded = $bindable(false) }: Props = $props();
 
-	let isExpanded = $state(false);
 	let selectedPlatform = $state<Platform>('twitch');
 	let accessToken = $state('');
 	let refreshToken = $state('');
@@ -103,7 +104,7 @@
 				await platformAuthStore.load();
 				// Clear form
 				cookieContent = '';
-				isExpanded = false;
+				expanded = false;
 			} else {
 				// Standard token auth for other platforms
 				const credentials: SetPlatformAuthRequest = {
@@ -119,7 +120,7 @@
 					accessToken = '';
 					refreshToken = '';
 					username = '';
-					isExpanded = false;
+					expanded = false;
 				}
 			}
 		} catch (e) {
@@ -130,48 +131,39 @@
 	}
 
 	function handleToggle() {
-		isExpanded = !isExpanded;
+		expanded = !expanded;
 	}
 </script>
 
-<div class="relative border border-border bg-card">
-	<CornerBrackets />
+<div class="relative rounded-lg border border-border bg-card">
 
 	<!-- Toggle header -->
 	<button
-		class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+		class="w-full flex items-center justify-between px-4 py-3 hover:bg-hover-wash transition-colors"
 		onclick={handleToggle}
 	>
-		<span class="font-mono text-xs uppercase tracking-wider text-zinc-400">
+		<span class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
 			Advanced: Manual Token Entry
 		</span>
-		{#if isExpanded}
-			<ChevronUp class="size-4 text-zinc-500" />
+		{#if expanded}
+			<ChevronUp class="size-4 text-muted-foreground" />
 		{:else}
-			<ChevronDown class="size-4 text-zinc-500" />
+			<ChevronDown class="size-4 text-muted-foreground" />
 		{/if}
 	</button>
 
 	<!-- Expanded content -->
-	{#if isExpanded}
+	{#if expanded}
 		<div class="border-t border-border/60 p-4 space-y-4">
 			<!-- Platform selector -->
 			<div class="space-y-1.5">
 				<label
 					for="platform-select"
-					class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+					class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 				>
 					Platform
 				</label>
-				<select
-					id="platform-select"
-					class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-xs"
-					bind:value={selectedPlatform}
-				>
-					{#each platforms as platform}
-						<option value={platform.value}>{platform.label}</option>
-					{/each}
-				</select>
+				<Select id="platform-select" size="sm" options={platforms} bind:value={selectedPlatform} />
 			</div>
 
 			{#if isCookieAuth}
@@ -179,17 +171,17 @@
 				<div class="space-y-1.5">
 					<label
 						for="cookie-content"
-						class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+						class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>
-						Cookie File Content <span class="text-red-400">*</span>
+						Cookie File Content <span class="text-destructive">*</span>
 					</label>
 					<textarea
 						id="cookie-content"
-						class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-xs min-h-[120px] resize-y"
+						class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-xs min-h-[120px] resize-y"
 						placeholder="# Netscape HTTP Cookie File&#10;# Paste the entire cookie file content here..."
 						bind:value={cookieContent}
 					></textarea>
-					<p class="text-[10px] text-zinc-500">
+					<p class="text-[10px] text-muted-foreground">
 						Run the script in DevTools Console on YouTube.com, then paste the output above.
 					</p>
 				</div>
@@ -198,27 +190,27 @@
 				<div class="space-y-1.5">
 					<label
 						for="access-token"
-						class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+						class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>
-						Access Token <span class="text-red-400">*</span>
+						Access Token <span class="text-destructive">*</span>
 					</label>
 					<div class="relative">
 						<input
 							id="access-token"
 							type={showAccessToken ? 'text' : 'password'}
-							class="w-full rounded border border-border bg-input px-3 py-2 pr-10 font-mono text-xs"
+							class="w-full rounded border border-border bg-well px-3 py-2 pr-10 font-mono text-xs"
 							placeholder="Enter your access token"
 							bind:value={accessToken}
 						/>
 						<button
 							type="button"
-							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
+							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-hover-wash rounded transition-colors"
 							onclick={() => (showAccessToken = !showAccessToken)}
 						>
 							{#if showAccessToken}
-								<EyeOff class="size-3.5 text-zinc-500" />
+								<EyeOff class="size-3.5 text-muted-foreground" />
 							{:else}
-								<Eye class="size-3.5 text-zinc-500" />
+								<Eye class="size-3.5 text-muted-foreground" />
 							{/if}
 						</button>
 					</div>
@@ -228,27 +220,27 @@
 				<div class="space-y-1.5">
 					<label
 						for="refresh-token"
-						class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+						class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>
-						Refresh Token <span class="text-zinc-600">(optional)</span>
+						Refresh Token <span class="text-dim">(optional)</span>
 					</label>
 					<div class="relative">
 						<input
 							id="refresh-token"
 							type={showRefreshToken ? 'text' : 'password'}
-							class="w-full rounded border border-border bg-input px-3 py-2 pr-10 font-mono text-xs"
+							class="w-full rounded border border-border bg-well px-3 py-2 pr-10 font-mono text-xs"
 							placeholder="Enter refresh token for auto-renewal"
 							bind:value={refreshToken}
 						/>
 						<button
 							type="button"
-							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
+							class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-hover-wash rounded transition-colors"
 							onclick={() => (showRefreshToken = !showRefreshToken)}
 						>
 							{#if showRefreshToken}
-								<EyeOff class="size-3.5 text-zinc-500" />
+								<EyeOff class="size-3.5 text-muted-foreground" />
 							{:else}
-								<Eye class="size-3.5 text-zinc-500" />
+								<Eye class="size-3.5 text-muted-foreground" />
 							{/if}
 						</button>
 					</div>
@@ -258,14 +250,14 @@
 				<div class="space-y-1.5">
 					<label
 						for="username"
-						class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+						class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>
-						Username <span class="text-zinc-600">(optional)</span>
+						Username <span class="text-dim">(optional)</span>
 					</label>
 					<input
 						id="username"
 						type="text"
-						class="w-full rounded border border-border bg-input px-3 py-2 font-mono text-xs"
+						class="w-full rounded border border-border bg-well px-3 py-2 font-mono text-xs"
 						placeholder="Your username on the platform"
 						bind:value={username}
 					/>
@@ -274,12 +266,12 @@
 
 			<!-- Instructions -->
 			<div class="rounded border border-border/60 bg-muted/30 p-3 space-y-2">
-				<p class="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+				<p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 					{tokenInstructions[selectedPlatform].title}
 				</p>
 				<ol class="list-decimal list-inside space-y-1">
 					{#each tokenInstructions[selectedPlatform].steps as step}
-						<li class="font-mono text-xs text-zinc-500">{step}</li>
+						<li class="font-mono text-xs text-muted-foreground">{step}</li>
 					{/each}
 				</ol>
 				{#if tokenInstructions[selectedPlatform].link}
@@ -287,7 +279,7 @@
 						href={tokenInstructions[selectedPlatform].link}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-1 font-mono text-xs text-blue-400 hover:text-blue-300 transition-colors"
+						class="inline-flex items-center gap-1 font-mono text-xs text-blue hover:text-blue transition-colors"
 					>
 						<ExternalLink class="size-3" />
 						Open {selectedPlatform === 'twitch'
@@ -299,15 +291,15 @@
 				{/if}
 				{#if tokenInstructions[selectedPlatform].script}
 					<div class="mt-2 space-y-1">
-						<p class="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+						<p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 							Script to paste in Console:
 						</p>
 						<div class="relative">
 							<pre
-								class="rounded border border-border/60 bg-zinc-900 p-2 font-mono text-[10px] text-zinc-300 overflow-x-auto whitespace-pre-wrap break-all">{tokenInstructions[selectedPlatform].script}</pre>
+								class="rounded border border-border/60 bg-well p-2 font-mono text-[10px] text-text-2 overflow-x-auto whitespace-pre-wrap break-all">{tokenInstructions[selectedPlatform].script}</pre>
 							<button
 								type="button"
-								class="absolute right-1 top-1 rounded border border-border bg-input px-2 py-0.5 font-mono text-[10px] hover:bg-muted transition-colors"
+								class="absolute right-1 top-1 rounded border border-border bg-btn-bg px-2 py-0.5 font-mono text-[10px] hover:bg-hover-wash transition-colors"
 								onclick={() =>
 									navigator.clipboard.writeText(
 										tokenInstructions[selectedPlatform].script || ''
@@ -322,15 +314,15 @@
 
 			<!-- Error message -->
 			{#if saveError}
-				<div class="rounded border border-red-500/30 bg-red-500/10 p-3">
-					<p class="font-mono text-xs text-red-400">{saveError}</p>
+				<div class="rounded border border-destructive/30 bg-destructive/10 p-3">
+					<p class="font-mono text-xs text-destructive">{saveError}</p>
 				</div>
 			{/if}
 
 			<!-- Save button -->
 			<div class="flex justify-end">
 				<button
-					class="flex items-center gap-2 rounded border border-border bg-input px-4 py-2 font-mono text-xs hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					class="flex items-center gap-2 rounded border border-border bg-btn-bg px-4 py-2 font-mono text-xs hover:bg-hover-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 					onclick={handleSave}
 					disabled={(isCookieAuth ? !cookieContent.trim() : !accessToken.trim()) || isSaving}
 				>

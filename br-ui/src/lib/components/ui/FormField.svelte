@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Label from './Label.svelte';
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props {
 		label: string;
@@ -28,8 +28,8 @@
 	<Label for={labelFor} {required}>{label}</Label>
 	{@render children()}
 	{#if error}
-		<p class="font-mono text-xs text-red-400">{error}</p>
+		<p class="font-mono text-xs text-destructive">{error}</p>
 	{:else if hint}
-		<p class="font-mono text-xs text-zinc-500">{hint}</p>
+		<p class="font-mono text-xs text-muted-foreground">{hint}</p>
 	{/if}
 </div>

@@ -1,11 +1,24 @@
 <script lang="ts">
-	import { Search, Download, Pause, Play, X } from 'lucide-svelte';
+	import PageHeader from '#lib/components/ui/PageHeader.svelte';
+	import { Search, Download, Pause, Play, X } from '@lucide/svelte';
 	import { untrack } from 'svelte';
-	import { connectionStore, downloadsStore, breakpointStore } from '$lib';
-	import DownloadCard from '$lib/components/DownloadCard.svelte';
-	import MergeDialog from '$lib/components/MergeDialog.svelte';
-	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
-	import type { DownloadStatus } from '$lib/api/types';
+	import { connectionStore, downloadsStore, breakpointStore } from '#lib';
+	import DownloadCard from '#lib/components/DownloadCard.svelte';
+	import MergeDialog from '#lib/components/MergeDialog.svelte';
+	import type { DownloadStatus } from '#lib/api/types.ts';
+	import Select from '#lib/components/ui/Select.svelte';
+
+	const STATUS_FILTER_OPTIONS: { value: DownloadStatus | 'all'; label: string }[] = [
+		{ value: 'all', label: 'All Statuses' },
+		{ value: 'downloading', label: 'Downloading' },
+		{ value: 'queued', label: 'Queued' },
+		{ value: 'extracting_info', label: 'Extracting Info' },
+		{ value: 'processing', label: 'Processing' },
+		{ value: 'paused', label: 'Paused' },
+		{ value: 'complete', label: 'Complete' },
+		{ value: 'failed', label: 'Failed' },
+		{ value: 'cancelled', label: 'Cancelled' }
+	];
 
 	// Load downloads on connection
 	$effect(() => {
@@ -88,90 +101,82 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Header Bar -->
-	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-		<div class="flex items-center gap-3">
-			<span class="font-mono text-xs uppercase tracking-wider text-zinc-400">Downloads</span>
-			<span
-				class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
-			>
-				{downloadsStore.filteredDownloads.length}
-			</span>
+	<PageHeader
+		title="Downloads"
+		eyebrow="Record"
+		subtitle="VODs and clips queued for download"
+		icon={Download}
+		count={downloadsStore.filteredDownloads.length}
+	>
+		{#snippet badges()}
 			{#if downloadsStore.activeCount > 0}
 				<span
-					class="rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[10px] text-emerald-400"
+					class="rounded bg-green/10 px-1.5 py-0.5 font-mono text-[10px] text-green"
 				>
 					{downloadsStore.activeCount} active
 				</span>
 			{/if}
 			{#if downloadsStore.queuedCount > 0}
 				<span
-					class="rounded bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-400"
+					class="rounded bg-yellow/10 px-1.5 py-0.5 font-mono text-[10px] text-yellow"
 				>
 					{downloadsStore.queuedCount} queued
 				</span>
 			{/if}
-		</div>
-
-		<!-- Bulk actions -->
-		<div class="flex items-center gap-2">
-			{#if hasActive}
-				<button
-					class="flex items-center gap-1.5 rounded border border-border bg-input px-2.5 py-1.5 font-mono text-xs hover:bg-muted transition-colors"
-					onclick={pauseAll}
-				>
-					<Pause class="w-3 h-3" />
-					Pause All
-				</button>
-			{/if}
-			{#if hasPaused}
-				<button
-					class="flex items-center gap-1.5 rounded border border-border bg-input px-2.5 py-1.5 font-mono text-xs hover:bg-muted transition-colors"
-					onclick={resumeAll}
-				>
-					<Play class="w-3 h-3" />
-					Resume All
-				</button>
-			{/if}
-			{#if hasCancellable}
-				<button
-					class="flex items-center gap-1.5 rounded border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors"
-					onclick={cancelAll}
-				>
-					<X class="w-3 h-3" />
-					Cancel All
-				</button>
-			{/if}
-		</div>
-	</div>
+		{/snippet}
+		{#snippet actions()}
+			<!-- Bulk actions -->
+			<div class="flex items-center gap-2">
+				{#if hasActive}
+					<button
+						class="flex items-center gap-1.5 rounded border border-border bg-btn-bg px-2.5 py-1.5 font-mono text-xs hover:bg-hover-wash transition-colors"
+						onclick={pauseAll}
+					>
+						<Pause class="w-3 h-3" />
+						Pause All
+					</button>
+				{/if}
+				{#if hasPaused}
+					<button
+						class="flex items-center gap-1.5 rounded border border-border bg-btn-bg px-2.5 py-1.5 font-mono text-xs hover:bg-hover-wash transition-colors"
+						onclick={resumeAll}
+					>
+						<Play class="w-3 h-3" />
+						Resume All
+					</button>
+				{/if}
+				{#if hasCancellable}
+					<button
+						class="flex items-center gap-1.5 rounded border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 font-mono text-xs text-destructive hover:bg-destructive/20 transition-colors"
+						onclick={cancelAll}
+					>
+						<X class="w-3 h-3" />
+						Cancel All
+					</button>
+				{/if}
+			</div>
+		{/snippet}
+	</PageHeader>
 
 	<!-- Filters -->
 	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
 		<!-- Status Filter -->
-		<select
-			class="rounded border border-border bg-input px-3 py-1.5 font-mono text-xs w-full sm:w-auto"
-			value={downloadsStore.statusFilter}
-			onchange={(e) =>
-				(downloadsStore.statusFilter = e.currentTarget.value as DownloadStatus | 'all')}
-		>
-			<option value="all">All Statuses</option>
-			<option value="downloading">Downloading</option>
-			<option value="queued">Queued</option>
-			<option value="extracting_info">Extracting Info</option>
-			<option value="processing">Processing</option>
-			<option value="paused">Paused</option>
-			<option value="complete">Complete</option>
-			<option value="failed">Failed</option>
-			<option value="cancelled">Cancelled</option>
-		</select>
+		<Select
+				size="sm"
+				class="sm:w-48"
+				ariaLabel="Filter by status"
+				value={downloadsStore.statusFilter}
+				options={STATUS_FILTER_OPTIONS}
+				onValueChange={(status) => (downloadsStore.statusFilter = status)}
+			/>
 
 		<!-- Search -->
 		<div class="relative">
-			<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+			<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
 			<input
 				type="text"
 				placeholder="Search..."
-				class="rounded border border-border bg-input pl-8 pr-3 py-1.5 font-mono text-xs w-full sm:w-40"
+				class="rounded border border-border bg-well pl-8 pr-3 py-1.5 font-mono text-xs w-full sm:w-40"
 				value={downloadsStore.searchQuery}
 				oninput={(e) => (downloadsStore.searchQuery = e.currentTarget.value)}
 			/>
@@ -180,30 +185,29 @@
 
 	<!-- Content Area -->
 	{#if !connectionStore.isConnected}
-		<div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-			<p class="font-mono text-xs text-amber-400">Not connected to a server.</p>
+		<div class="rounded-lg border border-yellow/30 bg-yellow/5 p-4">
+			<p class="font-mono text-xs text-yellow">Not connected to a server.</p>
 		</div>
 	{:else if downloadsStore.isLoading}
-		<div class="flex items-center gap-2 text-zinc-500">
+		<div class="flex items-center gap-2 text-muted-foreground">
 			<div
-				class="size-4 animate-spin rounded-full border-2 border-zinc-500 border-t-transparent"
+				class="size-4 animate-spin rounded-full border-2 border-line-3 border-t-transparent"
 			></div>
 			<span class="font-mono text-xs">Loading downloads...</span>
 		</div>
 	{:else if downloadsStore.error}
-		<div class="rounded-lg border border-red-500/30 bg-red-500/5 p-4">
-			<p class="font-mono text-xs text-red-400">{downloadsStore.error}</p>
+		<div class="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+			<p class="font-mono text-xs text-destructive">{downloadsStore.error}</p>
 		</div>
 	{:else if downloadsStore.filteredDownloads.length === 0}
-		<div class="relative border border-border bg-card p-8">
-			<CornerBrackets />
+		<div class="relative rounded-lg border border-border bg-card p-8">
 
-			<div class="flex flex-col items-center justify-center gap-2 text-zinc-500">
+			<div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
 				<Download class="size-8 opacity-30" />
 				<p class="font-mono text-xs">No downloads found</p>
 				{#if downloadsStore.statusFilter !== 'all' || downloadsStore.searchQuery}
 					<button
-						class="mt-2 rounded border border-border bg-input px-3 py-1.5 font-mono text-xs hover:bg-muted transition-colors"
+						class="mt-2 rounded border border-border bg-btn-bg px-3 py-1.5 font-mono text-xs hover:bg-hover-wash transition-colors"
 						onclick={() => {
 							downloadsStore.statusFilter = 'all';
 							downloadsStore.searchQuery = '';

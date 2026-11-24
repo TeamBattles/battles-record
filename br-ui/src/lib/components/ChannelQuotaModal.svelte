@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { ResponsiveModal } from '$lib';
-	import { channelsStore } from '$lib/stores/channels.svelte';
-	import { toastStore } from '$lib/stores/toast.svelte';
-	import { HardDrive, Clock, Loader2 } from 'lucide-svelte';
-	import type { Channel } from '$lib/api/types';
+	import { ResponsiveModal } from '#lib';
+	import { channelsStore } from '#lib/stores/channels.svelte.ts';
+	import { toastStore } from '#lib/stores/toast.svelte.ts';
+	import { HardDrive, Clock, Loader2 } from '@lucide/svelte';
+	import type { Channel } from '#lib/api/types.ts';
 
 	interface Props {
 		channel: Channel;
@@ -66,9 +66,9 @@
 	<div class="space-y-6">
 		<!-- Channel info -->
 		<div class="flex items-center gap-2">
-			<span class="font-mono text-sm text-zinc-100">{channel.name}</span>
+			<span class="font-mono text-sm text-foreground">{channel.name}</span>
 			<span
-				class="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-[9px] uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-500"
+				class="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase bg-chip text-muted-foreground"
 			>
 				{channel.platform}
 			</span>
@@ -77,7 +77,7 @@
 		<!-- Storage quota -->
 		<div>
 			<label
-				class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 flex items-center gap-1.5 mb-2"
+				class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2"
 			>
 				<HardDrive class="size-3" />
 				Max Storage
@@ -88,15 +88,15 @@
 						type="button"
 						class="rounded border px-3 py-2 font-mono text-xs transition-colors {quotaGb ===
 						preset.value
-							? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-							: 'border-border bg-input hover:bg-muted text-zinc-300'}"
+							? 'border-primary bg-primary/10 text-primary'
+							: 'border-border bg-btn-bg hover:bg-hover-wash text-text-2'}"
 						onclick={() => (quotaGb = preset.value)}
 					>
 						{preset.label}
 					</button>
 				{/each}
 			</div>
-			<p class="font-mono text-[10px] text-zinc-500 mt-2">
+			<p class="font-mono text-[10px] text-muted-foreground mt-2">
 				Auto-delete oldest recordings when this limit is exceeded.
 			</p>
 		</div>
@@ -104,7 +104,7 @@
 		<!-- Retention days -->
 		<div>
 			<label
-				class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 flex items-center gap-1.5 mb-2"
+				class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2"
 			>
 				<Clock class="size-3" />
 				Retention Period
@@ -115,15 +115,15 @@
 						type="button"
 						class="rounded border px-3 py-2 font-mono text-xs transition-colors {retentionDays ===
 						preset.value
-							? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-							: 'border-border bg-input hover:bg-muted text-zinc-300'}"
+							? 'border-primary bg-primary/10 text-primary'
+							: 'border-border bg-btn-bg hover:bg-hover-wash text-text-2'}"
 						onclick={() => (retentionDays = preset.value)}
 					>
 						{preset.label}
 					</button>
 				{/each}
 			</div>
-			<p class="font-mono text-[10px] text-zinc-500 mt-2">
+			<p class="font-mono text-[10px] text-muted-foreground mt-2">
 				Auto-delete recordings older than this period.
 			</p>
 		</div>
@@ -132,13 +132,13 @@
 	{#snippet footer()}
 		<div class="flex items-center gap-2">
 			<button
-				class="flex-1 rounded border border-border bg-input px-3 py-2 font-mono text-xs hover:bg-muted transition-colors"
+				class="flex-1 rounded border border-border bg-btn-bg px-3 py-2 font-mono text-xs hover:bg-hover-wash transition-colors"
 				onclick={onclose}
 			>
 				Cancel
 			</button>
 			<button
-				class="flex-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 font-mono text-xs text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
+				class="flex-1 rounded border border-green/30 bg-green/10 px-3 py-2 font-mono text-xs text-green hover:bg-green/20 transition-colors flex items-center justify-center gap-2"
 				onclick={handleSave}
 				disabled={isSubmitting}
 			>

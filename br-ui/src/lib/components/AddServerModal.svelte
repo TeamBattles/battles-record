@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { ResponsiveModal, settingsStore, connectionStore } from '$lib';
-	import { Loader2 } from 'lucide-svelte';
+	import { ResponsiveModal, settingsStore, connectionStore } from '#lib';
+	import { Loader2 } from '@lucide/svelte';
 
 	interface Props {
 		open: boolean;
@@ -89,13 +89,13 @@
 			}}
 		>
 			{#if error}
-				<div class="rounded border border-red-500/30 bg-red-500/10 p-3">
-					<p class="font-mono text-xs text-red-400">{error}</p>
+				<div class="rounded border border-destructive/30 bg-destructive/10 p-3">
+					<p class="font-mono text-xs text-destructive">{error}</p>
 				</div>
 			{/if}
 
 			<div>
-				<label for="add-server-name" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<label for="add-server-name" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Server Name (optional)
 				</label>
 				<input
@@ -104,12 +104,12 @@
 					placeholder="My Server"
 					bind:value={serverName}
 					disabled={isConnecting}
-					class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 disabled:opacity-50"
+					class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground placeholder:text-dim disabled:opacity-50"
 				/>
 			</div>
 
 			<div>
-				<label for="add-server-url" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<label for="add-server-url" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Server URL
 				</label>
 				<input
@@ -119,12 +119,12 @@
 					bind:value={serverUrl}
 					bind:this={serverUrlInput}
 					disabled={isConnecting}
-					class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 disabled:opacity-50"
+					class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground placeholder:text-dim disabled:opacity-50"
 				/>
 			</div>
 
 			<div>
-				<label for="add-server-username" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<label for="add-server-username" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Username
 				</label>
 				<input
@@ -132,12 +132,12 @@
 					type="text"
 					bind:value={username}
 					disabled={isConnecting}
-					class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 disabled:opacity-50"
+					class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 
 			<div>
-				<label for="add-server-password" class="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mb-2">
+				<label for="add-server-password" class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Password
 				</label>
 				<input
@@ -145,7 +145,7 @@
 					type="password"
 					bind:value={password}
 					disabled={isConnecting}
-					class="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-100 disabled:opacity-50"
+					class="w-full rounded border border-line-2 bg-chip px-3 py-2 font-mono text-sm text-foreground disabled:opacity-50"
 				/>
 			</div>
 		</form>
@@ -156,7 +156,7 @@
 			<button
 				type="submit"
 				form="add-server-form"
-				class="flex-1 flex items-center justify-center gap-2 rounded bg-emerald-600 px-4 py-2 font-mono text-sm text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+				class="flex-1 flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-mono text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 				disabled={!canSubmit || isConnecting}
 			>
 				{#if isConnecting}
@@ -168,7 +168,7 @@
 			</button>
 			<button
 				type="button"
-				class="rounded border border-zinc-700 bg-zinc-800 px-4 py-2 font-mono text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+				class="rounded border border-line-2 bg-btn-bg px-4 py-2 font-mono text-sm text-text-2 hover:bg-btn-bg-hover transition-colors"
 				onclick={() => handleOpenChange(false)}
 				disabled={isConnecting}
 			>

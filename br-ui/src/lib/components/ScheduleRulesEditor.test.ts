@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import ScheduleRulesEditor from './ScheduleRulesEditor.svelte';
-import type { ScheduleRule } from '$lib/api/types';
+import type { ScheduleRule } from '#lib/api/types.ts';
 
 describe('ScheduleRulesEditor', () => {
 	const mockOnchange = vi.fn();
@@ -165,22 +165,22 @@ describe('ScheduleRulesEditor', () => {
 			]);
 		});
 
-		it('selected days show emerald styling', () => {
+		it('selected days show accent styling', () => {
 			const rules: ScheduleRule[] = [{ days: [1, 2, 3], start_time: '18:00', end_time: '22:00' }];
 			renderEditor(rules);
 
-			// Find day buttons with emerald styling
+			// Find day buttons with accent styling
 			const dayButtons = screen
 				.getAllByRole('button')
 				.filter((btn) => btn.textContent?.trim() && btn.textContent.trim().length === 1);
 
 			// Monday (index 1), Tuesday (2), Wednesday (3) should be selected
-			expect(dayButtons[1]).toHaveClass('bg-emerald-600');
-			expect(dayButtons[2]).toHaveClass('bg-emerald-600');
-			expect(dayButtons[3]).toHaveClass('bg-emerald-600');
+			expect(dayButtons[1]).toHaveClass('bg-primary');
+			expect(dayButtons[2]).toHaveClass('bg-primary');
+			expect(dayButtons[3]).toHaveClass('bg-primary');
 		});
 
-		it('unselected days show zinc styling', () => {
+		it('unselected days show chip styling', () => {
 			const rules: ScheduleRule[] = [{ days: [1, 2, 3], start_time: '18:00', end_time: '22:00' }];
 			renderEditor(rules);
 
@@ -189,8 +189,8 @@ describe('ScheduleRulesEditor', () => {
 				.filter((btn) => btn.textContent?.trim() && btn.textContent.trim().length === 1);
 
 			// Sunday (0), Thursday (4), Friday (5), Saturday (6) should NOT be selected
-			expect(dayButtons[0]).toHaveClass('bg-zinc-700');
-			expect(dayButtons[4]).toHaveClass('bg-zinc-700');
+			expect(dayButtons[0]).toHaveClass('bg-chip-strong');
+			expect(dayButtons[4]).toHaveClass('bg-chip-strong');
 		});
 	});
 

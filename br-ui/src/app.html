@@ -1,23 +1,52 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="black" class="dark">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 		<link rel="icon" href="/favicon.ico" sizes="any" />
 		<script>
-			// Set dark mode class immediately (before CSS loads)
-			(function() {
-				var saved = localStorage.getItem('theme');
-				var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				var isDark = saved === 'dark' || (saved !== 'light' && prefersDark);
-				if (isDark) document.documentElement.classList.add('dark');
+			// Pre-paint appearance: a hand-mirrored appearanceDom() from src/lib/appearance.ts, so the
+			// first frame already has the stored theme and axes. Keep the two in step.
+			(function () {
+				var root = document.documentElement;
+				var prefs = null;
+				try {
+					var stored = localStorage.getItem('br-appearance');
+					if (stored) prefs = JSON.parse(stored);
+				} catch (e) {}
+				if (!prefs || typeof prefs !== 'object') {
+					var legacy = null;
+					try {
+						legacy = localStorage.getItem('theme');
+					} catch (e) {}
+					prefs = { theme: legacy === 'dark' ? 'black' : legacy };
+				}
+				var theme = prefs.theme;
+				if (['black', 'dark', 'graphite', 'light', 'system'].indexOf(theme) < 0) theme = 'black';
+				if (theme === 'system') {
+					theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'black';
+				}
+				root.setAttribute('data-theme', theme);
+				root.classList.toggle('dark', theme !== 'light');
+				var axes = {
+					accent: ['amber', 'cyan', 'lime'],
+					radius: ['sharp', 'round'],
+					density: ['compact'],
+					contrast: ['high'],
+					motion: ['reduced']
+				};
+				for (var key in axes) {
+					if (axes[key].indexOf(prefs[key]) >= 0) root.setAttribute('data-' + key, prefs[key]);
+				}
 			})();
 		</script>
 		<style>
-			/* Critical inline CSS - prevents white flash */
-			html, body { margin: 0; padding: 0; background-color: #f7f7f7; }
-			html.dark, html.dark body { background-color: #141418; }
+			/* Critical background per theme - prevents a flash before app.css loads */
+			html, body { margin: 0; padding: 0; background-color: #0a0a0a; }
+			html[data-theme='dark'], html[data-theme='dark'] body { background-color: #04080f; }
+			html[data-theme='graphite'], html[data-theme='graphite'] body { background-color: #16181c; }
+			html[data-theme='light'], html[data-theme='light'] body { background-color: #f4efe4; }
 		</style>
 		%sveltekit.head%
 	</head>

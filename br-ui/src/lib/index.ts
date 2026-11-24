@@ -4,7 +4,8 @@ export { autofocus } from './actions';
 // Stores
 export { breakpointStore } from './stores/breakpoint.svelte';
 export { sidebarStore } from './stores/sidebar.svelte';
-export { themeStore } from './stores/theme.svelte';
+export { appearanceStore } from './stores/appearance.svelte';
+export { welcomeStore } from './stores/welcome.svelte';
 export { settingsStore } from './stores/settings.svelte';
 export { connectionStore } from './stores/connection.svelte';
 export { recordingsStore } from './stores/recordings.svelte';
@@ -25,6 +26,9 @@ export type { ActivityEvent, EventCategory } from './stores/activity.svelte';
 // Components
 export { default as ChannelCard } from './components/ChannelCard.svelte';
 export { default as Panel } from './components/Panel.svelte';
+export { default as PageHeader } from './components/ui/PageHeader.svelte';
+export { default as WelcomeScreen } from './components/WelcomeScreen.svelte';
+export { default as AppearanceControls } from './components/AppearanceControls.svelte';
 export { default as ResponsiveModal } from './components/ResponsiveModal.svelte';
 export { default as ResponsivePanel } from './components/ResponsivePanel.svelte';
 export { default as SetupWizard } from './components/SetupWizard.svelte';

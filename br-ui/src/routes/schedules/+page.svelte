@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { Calendar, Clock, ChevronRight } from 'lucide-svelte';
+	import { Calendar, Clock, ChevronRight } from '@lucide/svelte';
+	import PageHeader from '#lib/components/ui/PageHeader.svelte';
 	import { untrack } from 'svelte';
-	import { channelsStore } from '$lib/stores/channels.svelte';
-	import { connectionStore } from '$lib/stores/connection.svelte';
-	import PlatformIcon from '$lib/components/PlatformIcon.svelte';
-	import ScheduleSummary from '$lib/components/ScheduleSummary.svelte';
-	import ChannelDetailPanel from '$lib/components/ChannelDetailPanel.svelte';
-	import CornerBrackets from '$lib/components/ui/CornerBrackets.svelte';
-	import type { Channel } from '$lib/api/types';
+	import { channelsStore } from '#lib/stores/channels.svelte.ts';
+	import { connectionStore } from '#lib/stores/connection.svelte.ts';
+	import PlatformIcon from '#lib/components/PlatformIcon.svelte';
+	import ScheduleSummary from '#lib/components/ScheduleSummary.svelte';
+	import ChannelDetailPanel from '#lib/components/ChannelDetailPanel.svelte';
+	import LuxuryCornerSlivers from '#lib/components/ui/LuxuryCornerSlivers.svelte';
+	import type { Channel } from '#lib/api/types.ts';
 
 	// Reload channels when server changes or connection is established
 	$effect(() => {
@@ -47,15 +48,16 @@
 </script>
 
 <div class="space-y-6">
-	<!-- Header -->
-	<div>
-		<h1 class="font-display text-4xl tracking-tight uppercase">Schedules</h1>
-		<p class="text-muted-foreground mt-2">Manage recording schedules for your channels</p>
-	</div>
+	<PageHeader
+		title="Schedules"
+		eyebrow="Record"
+		subtitle="Manage recording schedules for your channels"
+		icon={Calendar}
+	/>
 
 	{#if !connectionStore.isConnected}
-		<div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-			<p class="font-mono text-xs text-amber-400">Not connected to a server.</p>
+		<div class="rounded-lg border border-yellow/30 bg-yellow/5 p-4">
+			<p class="font-mono text-xs text-yellow">Not connected to a server.</p>
 		</div>
 	{:else if channelsStore.isLoading}
 		<div class="flex items-center gap-2 text-muted-foreground">
@@ -68,15 +70,14 @@
 		<!-- Scheduled Channels -->
 		<section>
 			<div class="flex items-center gap-2 mb-3">
-				<Calendar size={16} class="text-emerald-400" />
+				<Calendar size={16} class="text-green" />
 				<h2 class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
 					Scheduled ({scheduledChannels.length})
 				</h2>
 			</div>
 
 			{#if scheduledChannels.length === 0}
-				<div class="relative border border-border bg-card p-6">
-					<CornerBrackets />
+				<div class="relative rounded-lg border border-border bg-card p-6">
 
 					<p class="font-mono text-xs text-muted-foreground text-center">
 						No channels have schedules configured
@@ -86,10 +87,10 @@
 				<div class="space-y-2">
 					{#each scheduledChannels as channel (channel.id)}
 						<button
-							class="w-full relative border border-border bg-card p-4 text-left hover:bg-muted/50 transition-colors"
+							class="group w-full relative rounded-lg border border-border bg-card p-4 text-left hover:bg-hover-wash transition-colors"
 							onclick={() => openChannelPanel(channel)}
 						>
-							<CornerBrackets size="sm" />
+							<LuxuryCornerSlivers corners="tl" length="md" hoverFadeIn />
 
 							<div class="flex items-start justify-between gap-4">
 								<div class="flex-1 min-w-0">
@@ -123,7 +124,7 @@
 				<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 					{#each unscheduledChannels as channel (channel.id)}
 						<button
-							class="flex items-center gap-3 rounded border border-border bg-card/50 p-3 text-left hover:bg-muted/50 transition-colors"
+							class="flex items-center gap-3 rounded border border-border bg-card/50 p-3 text-left hover:bg-hover-wash transition-colors"
 							onclick={() => openChannelPanel(channel)}
 						>
 							<PlatformIcon platform={channel.platform} class="w-4 h-4 text-muted-foreground" />

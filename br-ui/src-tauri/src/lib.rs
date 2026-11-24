@@ -36,6 +36,43 @@ fn show_in_folder(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Shrinks the main window to the monitor's work area if it would open larger than the screen.
+///
+/// The default size is tall enough for the Welcome Screen's appearance step without scrolling,
+/// which is more than the usable height of a 1366x768 laptop or a 1080p screen at 150% scaling.
+/// A saved size restored by the window-state plugin is clamped the same way, which also covers a
+/// window last used on a larger monitor. Windows that already fit are left untouched.
+fn fit_to_work_area(window: &tauri::WebviewWindow) {
+    if window.is_maximized().unwrap_or(false) || window.is_fullscreen().unwrap_or(false) {
+        return;
+    }
+    // A hidden window may not report a monitor on every platform yet
+    let monitor = match window.current_monitor() {
+        Ok(Some(monitor)) => monitor,
+        _ => match window.primary_monitor() {
+            Ok(Some(monitor)) => monitor,
+            _ => return,
+        },
+    };
+    let Ok(size) = window.outer_size() else {
+        return;
+    };
+
+    let area = monitor.work_area().size;
+    let fitted = tauri::PhysicalSize::new(size.width.min(area.width), size.height.min(area.height));
+    if fitted != size {
+        log::info!(
+            "Window {}x{} exceeds work area {}x{}, shrinking to fit",
+            size.width,
+            size.height,
+            area.width,
+            area.height
+        );
+        let _ = window.set_size(fitted);
+        let _ = window.center();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -80,6 +117,7 @@ pub fn run() {
                 let _ = window.hide();
                 // Programmatically remove decorations (backup for config)
                 let _ = window.set_decorations(false);
+                fit_to_work_area(&window);
             }
 
             // Extract bundled YouTube deps if present (YouTube-bundled variant)

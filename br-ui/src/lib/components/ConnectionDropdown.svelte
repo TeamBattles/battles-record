@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
 	import { Drawer } from 'vaul-svelte';
-	import { Plug } from 'lucide-svelte';
-	import { breakpointStore, extensionsStore } from '$lib';
-	import { connectionStore } from '$lib/stores/connection.svelte';
+	import { Plug } from '@lucide/svelte';
+	import { breakpointStore, extensionsStore } from '#lib';
+	import { connectionStore } from '#lib/stores/connection.svelte.ts';
 	import StatusDot from './ui/StatusDot.svelte';
 	import Button from './ui/Button.svelte';
 	import ConnectionPanelContent from './ConnectionPanelContent.svelte';
@@ -49,7 +49,7 @@
 		if (isGeneratingCode) return;
 		isGeneratingCode = true;
 		try {
-			const { api } = await import('$lib/api/client');
+			const { api } = await import('#lib/api/client.ts');
 			const result = await api.generatePairCode();
 			pairCode = result.code;
 		} catch (e) {
@@ -64,9 +64,9 @@
 	{#if hasConnections}
 		<StatusDot status={dotStatus} size="sm" />
 	{:else}
-		<Plug size={12} class="text-zinc-500" />
+		<Plug size={12} class="text-muted-foreground" />
 	{/if}
-	<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 whitespace-nowrap">
+	<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap">
 		{#if hasConnections}
 			<span class="hidden sm:inline">{displayText}</span>
 			<span class="sm:hidden">{totalPaired > 1 ? `${totalPaired} Ext` : 'Ext'}</span>
@@ -79,13 +79,13 @@
 
 {#snippet noPairedContent()}
 	<div class="p-3 space-y-3">
-		<p class="font-mono text-[10px] uppercase tracking-wider text-zinc-400">Pair Browser Extension</p>
-		<p class="text-xs text-zinc-400">No browser extensions paired. Generate a code to pair one.</p>
+		<p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Pair Browser Extension</p>
+		<p class="text-xs text-muted-foreground">No browser extensions paired. Generate a code to pair one.</p>
 		{#if pairCode}
-			<div class="rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-center">
-				<p class="font-mono text-[10px] text-zinc-500 mb-1">PAIR CODE</p>
-				<p class="font-mono text-lg tracking-widest text-emerald-400">{pairCode}</p>
-				<p class="font-mono text-[9px] text-zinc-500 mt-1">Enter this code in the browser extension</p>
+			<div class="rounded border border-line-2 bg-chip px-3 py-2 text-center">
+				<p class="font-mono text-[10px] text-muted-foreground mb-1">PAIR CODE</p>
+				<p class="font-mono text-lg tracking-widest text-green">{pairCode}</p>
+				<p class="font-mono text-[9px] text-muted-foreground mt-1">Enter this code in the browser extension</p>
 			</div>
 			<Button
 				intent="secondary"
@@ -119,7 +119,7 @@
 {#if isConnected && isLoaded}
 	{#if breakpointStore.isMobile}
 		<button
-			class="flex items-center gap-1.5 hover:bg-muted px-2 py-1 rounded transition-colors"
+			class="flex items-center gap-1.5 hover:bg-hover-wash px-2 py-1 rounded transition-colors"
 			onclick={() => (open = true)}
 		>
 			{@render triggerContent()}
@@ -129,13 +129,13 @@
 			<Drawer.Portal>
 				<Drawer.Overlay class="fixed inset-0 bg-black/60 z-40" />
 				<Drawer.Content
-					class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 z-50 rounded-t-lg max-h-[80vh] overflow-y-auto"
+					class="fixed bottom-0 left-0 right-0 bg-well border-t border-line-2 z-50 rounded-t-lg max-h-[80vh] overflow-y-auto"
 				>
 					<div class="flex justify-center py-3">
-						<div class="w-10 h-1 bg-zinc-600 rounded-full"></div>
+						<div class="w-10 h-1 bg-faint rounded-full"></div>
 					</div>
 					<div class="px-4 pb-2">
-						<Drawer.Title class="font-mono text-xs uppercase tracking-wider text-zinc-400">
+						<Drawer.Title class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
 							Extensions
 						</Drawer.Title>
 					</div>
@@ -154,7 +154,7 @@
 				{#snippet child({ props })}
 					<button
 						{...props}
-						class="flex items-center gap-1.5 hover:bg-muted px-2 py-1 rounded transition-colors"
+						class="flex items-center gap-1.5 hover:bg-hover-wash px-2 py-1 rounded transition-colors"
 					>
 						{@render triggerContent()}
 					</button>
@@ -164,7 +164,7 @@
 				side="top"
 				sideOffset={8}
 				align="end"
-				class="z-50 w-72 max-h-96 overflow-y-auto rounded border border-zinc-700 bg-zinc-900 shadow-lg"
+				class="z-50 w-72 max-h-96 overflow-y-auto rounded border border-line-2 bg-well shadow-lg"
 			>
 				{#if hasConnections}
 					<ConnectionPanelContent onClose={close} {pairCode} {isGeneratingCode} onGeneratePairCode={generatePairCode} />

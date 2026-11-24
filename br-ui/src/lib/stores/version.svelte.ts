@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { isNewerVersion, isCompatibleMin, isCompatibleMax, checkLatestRelease, CHECK_INTERVAL_MS } from '$lib/utils/version';
+import { browser } from '$app/env';
+import { isNewerVersion, isCompatibleMin, isCompatibleMax, checkLatestRelease, CHECK_INTERVAL_MS } from '#lib/utils/version.ts';
 
 const DISMISSED_KEY = 'br-dismissed-versions';
 

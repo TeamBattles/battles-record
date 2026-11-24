@@ -2,7 +2,7 @@
 	import { button, type ButtonVariants } from './button.variants';
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props extends ButtonVariants, Omit<HTMLButtonAttributes, 'class'> {
 		children?: Snippet;

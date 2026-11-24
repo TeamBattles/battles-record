@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Download, Unplug, Trash2, ArrowRight, Plus } from 'lucide-svelte';
+	import { Download, Unplug, Trash2, ArrowRight, Plus } from '@lucide/svelte';
 	import { Tween } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
-	import { extensionsStore, downloadsStore } from '$lib';
+	import { extensionsStore, downloadsStore } from '#lib';
 	import StatusDot from './ui/StatusDot.svelte';
 	import Button from './ui/Button.svelte';
-	import { cn } from '$lib/utils/cn';
-	import type { ExtensionConnection } from '$lib/api/types';
+	import { cn } from '#lib/utils/cn.ts';
+	import type { ExtensionConnection } from '#lib/api/types.ts';
 
 	interface Props {
 		onClose: () => void;
@@ -84,8 +84,8 @@
 					class={cn(
 						'flex-1 px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors truncate',
 						i === activeTab
-							? 'text-zinc-200 border-b-2 border-emerald-500 bg-zinc-800/50'
-							: 'text-zinc-500 hover:text-zinc-400 hover:bg-zinc-800/30'
+							? 'text-foreground border-b-2 border-primary bg-chip/50'
+							: 'text-muted-foreground hover:text-text-2 hover:bg-hover-wash'
 					)}
 					onclick={() => (activeTab = i)}
 				>
@@ -99,7 +99,7 @@
 		<div class="p-3 space-y-3">
 			<!-- Connection Info -->
 			<div class="space-y-1.5">
-				<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+				<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>Connection</span
 				>
 				<div class="flex items-center justify-between">
@@ -108,12 +108,12 @@
 							status={activeConnection.connected ? 'success' : 'error'}
 							size="sm"
 						/>
-						<span class="font-mono text-xs text-zinc-300">
+						<span class="font-mono text-xs text-text-2">
 							{activeConnection.identifier}
 						</span>
 					</div>
 					{#if config?.actual_port}
-						<span class="font-mono text-[10px] text-zinc-500">
+						<span class="font-mono text-[10px] text-muted-foreground">
 							Port {config.actual_port}
 						</span>
 					{/if}
@@ -123,25 +123,25 @@
 			<!-- Libraries (hidden if both installed and no updates) -->
 			{#if showLibraries}
 				<div class="space-y-1.5">
-					<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+					<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 						>Libraries</span
 					>
 					<div class="space-y-1">
 						{#if libraryStatus?.ytdlp}
 							<div class="flex items-center justify-between">
-								<span class="font-mono text-xs text-zinc-400">
+								<span class="font-mono text-xs text-muted-foreground">
 									yt-dlp
 									{#if ytdlpInstalled && libraryStatus.ytdlp.version}
-										<span class="text-zinc-500">v{libraryStatus.ytdlp.version}</span>
+										<span class="text-muted-foreground">v{libraryStatus.ytdlp.version}</span>
 									{:else if !ytdlpInstalled}
-										<span class="text-red-400">not installed</span>
+										<span class="text-destructive">not installed</span>
 									{/if}
 								</span>
 								{#if ytdlpUpdate}
 									<Button
 										intent="ghost"
 										size="sm"
-										class="text-amber-400 hover:text-amber-300"
+										class="text-yellow hover:text-yellow"
 										onclick={() => handleUpdateLibrary('ytdlp')}
 									>
 										{#snippet children()}Update{/snippet}
@@ -151,19 +151,19 @@
 						{/if}
 						{#if libraryStatus?.ffmpeg}
 							<div class="flex items-center justify-between">
-								<span class="font-mono text-xs text-zinc-400">
+								<span class="font-mono text-xs text-muted-foreground">
 									FFmpeg
 									{#if ffmpegInstalled && libraryStatus.ffmpeg.version}
-										<span class="text-zinc-500">v{libraryStatus.ffmpeg.version}</span>
+										<span class="text-muted-foreground">v{libraryStatus.ffmpeg.version}</span>
 									{:else if !ffmpegInstalled}
-										<span class="text-red-400">not installed</span>
+										<span class="text-destructive">not installed</span>
 									{/if}
 								</span>
 								{#if ffmpegUpdate}
 									<Button
 										intent="ghost"
 										size="sm"
-										class="text-amber-400 hover:text-amber-300"
+										class="text-yellow hover:text-yellow"
 										onclick={() => handleUpdateLibrary('ffmpeg')}
 									>
 										{#snippet children()}Update{/snippet}
@@ -188,12 +188,12 @@
 
 			<!-- Downloads Summary -->
 			<div class="space-y-1.5">
-				<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+				<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>Downloads</span
 				>
 				<div class="space-y-1.5">
-					<div class="flex items-center gap-3 text-xs font-mono text-zinc-400">
-						<Download size={12} class="text-zinc-500" />
+					<div class="flex items-center gap-3 text-xs font-mono text-muted-foreground">
+						<Download size={12} class="text-muted-foreground" />
 						<span>
 							{#if activeCount > 0 && pendingCount > 0}
 								{activeCount} active, {pendingCount} queued
@@ -209,16 +209,16 @@
 
 					{#if latestActive}
 						<div class="space-y-1">
-							<span class="font-mono text-[10px] text-zinc-400 truncate block">
+							<span class="font-mono text-[10px] text-muted-foreground truncate block">
 								{latestActive.title ?? latestActive.url}
 							</span>
-							<div class="w-full h-1 bg-zinc-700 rounded-full overflow-hidden">
+							<div class="w-full h-1 bg-chip-strong rounded-full overflow-hidden">
 								<div
-									class="h-full bg-emerald-500 rounded-full"
+									class="h-full bg-green rounded-full"
 									style:width="{miniProgress.current}%"
 								></div>
 							</div>
-							<span class="font-mono text-[10px] text-zinc-500">
+							<span class="font-mono text-[10px] text-muted-foreground">
 								{miniProgress.current.toFixed(0)}%
 								{#if latestActive.speed}
 									- {latestActive.speed}
@@ -229,7 +229,7 @@
 
 					<a
 						href="/downloads"
-						class="flex items-center gap-1 font-mono text-[10px] text-zinc-400 hover:text-zinc-300 transition-colors"
+						class="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors"
 						onclick={onClose}
 					>
 						View Downloads
@@ -261,14 +261,14 @@
 
 			<!-- Pair New Extension -->
 			<div class="pt-2 border-t border-border space-y-1.5">
-				<span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
+				<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
 					>Pair New Extension</span
 				>
 				{#if pairCode}
-					<div class="rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-center">
-						<p class="font-mono text-[10px] text-zinc-500 mb-1">PAIR CODE</p>
-						<p class="font-mono text-lg tracking-widest text-emerald-400">{pairCode}</p>
-						<p class="font-mono text-[9px] text-zinc-500 mt-1">Enter this code in the browser extension</p>
+					<div class="rounded border border-line-2 bg-chip px-3 py-2 text-center">
+						<p class="font-mono text-[10px] text-muted-foreground mb-1">PAIR CODE</p>
+						<p class="font-mono text-lg tracking-widest text-green">{pairCode}</p>
+						<p class="font-mono text-[9px] text-muted-foreground mt-1">Enter this code in the browser extension</p>
 					</div>
 					<Button
 						intent="secondary"
@@ -301,7 +301,7 @@
 		</div>
 	{:else}
 		<div class="p-3">
-			<span class="font-mono text-xs text-zinc-500">No connections</span>
+			<span class="font-mono text-xs text-muted-foreground">No connections</span>
 		</div>
 	{/if}
 </div>

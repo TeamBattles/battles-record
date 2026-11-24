@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/cn';
+	import { cn } from '#lib/utils/cn.ts';
 
 	interface Props {
 		text?: string;
@@ -22,10 +22,10 @@
 	};
 </script>
 
-<div class={cn('flex items-center gap-2 text-zinc-500', className)}>
+<div class={cn('flex items-center gap-2 text-muted-foreground', className)}>
 	<div
 		class={cn(
-			'animate-spin rounded-full border-2 border-zinc-500 border-t-transparent',
+			'animate-spin rounded-full border-2 border-line-3 border-t-primary',
 			sizeClasses[size]
 		)}
 	></div>

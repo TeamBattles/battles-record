@@ -1,9 +1,9 @@
-import { api } from '$lib/api';
-import type { Channel, QuotaStatus, ChannelProfile } from '$lib/api/types';
-import type { BackendChannel } from '$lib/api/backend-types';
-import { wsClient, type WebSocketEvent } from '$lib/api/websocket';
+import { api } from '#lib/api/index.ts';
+import type { Channel, QuotaStatus, ChannelProfile } from '#lib/api/types.ts';
+import type { BackendChannel } from '#lib/api/backend-types.ts';
+import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
 import { toastStore } from './toast.svelte';
-import { formatBytes, extractErrorMessage, transformChannel } from '$lib/utils';
+import { formatBytes, extractErrorMessage, transformChannel } from '#lib/utils/index.ts';
 
 class ChannelsStore {
 	channels = $state<Channel[]>([]);

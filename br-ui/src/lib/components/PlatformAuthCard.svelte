@@ -8,11 +8,10 @@
 		Loader2,
 		ExternalLink,
 		Settings
-	} from 'lucide-svelte';
-	import type { Platform, PlatformAuth } from '$lib/api/types';
-	import { platformAuthStore } from '$lib/stores/platformAuth.svelte';
+	} from '@lucide/svelte';
+	import type { Platform, PlatformAuth } from '#lib/api/types.ts';
+	import { platformAuthStore } from '#lib/stores/platformAuth.svelte.ts';
 	import PlatformIcon from './PlatformIcon.svelte';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
 
 	interface Props {
 		platform: Platform;
@@ -52,8 +51,7 @@
 	}
 </script>
 
-<div class="relative border border-border bg-card h-full">
-	<CornerBrackets />
+<div class="relative rounded-lg border border-border bg-card h-full">
 
 	<div class="p-4 h-full flex flex-col">
 		<!-- Header -->
@@ -67,18 +65,18 @@
 
 			<!-- Status indicator -->
 			{#if isConnected}
-				<div class="flex items-center gap-1.5 text-emerald-400">
-					<span class="size-2 rounded-full bg-emerald-400"></span>
+				<div class="flex items-center gap-1.5 text-green">
+					<span class="size-2 rounded-full bg-green"></span>
 					<span class="font-mono text-[10px] uppercase tracking-wider">Connected</span>
 				</div>
 			{:else if isExpired}
-				<div class="flex items-center gap-1.5 text-amber-400">
+				<div class="flex items-center gap-1.5 text-yellow">
 					<AlertTriangle class="size-3" />
 					<span class="font-mono text-[10px] uppercase tracking-wider">Expired</span>
 				</div>
 			{:else}
-				<div class="flex items-center gap-1.5 text-zinc-500">
-					<span class="size-2 rounded-full bg-zinc-500"></span>
+				<div class="flex items-center gap-1.5 text-muted-foreground">
+					<span class="size-2 rounded-full bg-dim"></span>
 					<span class="font-mono text-[10px] uppercase tracking-wider">Not Connected</span>
 				</div>
 			{/if}
@@ -90,7 +88,7 @@
 				<!-- Connected state -->
 				<div class="space-y-1">
 					{#if auth?.username}
-						<p class="font-mono text-xs text-zinc-400">
+						<p class="font-mono text-xs text-muted-foreground">
 							Logged in as: <span class="text-foreground">{auth.username}</span>
 						</p>
 					{/if}
@@ -98,8 +96,8 @@
 					{#if expiryInfo.text}
 						<p
 							class="font-mono text-xs {expiryInfo.isExpiringSoon
-								? 'text-amber-400'
-								: 'text-zinc-500'}"
+								? 'text-yellow'
+								: 'text-muted-foreground'}"
 						>
 							{expiryInfo.text}
 						</p>
@@ -109,7 +107,7 @@
 				<!-- Actions for connected state - pushed to bottom -->
 				<div class="flex flex-col gap-2 sm:flex-row sm:items-center mt-auto pt-3">
 					<button
-						class="flex items-center justify-center gap-2 rounded border border-border bg-input px-3 py-1.5 font-mono text-xs hover:bg-muted transition-colors disabled:opacity-50"
+						class="flex items-center justify-center gap-2 rounded border border-border bg-btn-bg px-3 py-1.5 font-mono text-xs hover:bg-hover-wash transition-colors disabled:opacity-50"
 						onclick={handleTest}
 						disabled={isTesting}
 					>
@@ -117,12 +115,12 @@
 							<Loader2 class="size-3.5 animate-spin" />
 							Testing...
 						{:else}
-							<CheckCircle class="size-3.5 text-zinc-500" />
+							<CheckCircle class="size-3.5 text-muted-foreground" />
 							Test Connection
 						{/if}
 					</button>
 					<button
-						class="flex items-center justify-center gap-2 rounded border border-red-500/30 bg-red-500/5 px-3 py-1.5 font-mono text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+						class="flex items-center justify-center gap-2 rounded border border-destructive/30 bg-destructive/5 px-3 py-1.5 font-mono text-xs text-destructive hover:bg-destructive/10 transition-colors"
 						onclick={handleDisconnect}
 					>
 						<Link2Off class="size-3.5" />
@@ -133,11 +131,11 @@
 				<!-- Expired state -->
 				<div class="space-y-1">
 					{#if auth?.username}
-						<p class="font-mono text-xs text-zinc-500">
-							Was connected as: <span class="text-zinc-400">{auth.username}</span>
+						<p class="font-mono text-xs text-muted-foreground">
+							Was connected as: <span class="text-muted-foreground">{auth.username}</span>
 						</p>
 					{/if}
-					<p class="font-mono text-xs text-amber-400">Token has expired. Please reconnect.</p>
+					<p class="font-mono text-xs text-yellow">Token has expired. Please reconnect.</p>
 				</div>
 
 				<!-- Actions pushed to bottom -->
@@ -145,7 +143,7 @@
 					{#if oauthAvailable}
 						<!-- Primary: OAuth reconnect button (centered) -->
 						<button
-							class="flex items-center justify-center gap-2 rounded bg-emerald-600 px-4 py-2 font-mono text-xs text-white transition-colors hover:bg-emerald-500"
+							class="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-mono text-xs text-primary-foreground transition-colors hover:bg-primary/90"
 							onclick={() => onstartOAuth?.()}
 						>
 							<ExternalLink class="size-3.5" />
@@ -155,22 +153,22 @@
 						<!-- Secondary options -->
 						<div class="flex items-center justify-center gap-3">
 							<button
-								class="font-mono text-[10px] text-zinc-500 underline hover:text-zinc-400"
+								class="font-mono text-[10px] text-muted-foreground underline hover:text-text-2"
 								onclick={() => onconnect?.()}
 							>
 								Enter token manually
 							</button>
-							<span class="text-zinc-600">|</span>
+							<span class="text-dim">|</span>
 							<button
-								class="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-400"
+								class="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-text-2"
 								onclick={() => onadvanced?.()}
 							>
 								<Settings class="size-3" />
 								Advanced
 							</button>
-							<span class="text-zinc-600">|</span>
+							<span class="text-dim">|</span>
 							<button
-								class="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-400"
+								class="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-text-2"
 								onclick={handleDisconnect}
 							>
 								<Link2Off class="size-3" />
@@ -179,14 +177,14 @@
 						</div>
 					{:else}
 						<button
-							class="flex items-center justify-center gap-2 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 font-mono text-xs text-amber-400 hover:bg-amber-500/20 transition-colors"
+							class="flex items-center justify-center gap-2 rounded border border-yellow/30 bg-yellow/10 px-3 py-1.5 font-mono text-xs text-yellow hover:bg-yellow/20 transition-colors"
 							onclick={() => onconnect?.()}
 						>
 							<RefreshCw class="size-3.5" />
 							Reconnect
 						</button>
 						<button
-							class="font-mono text-[10px] text-zinc-500 underline hover:text-zinc-400"
+							class="font-mono text-[10px] text-muted-foreground underline hover:text-text-2"
 							onclick={handleDisconnect}
 						>
 							Remove credentials
@@ -195,7 +193,7 @@
 				</div>
 			{:else}
 				<!-- Not connected state -->
-				<p class="font-mono text-xs text-zinc-500">
+				<p class="font-mono text-xs text-muted-foreground">
 					{platformDescriptions[platform]}
 				</p>
 
@@ -204,7 +202,7 @@
 					{#if oauthAvailable}
 						<!-- Primary: OAuth button (centered) -->
 						<button
-							class="flex items-center justify-center gap-2 rounded bg-emerald-600 px-4 py-2 font-mono text-xs text-white transition-colors hover:bg-emerald-500"
+							class="flex items-center justify-center gap-2 rounded bg-primary px-4 py-2 font-mono text-xs text-primary-foreground transition-colors hover:bg-primary/90"
 							onclick={() => onstartOAuth?.()}
 						>
 							<ExternalLink class="size-3.5" />
@@ -214,14 +212,14 @@
 						<!-- Secondary options -->
 						<div class="flex items-center justify-center gap-3">
 							<button
-								class="font-mono text-[10px] text-zinc-500 underline hover:text-zinc-400"
+								class="font-mono text-[10px] text-muted-foreground underline hover:text-text-2"
 								onclick={() => onconnect?.()}
 							>
 								Enter token manually
 							</button>
-							<span class="text-zinc-600">|</span>
+							<span class="text-dim">|</span>
 							<button
-								class="flex items-center gap-1 font-mono text-[10px] text-zinc-500 hover:text-zinc-400"
+								class="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-text-2"
 								onclick={() => onadvanced?.()}
 							>
 								<Settings class="size-3" />
@@ -231,7 +229,7 @@
 					{:else}
 						<!-- Only manual entry available -->
 						<button
-							class="flex items-center justify-center gap-2 rounded border border-border bg-input px-4 py-2 font-mono text-xs transition-colors hover:bg-muted"
+							class="flex items-center justify-center gap-2 rounded border border-border bg-btn-bg px-4 py-2 font-mono text-xs transition-colors hover:bg-hover-wash"
 							onclick={() => onconnect?.()}
 						>
 							Connect

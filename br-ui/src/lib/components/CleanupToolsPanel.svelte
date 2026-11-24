@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { storageStore } from '$lib/stores/storage.svelte';
-	import { toastStore } from '$lib/stores/toast.svelte';
-	import { Trash2, Eye, Loader2, AlertTriangle } from 'lucide-svelte';
-	import type { RecordingStatus, CleanupLocation } from '$lib/api/types';
-	import CornerBrackets from './ui/CornerBrackets.svelte';
-	import { cn } from '$lib/utils/cn';
+	import { storageStore } from '#lib/stores/storage.svelte.ts';
+	import { toastStore } from '#lib/stores/toast.svelte.ts';
+	import { Trash2, Eye, Loader2, AlertTriangle } from '@lucide/svelte';
+	import type { RecordingStatus, CleanupLocation } from '#lib/api/types.ts';
+	import { cn } from '#lib/utils/cn.ts';
+	import Select from './ui/Select.svelte';
 
 	// Tab state
 	let activeTab = $state<'recordings' | 'downloads'>('recordings');
@@ -44,6 +44,21 @@
 		);
 		return [...platforms];
 	});
+
+	const recordingChannelOptions = $derived([
+		{ label: 'All Channels', value: '' },
+		...channelsWithRecordings.map((channel) => ({ label: channel, value: channel }))
+	]);
+
+	const downloadChannelOptions = $derived([
+		{ label: 'All Channels', value: '' },
+		...channelsWithDownloads.map((channel) => ({ label: channel, value: channel }))
+	]);
+
+	const downloadPlatformOptions = $derived([
+		{ label: 'All Platforms', value: '' },
+		...downloadPlatforms().map((platform) => ({ label: platform, value: platform }))
+	]);
 
 	const statusOptions: { label: string; value: RecordingStatus | '' }[] = [
 		{ label: 'All Statuses', value: '' },
@@ -121,22 +136,21 @@
 	}
 </script>
 
-<div class="relative border border-border bg-card">
-	<CornerBrackets />
+<div class="relative rounded-lg border border-border bg-card">
 
 	<!-- Header with tabs -->
 	<div class="flex items-center border-b border-border/60 bg-muted/30">
 		<div class="flex items-center gap-2 px-4 py-2">
-			<Trash2 class="size-4 text-zinc-500" />
-			<span class="font-mono text-xs uppercase tracking-wider text-zinc-400">Cleanup Tools</span>
+			<Trash2 class="size-4 text-muted-foreground" />
+			<span class="font-mono text-xs uppercase tracking-wider text-muted-foreground">Cleanup Tools</span>
 		</div>
 		<div class="flex ml-auto">
 			<button
 				class={cn(
 					'px-4 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors border-b-2',
 					activeTab === 'recordings'
-						? 'text-zinc-200 border-emerald-500 bg-zinc-800/50'
-						: 'text-zinc-500 border-transparent hover:text-zinc-400'
+						? 'text-foreground border-primary bg-chip/50'
+						: 'text-muted-foreground border-transparent hover:text-text-2'
 				)}
 				onclick={() => { activeTab = 'recordings'; storageStore.clearCleanupPreview(); }}
 			>
@@ -146,8 +160,8 @@
 				class={cn(
 					'px-4 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors border-b-2',
 					activeTab === 'downloads'
-						? 'text-zinc-200 border-emerald-500 bg-zinc-800/50'
-						: 'text-zinc-500 border-transparent hover:text-zinc-400'
+						? 'text-foreground border-primary bg-chip/50'
+						: 'text-muted-foreground border-transparent hover:text-text-2'
 				)}
 				onclick={() => { activeTab = 'downloads'; storageStore.clearCleanupPreview(); }}
 			>
@@ -162,95 +176,64 @@
 			<!-- Recordings cleanup form -->
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 				<div>
-					<label for="cleanup-age" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Older than</label>
-					<select id="cleanup-age" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={olderThanDays}>
-						{#each ageOptions as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<label for="cleanup-age" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Older than</label>
+					<Select id="cleanup-age" size="sm" options={ageOptions} bind:value={olderThanDays} />
 				</div>
 				<div>
-					<label for="cleanup-channel" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Channel</label>
-					<select id="cleanup-channel" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={selectedChannel}>
-						<option value="">All Channels</option>
-						{#each channelsWithRecordings as channelName (channelName)}
-							<option value={channelName}>{channelName}</option>
-						{/each}
-					</select>
+					<label for="cleanup-channel" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Channel</label>
+					<Select id="cleanup-channel" size="sm" options={recordingChannelOptions} bind:value={selectedChannel} />
 				</div>
 				<div>
-					<label for="cleanup-status" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Status</label>
-					<select id="cleanup-status" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={selectedStatus}>
-						{#each statusOptions as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<label for="cleanup-status" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Status</label>
+					<Select id="cleanup-status" size="sm" options={statusOptions} bind:value={selectedStatus} />
 				</div>
 				<div>
-					<label for="cleanup-location" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Location</label>
-					<select id="cleanup-location" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={selectedLocation}>
-						{#each locationOptions as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<label for="cleanup-location" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Location</label>
+					<Select id="cleanup-location" size="sm" options={locationOptions} bind:value={selectedLocation} />
 				</div>
 			</div>
 		{:else}
 			<!-- Downloads cleanup form -->
 			<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 				<div>
-					<label for="dl-cleanup-age" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Older than</label>
-					<select id="dl-cleanup-age" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={dlOlderThanDays}>
-						{#each ageOptions as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
+					<label for="dl-cleanup-age" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Older than</label>
+					<Select id="dl-cleanup-age" size="sm" options={ageOptions} bind:value={dlOlderThanDays} />
 				</div>
 				<div>
-					<label for="dl-cleanup-channel" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Channel</label>
-					<select id="dl-cleanup-channel" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={dlSelectedChannel}>
-						<option value="">All Channels</option>
-						{#each channelsWithDownloads as channelName (channelName)}
-							<option value={channelName}>{channelName}</option>
-						{/each}
-					</select>
+					<label for="dl-cleanup-channel" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Channel</label>
+					<Select id="dl-cleanup-channel" size="sm" options={downloadChannelOptions} bind:value={dlSelectedChannel} />
 				</div>
 				<div>
-					<label for="dl-cleanup-platform" class="font-mono text-[10px] uppercase tracking-wider text-zinc-500 block mb-1">Platform</label>
-					<select id="dl-cleanup-platform" class="w-full rounded border border-border bg-input px-3 py-1.5 font-mono text-xs" bind:value={dlSelectedPlatform}>
-						<option value="">All Platforms</option>
-						{#each downloadPlatforms() as platform (platform)}
-							<option value={platform}>{platform}</option>
-						{/each}
-					</select>
+					<label for="dl-cleanup-platform" class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground block mb-1">Platform</label>
+					<Select id="dl-cleanup-platform" size="sm" options={downloadPlatformOptions} bind:value={dlSelectedPlatform} />
 				</div>
 			</div>
 		{/if}
 
 		<!-- Preview results -->
 		{#if activeTab === 'recordings' && storageStore.cleanupPreview}
-			<div class="rounded border border-amber-500/30 bg-amber-500/5 p-3">
+			<div class="rounded border border-yellow/30 bg-yellow/5 p-3">
 				<div class="flex items-start gap-2">
-					<AlertTriangle class="size-4 text-amber-400 flex-shrink-0 mt-0.5" />
+					<AlertTriangle class="size-4 text-yellow flex-shrink-0 mt-0.5" />
 					<div>
-						<p class="font-mono text-sm text-amber-300">
+						<p class="font-mono text-sm text-yellow">
 							{storageStore.cleanupPreview.recordings_affected} recordings would be deleted
 						</p>
-						<p class="font-mono text-xs text-amber-400/80 mt-1">
+						<p class="font-mono text-xs text-yellow/80 mt-1">
 							~{storageStore.formatBytes(storageStore.cleanupPreview.bytes_to_free)} would be freed
 						</p>
 					</div>
 				</div>
 			</div>
 		{:else if activeTab === 'downloads' && storageStore.downloadCleanupPreview}
-			<div class="rounded border border-amber-500/30 bg-amber-500/5 p-3">
+			<div class="rounded border border-yellow/30 bg-yellow/5 p-3">
 				<div class="flex items-start gap-2">
-					<AlertTriangle class="size-4 text-amber-400 flex-shrink-0 mt-0.5" />
+					<AlertTriangle class="size-4 text-yellow flex-shrink-0 mt-0.5" />
 					<div>
-						<p class="font-mono text-sm text-amber-300">
+						<p class="font-mono text-sm text-yellow">
 							{storageStore.downloadCleanupPreview.affected} downloads would be deleted
 						</p>
-						<p class="font-mono text-xs text-amber-400/80 mt-1">
+						<p class="font-mono text-xs text-yellow/80 mt-1">
 							~{storageStore.formatBytes(storageStore.downloadCleanupPreview.bytes_to_free)} would be freed
 						</p>
 					</div>
@@ -259,8 +242,8 @@
 		{/if}
 
 		{#if storageStore.cleanupError}
-			<div class="rounded border border-red-500/30 bg-red-500/5 p-3">
-				<p class="font-mono text-xs text-red-400">{storageStore.cleanupError}</p>
+			<div class="rounded border border-destructive/30 bg-destructive/5 p-3">
+				<p class="font-mono text-xs text-destructive">{storageStore.cleanupError}</p>
 			</div>
 		{/if}
 
@@ -268,7 +251,7 @@
 		<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
 			{#if hasPreview}
 				<button
-					class="rounded border border-border bg-input px-4 py-2 font-mono text-xs hover:bg-muted transition-colors"
+					class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-xs hover:bg-hover-wash transition-colors"
 					onclick={() => storageStore.clearCleanupPreview()}
 				>
 					Cancel
@@ -276,7 +259,7 @@
 			{/if}
 
 			<button
-				class="rounded border border-border bg-input px-4 py-2 font-mono text-xs hover:bg-muted transition-colors flex items-center justify-center gap-2"
+				class="rounded border border-border bg-btn-bg px-4 py-2 font-mono text-xs hover:bg-hover-wash transition-colors flex items-center justify-center gap-2"
 				onclick={handlePreview}
 				disabled={storageStore.isCleaningUp}
 			>
@@ -290,7 +273,7 @@
 
 			{#if activeTab === 'recordings' && storageStore.cleanupPreview && storageStore.cleanupPreview.recordings_affected > 0}
 				<button
-					class="rounded border border-red-500/30 bg-red-500/10 px-4 py-2 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+					class="rounded border border-destructive/30 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive hover:bg-destructive/20 transition-colors flex items-center justify-center gap-2"
 					onclick={handleCleanup}
 					disabled={storageStore.isCleaningUp}
 				>
@@ -303,7 +286,7 @@
 				</button>
 			{:else if activeTab === 'downloads' && storageStore.downloadCleanupPreview && storageStore.downloadCleanupPreview.affected > 0}
 				<button
-					class="rounded border border-red-500/30 bg-red-500/10 px-4 py-2 font-mono text-xs text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+					class="rounded border border-destructive/30 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive hover:bg-destructive/20 transition-colors flex items-center justify-center gap-2"
 					onclick={handleCleanup}
 					disabled={storageStore.isCleaningUp}
 				>

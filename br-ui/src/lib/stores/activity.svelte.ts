@@ -1,5 +1,5 @@
-import type { WebSocketEvent } from '$lib/api/websocket';
-import { formatDuration, formatBytes, MAX_ACTIVITY_EVENTS } from '$lib/utils';
+import type { WebSocketEvent } from '#lib/api/websocket.ts';
+import { formatDuration, formatBytes, MAX_ACTIVITY_EVENTS } from '#lib/utils/index.ts';
 
 export type EventCategory = 'recording' | 'channel' | 'processing' | 'system';
 

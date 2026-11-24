@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { ResponsiveModal } from '$lib';
-	import type { Platform } from '$lib/api/types';
+	import { ResponsiveModal } from '#lib';
+	import type { Platform } from '#lib/api/types.ts';
 	import Button from './ui/Button.svelte';
 	import Input from './ui/Input.svelte';
-	import { Eye, Settings, Info, ExternalLink } from 'lucide-svelte';
+	import { Eye, Settings, Info, ExternalLink } from '@lucide/svelte';
 	import PlatformIcon from './PlatformIcon.svelte';
 
 	interface Props {
@@ -82,7 +82,7 @@
 							href={platformDocs[platform]}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-400 hover:text-emerald-300"
+							class="inline-flex items-center gap-1 font-mono text-[10px] text-green hover:text-green"
 						>
 							<ExternalLink class="size-3" />
 							Open {platformNames[platform]} Developer Console
@@ -94,7 +94,7 @@
 			<!-- Client ID -->
 			<div>
 				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
-					Client ID <span class="text-red-400">*</span>
+					Client ID <span class="text-destructive">*</span>
 				</span>
 				<Input
 					type="text"
@@ -109,7 +109,7 @@
 				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
 					Client Secret
 					{#if platformInfo[platform].needsSecret}
-						<span class="text-red-400">*</span>
+						<span class="text-destructive">*</span>
 					{:else}
 						<span class="text-muted-foreground/70">(optional)</span>
 					{/if}

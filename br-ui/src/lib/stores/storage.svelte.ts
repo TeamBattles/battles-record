@@ -1,4 +1,4 @@
-import { api } from '$lib/api/client';
+import { api } from '#lib/api/client.ts';
 import type {
 	StorageStats,
 	CleanupRequest,
@@ -7,7 +7,7 @@ import type {
 	DownloadStorageStats,
 	DownloadCleanupRequest,
 	DownloadCleanupResponse
-} from '$lib/api/types';
+} from '#lib/api/types.ts';
 
 class StorageStore {
 	stats = $state<StorageStats | null>(null);
