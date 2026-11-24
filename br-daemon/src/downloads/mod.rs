@@ -273,20 +273,13 @@ impl DownloadManager {
         };
 
         let (cookie_file_path, is_temp) = if let Some(cookies) = cookies {
-            if cookies.is_empty() {
-                // Empty cookie list - fall back to persistent
-                let domain = extract_domain(url);
-                let persistent = domain.and_then(|d| ytdlp::get_persistent_cookie_path(&d));
-                info!(url = %url, has_persistent = persistent.is_some(), "ExtractInfo: no cookies provided, using persistent fallback");
-                (persistent, false)
-            } else {
-                let tmp = self
-                    .downloads_dir
-                    .join(format!(".cookies-{}.txt", Uuid::new_v4()));
-                ytdlp::write_cookie_file(cookies, &tmp).await?;
-                info!(url = %url, cookie_count = cookies.len(), path = %tmp.display(), "ExtractInfo: wrote temp cookie file");
-                (Some(tmp), true)
-            }
+            // An explicit empty list means anonymous, not daemon-local fallback.
+            let tmp = self
+                .downloads_dir
+                .join(format!(".cookies-{}.txt", Uuid::new_v4()));
+            ytdlp::write_cookie_file(cookies, &tmp).await?;
+            info!(url = %url, cookie_count = cookies.len(), path = %tmp.display(), "ExtractInfo: wrote temp cookie file");
+            (Some(tmp), true)
         } else {
             // Fall back to persistent cookie file for this domain (spec 12.2)
             let domain = extract_domain(url);
@@ -295,7 +288,13 @@ impl DownloadManager {
             (persistent, false)
         };
 
-        let result = ytdlp::extract_info(&ytdlp_path, url, cookie_file_path.as_deref()).await;
+        let result = ytdlp::extract_info(
+            &ytdlp_path,
+            url,
+            cookie_file_path.as_deref(),
+            cookies.is_some(),
+        )
+        .await;
 
         // Only clean up temp cookie files, not persistent ones
         if is_temp {
@@ -889,6 +888,7 @@ async fn run_download_task(
         &output_template,
         &job.options,
         cookie_file_path.as_deref(),
+        cookies.is_some(),
         event_tx.clone(),
         job_id,
     )
@@ -1318,5 +1318,116 @@ mod tests {
 
         let result = manager.pause(Uuid::new_v4()).await;
         assert!(matches!(result, Err(DownloadError::NotFound(_))));
+    }
+}
+
+#[cfg(all(test, unix))]
+mod extension_cookie_policy_test {
+    use super::*;
+    use crate::extension::protocol::ExtensionMessage;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[tokio::test]
+    async fn explicit_extension_cookies_do_not_fall_back_to_daemon_credentials() {
+        let dir = tempfile::tempdir().unwrap();
+        let binary = dir.path().join("fake-yt-dlp");
+        std::fs::write(
+            &binary,
+            r#"#!/bin/sh
+printf '%s\n' "$@" > "$0.args"
+script_dir=$(dirname "$0")
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--cookies" ]; then
+    shift
+    case "$1" in
+      "$script_dir"/*) cat -- "$1" > "$0.jar" ;;
+      *) printf 'unexpected cookie source\n' >&2; exit 9 ;;
+    esac
+  fi
+  shift
+done
+printf '{"title":"offline fixture","formats":[]}'
+"#,
+        )
+        .unwrap();
+        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let libraries = Arc::new(tokio::sync::Mutex::new(LibraryManager::new(
+            crate::config::LibrariesConfig {
+                ytdlp_path: Some(binary.clone()),
+                ..Default::default()
+            },
+            None,
+        )));
+        let manager = DownloadManager::new(
+            DownloadsConfig::default(),
+            dir.path().to_path_buf(),
+            libraries,
+        )
+        .await
+        .unwrap();
+        for supplied in [
+            None,
+            Some(serde_json::json!([])),
+            Some(serde_json::json!([{
+                "domain": ".s2-cookie-policy.invalid", "path": "/", "secure": true,
+                "name": "sessionid", "value": "synthetic-session", "expirationDate": 0, "httpOnly": true,
+            }])),
+        ] {
+            let mut wire = serde_json::json!({"type":"extract_info", "id":"fixture", "url":"https://s2-cookie-policy.invalid/video"});
+            if let Some(ref cookies) = supplied {
+                wire["cookies"] = cookies.clone();
+            }
+            let ExtensionMessage::ExtractInfo { url, cookies, .. } =
+                serde_json::from_value(wire).unwrap()
+            else {
+                panic!("wrong wire variant");
+            };
+            let cookies: Option<Vec<CookieData>> = cookies.map(|items| {
+                items
+                    .into_iter()
+                    .map(|cookie| CookieData {
+                        domain: cookie.domain,
+                        path: cookie.path,
+                        secure: cookie.secure,
+                        expiration_date: cookie.expiration_date,
+                        http_only: cookie.http_only,
+                        name: cookie.name,
+                        value: cookie.value,
+                    })
+                    .collect()
+            });
+            manager
+                .extract_info(&url, cookies.as_deref())
+                .await
+                .unwrap();
+            let arguments = std::fs::read_to_string(binary.with_extension("args")).unwrap();
+            assert_eq!(
+                arguments.lines().any(|arg| arg == "--ignore-config"),
+                supplied.is_some()
+            );
+            assert_eq!(
+                arguments
+                    .lines()
+                    .any(|arg| arg == "--no-cookies-from-browser"),
+                supplied.is_some()
+            );
+            if let Some(ref supplied) = supplied {
+                let jar = std::fs::read_to_string(binary.with_extension("jar")).unwrap();
+                let rows: Vec<_> = jar
+                    .lines()
+                    .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                    .collect();
+                assert_eq!(rows.len(), supplied.as_array().unwrap().len());
+                if !rows.is_empty() {
+                    assert!(rows[0].ends_with("\tsessionid\tsynthetic-session"));
+                }
+                let args: Vec<_> = arguments.lines().collect();
+                let jar_path = args[args.iter().position(|arg| *arg == "--cookies").unwrap() + 1];
+                assert!(
+                    !std::path::Path::new(jar_path).exists(),
+                    "temporary credential jar must be removed"
+                );
+            }
+        }
     }
 }

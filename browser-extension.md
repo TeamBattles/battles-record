@@ -169,24 +169,17 @@ If desktop is not connected, the connection badge is hidden entirely. Users disc
 
 ## 6. Cookie Forwarding
 
-For authenticated downloads (YouTube Premium, private videos, etc.):
+The `cookies` field has the same meaning in `extract_info` and `download`:
 
-```javascript
-async function getCookiesForUrl(url) {
-  const cookies = await chrome.cookies.getAll({ url });
-  return cookies.map(c => ({
-    domain: c.domain,
-    path: c.path,
-    secure: c.secure,
-    expirationDate: c.expirationDate || 0,
-    httpOnly: c.httpOnly,
-    name: c.name,
-    value: c.value,
-  }));
-}
-```
+| Input | Credential policy |
+| --- | --- |
+| Field omitted or `null` | Retain daemon-local cookie/configuration fallback. |
+| `[]` | Request anonymous access using an empty cookie jar. |
+| Nonempty array | Use only the supplied request cookies. |
 
-Full cookie objects (not just `name=value` strings) are sent as a JSON array in the `download` command. The daemon needs domain, path, secure, and expiration fields to convert to Netscape cookie file format for yt-dlp's `--cookies` flag.
+Explicit arrays disable automatic yt-dlp configuration and browser-cookie extraction. Previews use a temporary cookie jar that is removed after extraction. Cookie objects carry `domain`, `path`, `secure`, `expirationDate`, `httpOnly`, `name`, and `value` for Netscape cookie-file serialization.
+
+Battles Replay forwards only approved Twitch and Instagram cookies after explicit account consent and optional browser permission. It sends `[]` for public access. Clients that intend to use daemon-managed credentials must omit the field; an empty array must never opt a request into those credentials.
 
 ---
 

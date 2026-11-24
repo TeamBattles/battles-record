@@ -145,6 +145,7 @@ pub async fn extract_info(
     ytdlp_path: &Path,
     url: &str,
     cookie_file: Option<&Path>,
+    explicit_cookies: bool,
 ) -> Result<ExtractedInfo, YtdlpDownloadError> {
     if !ytdlp_path.exists() {
         return Err(YtdlpDownloadError::NotFound(ytdlp_path.to_path_buf()));
@@ -163,6 +164,10 @@ pub async fn extract_info(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    if explicit_cookies {
+        // Saved yt-dlp config must not add credentials to explicit extension input.
+        cmd.arg("--ignore-config").arg("--no-cookies-from-browser");
+    }
     if let Some(cookie_path) = cookie_file {
         cmd.arg("--cookies").arg(cookie_path);
     }
@@ -203,6 +208,7 @@ pub async fn start_download(
     output_template: &str,
     options: &DownloadOptions,
     cookie_file: Option<&Path>,
+    explicit_cookies: bool,
     progress_tx: broadcast::Sender<DownloadEvent>,
     download_id: Uuid,
 ) -> Result<YtdlpDownload, YtdlpDownloadError> {
@@ -243,6 +249,10 @@ pub async fn start_download(
     }
     if options.embed_metadata {
         cmd.arg("--embed-metadata");
+    }
+    if explicit_cookies {
+        // Saved yt-dlp config must not add credentials to explicit extension input.
+        cmd.arg("--ignore-config").arg("--no-cookies-from-browser");
     }
     if let Some(cookie_path) = cookie_file {
         cmd.arg("--cookies").arg(cookie_path);
