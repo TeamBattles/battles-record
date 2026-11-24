@@ -2,7 +2,6 @@
 use crate::api::LocalOnlyMode;
 use crate::types::UserRole;
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
@@ -109,7 +108,7 @@ pub fn create_token(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(secret.as_bytes()),
+        &EncodingKey::from_secret(secret.as_bytes())?,
     )?;
     Ok((token, expiry))
 }
@@ -117,7 +116,7 @@ pub fn create_token(
 pub fn verify_token(token: &str, secret: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     let token_data = decode::<Claims>(
         token,
-        &DecodingKey::from_secret(secret.as_bytes()),
+        &DecodingKey::from_secret(secret.as_bytes())?,
         &Validation::default(),
     )?;
     Ok(token_data.claims)
@@ -133,7 +132,7 @@ pub fn decode_token_unvalidated(
 
     let token_data = decode::<Claims>(
         token,
-        &DecodingKey::from_secret(secret.as_bytes()),
+        &DecodingKey::from_secret(secret.as_bytes())?,
         &validation,
     )?;
     Ok(token_data.claims)
@@ -181,7 +180,6 @@ pub struct AdminUser {
 #[derive(Clone)]
 pub struct JwtSecret(pub String);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
@@ -227,7 +225,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AdminUser
 where
     S: Send + Sync,

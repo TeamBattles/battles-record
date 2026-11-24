@@ -64,7 +64,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, username: String
     // Send initial state
     let initial_state = build_initial_state(&state).await;
     if let Ok(json) = serde_json::to_string(&initial_state) {
-        if sender.send(Message::Text(json)).await.is_err() {
+        if sender.send(Message::Text(json.into())).await.is_err() {
             return;
         }
     }
@@ -88,7 +88,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, username: String
                     if let Some(ws_event) = convert_manager_event(event) {
                         match serde_json::to_string(&ws_event) {
                             Ok(json) => {
-                                if sender.send(Message::Text(json)).await.is_err() {
+                                if sender.send(Message::Text(json.into())).await.is_err() {
                                     break;
                                 }
                             }

@@ -33,7 +33,8 @@ tauri-plugin-window-state = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-oauth = "2"
 tauri-plugin-http = "2"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+reqwest = "0.13"
 tokio = { version = "1", features = ["time"] }
-zip = "0.6"
-which = "6.0"
+# Bun ships its release archives as deflate zips
+zip = { version = "9", default-features = false, features = ["deflate"] }
+which = "8"

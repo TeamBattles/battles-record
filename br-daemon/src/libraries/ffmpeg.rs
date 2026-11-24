@@ -267,7 +267,10 @@ fn extract_from_zip(
                 detail: format!("failed to read zip entry {}: {}", i, e),
             })?;
 
-        let name = file.name().to_string();
+        // zip 9 returns an error for names it cannot decode; those can't be the binary we want
+        let Ok(name) = file.name().map(|n| n.into_owned()) else {
+            continue;
+        };
 
         // Match the binary by filename, handling nested directories
         if name.ends_with(binary_name) && !name.contains("ffprobe") && !name.contains("ffplay") {

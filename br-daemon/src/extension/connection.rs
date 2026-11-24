@@ -118,7 +118,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
         }
     };
 
-    log_received(&mut log, "hello", Some(hello_text.clone()));
+    log_received(&mut log, "hello", Some(hello_text.to_string()));
 
     let ext_msg: ExtensionMessage = match serde_json::from_str(&hello_text) {
         Ok(msg) => msg,
@@ -326,7 +326,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
                         match serde_json::from_str::<ExtensionMessage>(&text) {
                             Ok(ext_msg) => {
                                 let msg_type = message_type_name(&ext_msg);
-                                log_received(&mut log, msg_type, Some(text.clone()));
+                                log_received(&mut log, msg_type, Some(text.to_string()));
                                 update_connection_log(&state.connections, client_id, &log).await;
 
                                 // Unpair requires closing the connection
@@ -457,7 +457,7 @@ where
 
                 match ext_msg {
                     ExtensionMessage::Pair { code, identifier } => {
-                        log_received(log, "pair", Some(text.clone()));
+                        log_received(log, "pair", Some(text.to_string()));
                         debug!(addr = %addr, identifier = %identifier, "Pair attempt received");
 
                         let mut pairing = state.pairing.write().await;
@@ -501,7 +501,7 @@ where
                         }
                     }
                     ExtensionMessage::Ping => {
-                        log_received(log, "ping", Some(text.clone()));
+                        log_received(log, "ping", Some(text.to_string()));
                         let _ = send_message(sink, &DaemonMessage::Pong, log).await;
                         continue;
                     }
@@ -548,7 +548,7 @@ async fn send_message(
     };
 
     let payload = json.clone();
-    if let Err(e) = sink.send(Message::Text(json)).await {
+    if let Err(e) = sink.send(Message::Text(json.into())).await {
         warn!(error = %e, "Failed to send WebSocket message");
         return Err(());
     }

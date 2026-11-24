@@ -127,37 +127,37 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
         // Channel CRUD endpoints
         .route("/api/channels", get(list_channels).post(add_channel))
         .route(
-            "/api/channels/:id",
+            "/api/channels/{id}",
             get(get_channel).put(update_channel).delete(delete_channel),
         )
-        .route("/api/channels/:id/check", post(check_channel))
-        .route("/api/channels/:id/stop-recording", post(stop_recording))
+        .route("/api/channels/{id}/check", post(check_channel))
+        .route("/api/channels/{id}/stop-recording", post(stop_recording))
         // Channel image endpoints
-        .route("/api/channels/:id/profile", get(get_channel_profile))
+        .route("/api/channels/{id}/profile", get(get_channel_profile))
         .route(
-            "/api/channels/:id/images/profile",
+            "/api/channels/{id}/images/profile",
             get(get_profile_image)
                 .post(upload_profile_image)
                 .delete(delete_profile_image),
         )
         .route(
-            "/api/channels/:id/images/banner",
+            "/api/channels/{id}/images/banner",
             get(get_banner_image)
                 .post(upload_banner_image)
                 .delete(delete_banner_image),
         )
         .route(
-            "/api/channels/:id/images/fetch-platform",
+            "/api/channels/{id}/images/fetch-platform",
             post(fetch_platform_images),
         )
         // Recording endpoints
         .route("/api/recordings", get(list_recordings))
         .route(
-            "/api/recordings/:id",
+            "/api/recordings/{id}",
             get(get_recording).delete(delete_recording),
         )
-        .route("/api/recordings/:id/process", post(process_recording))
-        .route("/api/recordings/:id/reprocess", post(reprocess_recording))
+        .route("/api/recordings/{id}/process", post(process_recording))
+        .route("/api/recordings/{id}/reprocess", post(reprocess_recording))
         // Storage endpoints
         .route("/api/storage/stats", get(get_storage_stats))
         .route("/api/storage/cleanup", post(cleanup_storage))
@@ -175,25 +175,25 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
         )
         // User endpoints (admin only)
         .route("/api/users", get(list_users).post(create_user))
-        .route("/api/users/:id", put(update_user).delete(delete_user))
+        .route("/api/users/{id}", put(update_user).delete(delete_user))
         .route(
-            "/api/users/:id/sessions",
+            "/api/users/{id}/sessions",
             get(get_user_sessions).delete(revoke_all_user_sessions),
         )
         .route(
-            "/api/users/:user_id/sessions/:session_id",
+            "/api/users/{user_id}/sessions/{session_id}",
             delete(revoke_user_session),
         )
         // Platform auth endpoints (admin only)
         .route("/api/auth/platforms", get(list_platform_auth))
         .route(
-            "/api/auth/platforms/:platform",
+            "/api/auth/platforms/{platform}",
             get(get_platform_auth)
                 .put(set_platform_auth)
                 .delete(delete_platform_auth),
         )
         .route(
-            "/api/auth/platforms/:platform/test",
+            "/api/auth/platforms/{platform}/test",
             post(test_platform_auth),
         )
         // YouTube-specific cookie auth endpoint
@@ -207,23 +207,26 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
             get(crate::api::oauth::get_oauth_availability),
         )
         .route(
-            "/api/auth/platforms/:platform/oauth/start",
+            "/api/auth/platforms/{platform}/oauth/start",
             post(crate::api::oauth::start_oauth),
         )
         .route(
-            "/api/auth/platforms/:platform/oauth/callback",
+            "/api/auth/platforms/{platform}/oauth/callback",
             post(crate::api::oauth::oauth_callback),
         )
         // Libraries
         .route("/api/libraries", get(get_library_status))
         .route("/api/libraries/install", post(install_libraries))
-        .route("/api/libraries/:name/update", post(update_library))
-        .route("/api/libraries/:name", delete(uninstall_library))
+        .route("/api/libraries/{name}/update", post(update_library))
+        .route("/api/libraries/{name}", delete(uninstall_library))
         // Extensions
         .route("/api/extensions/connections", get(list_connections))
-        .route("/api/extensions/connections/:id", delete(disconnect_client))
         .route(
-            "/api/extensions/connections/:id/logs",
+            "/api/extensions/connections/{id}",
+            delete(disconnect_client),
+        )
+        .route(
+            "/api/extensions/connections/{id}/logs",
             get(get_connection_logs),
         )
         .route(
@@ -237,16 +240,16 @@ pub fn create_routes(state: Arc<AppState>) -> Router {
         .route("/api/downloads/cleanup", post(cleanup_downloads))
         .route("/api/downloads/merge", post(merge_downloads_handler))
         .route(
-            "/api/downloads/:id",
+            "/api/downloads/{id}",
             get(get_download).delete(delete_download),
         )
-        .route("/api/downloads/:id/pause", post(pause_download))
-        .route("/api/downloads/:id/resume", post(resume_download))
-        .route("/api/downloads/:id/cancel", post(cancel_download))
-        .route("/api/downloads/:id/prioritize", post(prioritize_download))
+        .route("/api/downloads/{id}/pause", post(pause_download))
+        .route("/api/downloads/{id}/resume", post(resume_download))
+        .route("/api/downloads/{id}/cancel", post(cancel_download))
+        .route("/api/downloads/{id}/prioritize", post(prioritize_download))
         // Aliases
         .route("/api/aliases", get(list_aliases).post(create_alias))
-        .route("/api/aliases/:alias_type/:key", delete(delete_alias))
+        .route("/api/aliases/{alias_type}/{key}", delete(delete_alias))
         // Shutdown endpoint (local-only mode)
         .route("/api/shutdown", post(shutdown))
         .with_state(state)

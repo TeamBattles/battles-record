@@ -310,7 +310,9 @@ fn calculate_directory_size(path: &std::path::Path) -> u64 {
 
 /** Get disk free and total space for the given path. */
 fn get_disk_stats(path: &std::path::Path) -> (u64, u64) {
-    let disks = Disks::new_with_refreshed_list();
+    let Ok(disks) = Disks::new_with_refreshed_list() else {
+        return (0, 0);
+    };
 
     // Try to get an absolute path for comparison
     let check_path = match path.canonicalize() {
@@ -326,7 +328,7 @@ fn get_disk_stats(path: &std::path::Path) -> (u64, u64) {
 
     // Find the disk that contains the path
     // Sort disks by mount point length (longest first) to find the most specific match
-    let mut disk_list: Vec<_> = disks.list().iter().collect();
+    let mut disk_list: Vec<_> = disks.iter().collect();
     disk_list.sort_by(|a, b| {
         b.mount_point()
             .as_os_str()
@@ -345,7 +347,7 @@ fn get_disk_stats(path: &std::path::Path) -> (u64, u64) {
     }
 
     // Fallback: try to find the root disk or any disk
-    if let Some(disk) = disks.list().first() {
+    if let Some(disk) = disks.first() {
         return (disk.available_space(), disk.total_space());
     }
 

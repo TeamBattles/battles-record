@@ -178,7 +178,7 @@ Install from the [Microsoft Store](https://apps.microsoft.com/detail/9MWBFBHK0JX
 ### Option 4: Build from Source
 
 ```bash
-# Prerequisites: Rust 1.75+, Node.js 18+, npm
+# Prerequisites: Rust 1.95+, Node.js 22.17+, npm
 
 # Clone the repository
 git clone https://github.com/TeamBattles/battles-record.git
@@ -443,8 +443,8 @@ The desktop app provides a full-featured interface for managing Battles Record.
 
 ```bash
 # Prerequisites
-# - Rust 1.75+
-# - Node.js 18+
+# - Rust 1.95+
+# - Node.js 22.17+
 # - npm
 
 # Clone the repository

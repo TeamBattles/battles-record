@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
-use hmac::{Hmac, Mac};
-use rand::Rng;
+use hmac::{Hmac, KeyInit, Mac};
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tracing::debug;
@@ -82,9 +82,8 @@ impl PairingManager {
         let hmac_key = if key_path.exists() {
             fs::read(&key_path)?
         } else {
-            let key: Vec<u8> = (0..HMAC_KEY_SIZE)
-                .map(|_| rand::thread_rng().gen())
-                .collect();
+            let mut key = vec![0u8; HMAC_KEY_SIZE];
+            rand::fill(&mut key[..]);
             let mut f = fs::File::create(&key_path)?;
             f.write_all(&key)?;
             f.sync_all()?;
@@ -106,10 +105,10 @@ impl PairingManager {
             return Err(PairingError::CooldownActive);
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let code: String = (0..CODE_LENGTH)
             .map(|_| {
-                let idx = rng.gen_range(0..CODE_CHARSET.len());
+                let idx = rng.random_range(0..CODE_CHARSET.len());
                 CODE_CHARSET[idx] as char
             })
             .collect();
@@ -242,7 +241,8 @@ fn compute_token_hash(key: &[u8], token: &str) -> String {
 }
 
 fn generate_random_token() -> String {
-    let bytes: Vec<u8> = (0..TOKEN_BYTES).map(|_| rand::thread_rng().gen()).collect();
+    let mut bytes = [0u8; TOKEN_BYTES];
+    rand::fill(&mut bytes[..]);
     hex::encode(bytes)
 }
 

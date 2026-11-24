@@ -104,11 +104,17 @@ async fn main() -> anyhow::Result<()> {
 
     let addr: SocketAddr = format!("{}:{}", config.daemon.host, config.daemon.port).parse()?;
 
-    let jwt_secret = config.auth.jwt_secret.clone().unwrap_or_else(|| {
-        let secret = uuid::Uuid::new_v4().to_string();
-        tracing::warn!("No JWT secret configured, generated temporary secret");
-        secret
-    });
+    // jsonwebtoken rejects empty HMAC keys, so an empty secret falls back to a generated one
+    let jwt_secret = config
+        .auth
+        .jwt_secret
+        .clone()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            let secret = uuid::Uuid::new_v4().to_string();
+            tracing::warn!("No JWT secret configured, generated temporary secret");
+            secret
+        });
 
     // Create storage manager (must be created before ChannelManager)
     let storage_manager = StorageManager::new(config.storage.clone())

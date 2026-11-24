@@ -18,7 +18,7 @@ use axum::{
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::{DateTime, Duration, Utc};
 use parking_lot::RwLock;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use sha2::{Digest, Sha256};
@@ -89,7 +89,7 @@ pub fn cleanup_expired_states(store: &OAuthStateStore) {
 
 /** Generate a cryptographically secure state token. */
 fn generate_state_token() -> String {
-    rand::thread_rng()
+    rand::rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)
@@ -98,7 +98,7 @@ fn generate_state_token() -> String {
 
 /** Generate a PKCE code verifier (43-128 characters, URL-safe). */
 fn generate_code_verifier() -> String {
-    rand::thread_rng()
+    rand::rng()
         .sample_iter(&Alphanumeric)
         .take(64)
         .map(char::from)

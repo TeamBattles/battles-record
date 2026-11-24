@@ -168,7 +168,12 @@ async fn install_bun_impl(app: &AppHandle, bin_dir: &PathBuf) -> Result<(), Stri
             .by_index(i)
             .map_err(|e| format!("Failed to read zip entry: {}", e))?;
 
-        if file.name().ends_with(binary_name) && !file.name().contains("bundler") {
+        // zip 9 returns an error for names it cannot decode; those can't be the binary we want
+        let Ok(name) = file.name().map(|n| n.into_owned()) else {
+            continue;
+        };
+
+        if name.ends_with(binary_name) && !name.contains("bundler") {
             let outpath = bin_dir.join(binary_name);
             let mut outfile = std::fs::File::create(&outpath)
                 .map_err(|e| format!("Failed to create file: {}", e))?;
