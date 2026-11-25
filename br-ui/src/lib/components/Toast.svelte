@@ -38,7 +38,7 @@
 >
 	<div class="flex min-w-0 items-start gap-2.5">
 		<Icon size={14} class={cn('mt-0.5 shrink-0', iconColor)} />
-		<p class="font-mono text-xs leading-relaxed break-all text-popover-foreground">{message}</p>
+		<p class="min-w-0 font-mono text-xs leading-relaxed wrap-anywhere text-popover-foreground">{message}</p>
 	</div>
 
 	{#if action}

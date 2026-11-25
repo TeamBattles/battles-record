@@ -170,7 +170,7 @@
 						>
 							{field.label}
 						</span>
-						<span class="font-mono text-xs text-text-2 break-all">{field.value}</span>
+						<span class="font-mono text-xs text-text-2 wrap-anywhere">{field.value}</span>
 					</div>
 				{/each}
 			</div>

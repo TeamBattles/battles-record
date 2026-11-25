@@ -9,7 +9,7 @@
 
 {#if toastStore.toasts.length > 0}
 	<div
-		class="fixed bottom-12 right-4 left-4 sm:left-auto sm:w-80 z-50 flex flex-col gap-2"
+		class="fixed bottom-12 right-4 left-4 sm:left-auto sm:w-96 z-50 flex flex-col gap-2"
 		aria-live="polite"
 	>
 		{#each toastStore.toasts as toast (toast.id)}

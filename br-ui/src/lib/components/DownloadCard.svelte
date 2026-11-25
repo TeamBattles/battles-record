@@ -167,7 +167,7 @@
 		<div class="mt-2 rounded border border-destructive/20 bg-destructive/5 px-2 py-1.5">
 			<div class="flex items-start gap-1.5">
 				<AlertTriangle class="w-3 h-3 text-destructive mt-0.5 shrink-0" />
-				<span class="font-mono text-[10px] text-destructive break-all">{download.error}</span>
+				<span class="font-mono text-[10px] text-destructive wrap-anywhere">{download.error}</span>
 			</div>
 			{#if download.update_available}
 				<Button
