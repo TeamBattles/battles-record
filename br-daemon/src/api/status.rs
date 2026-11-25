@@ -9,9 +9,10 @@ use std::sync::Arc;
 /// Bump when making breaking API changes that older clients can't handle.
 const MIN_CLIENT_VERSION: &str = "1.0.0";
 
-/// Maximum client version this daemon supports.
-/// Bump when newer clients rely on features this daemon doesn't have.
-const MAX_CLIENT_VERSION: &str = "1.99.99";
+/// Maximum client version this daemon supports: anything in its own major line.
+/// Derived from the crate version because a hardcoded "1.99.99" survived the 2.0.0
+/// bump and made every 2.0.0 client reject its own matching daemon.
+const MAX_CLIENT_VERSION: &str = concat!(env!("CARGO_PKG_VERSION_MAJOR"), ".99.99");
 
 #[derive(Debug, Serialize)]
 pub struct StatusResponse {
@@ -187,4 +188,24 @@ fn get_disk_usage(path: &std::path::Path) -> (u64, u64, f32) {
         }
     }
     (0, 0, 0.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::version_check::is_newer_version;
+
+    /// A client built from the same release as the daemon must always be accepted.
+    #[test]
+    fn own_version_is_within_client_range() {
+        let own = env!("CARGO_PKG_VERSION");
+        assert!(
+            !is_newer_version(own, MIN_CLIENT_VERSION),
+            "MIN {MIN_CLIENT_VERSION} > {own}"
+        );
+        assert!(
+            !is_newer_version(MAX_CLIENT_VERSION, own),
+            "MAX {MAX_CLIENT_VERSION} < {own}"
+        );
+    }
 }
