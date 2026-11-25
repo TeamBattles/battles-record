@@ -13,7 +13,13 @@
 		aria-live="polite"
 	>
 		{#each toastStore.toasts as toast (toast.id)}
-			<Toast id={toast.id} type={toast.type} message={toast.message} onDismiss={handleDismiss} />
+			<Toast
+				id={toast.id}
+				type={toast.type}
+				message={toast.message}
+				action={toast.action}
+				onDismiss={handleDismiss}
+			/>
 		{/each}
 	</div>
 {/if}

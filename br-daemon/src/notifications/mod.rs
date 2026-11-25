@@ -150,6 +150,7 @@ impl NotificationManager {
             | ManagerEvent::DownloadResumed { .. }
             | ManagerEvent::DownloadCancelled { .. }
             | ManagerEvent::LibraryStatusChanged { .. }
+            | ManagerEvent::LibraryInstallFailed { .. }
             | ManagerEvent::ExtensionConnected { .. }
             | ManagerEvent::ExtensionDisconnected { .. }
             | ManagerEvent::ChannelAdded { .. }

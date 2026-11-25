@@ -17,6 +17,8 @@
 	} from '#lib';
 	import { versionStore } from '#lib/stores/version.svelte.ts';
 	import CloseConfirmationDialog from '#lib/components/CloseConfirmationDialog.svelte';
+	import ExtensionRequestDialog from '#lib/components/ExtensionRequestDialog.svelte';
+	import { extensionGatewayStore } from '#lib/stores/extensionGateway.svelte.ts';
 	import { trackWindowFrame } from '#lib/utils/window-frame.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -47,6 +49,7 @@
 
 	let cleanupBreakpoint: (() => void) | undefined;
 	let cleanupAppearance: (() => void) | undefined;
+	let cleanupGateway: (() => void) | undefined;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let eruda: any = null;
 
@@ -96,6 +99,7 @@
 		cleanupBreakpoint = breakpointStore.init();
 		cleanupAppearance = appearanceStore.init();
 		welcomeStore.init();
+		cleanupGateway = extensionGatewayStore.init();
 
 		// Initialize async
 		initializeApp();
@@ -103,6 +107,7 @@
 		return () => {
 			cleanupBreakpoint?.();
 			cleanupAppearance?.();
+			cleanupGateway?.();
 			versionStore.destroy();
 			// Clean up eruda
 			if (eruda) {
@@ -200,6 +205,8 @@
 <AddServerModal open={showAddServerModal} onOpenChange={(v) => (showAddServerModal = v)} />
 
 <CloseConfirmationDialog />
+
+<ExtensionRequestDialog />
 
 <SessionExpiredModal />
 

@@ -2,6 +2,9 @@
 export const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000] as const;
 export const MAX_RECONNECT_TIME = 120000; // 2 minutes
 
+/** Ports the desktop app tries, in order, for the Battles Replay front door. */
+export const FRONT_DOOR_PORT_RANGE = '9555–9557';
+
 // Activity limits
 export const MAX_ACTIVITY_EVENTS = 1000;
 

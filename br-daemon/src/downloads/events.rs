@@ -27,6 +27,7 @@ pub enum DownloadEvent {
         download_id: Uuid,
         channel_name: String,
         error: String,
+        error_code: String,
         update_available: bool,
     },
     Paused {
@@ -69,6 +70,7 @@ mod tests {
             created_at: Utc::now(),
             completed_at: None,
             error: None,
+            error_code: None,
             update_available: false,
         }
     }
@@ -104,6 +106,7 @@ mod tests {
             download_id: id,
             channel_name: "test_channel".to_string(),
             error: "Network error".to_string(),
+            error_code: "ytdlp_failed".to_string(),
             update_available: false,
         };
         let _ = failed.clone();
@@ -139,6 +142,7 @@ mod tests {
             download_id: id,
             channel_name: "test_channel".to_string(),
             error: "timeout".to_string(),
+            error_code: "ytdlp_failed".to_string(),
             update_available: true,
         };
         let s = format!("{:?}", event);

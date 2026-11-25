@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Collapsible } from 'bits-ui';
 	import { Copy, Check, ChevronRight } from '@lucide/svelte';
-	import { api } from '#lib/api/client.ts';
+	import { extensionGatewayStore } from '#lib/stores/extensionGateway.svelte.ts';
 	import type { MessageLogEntry } from '#lib/api/types.ts';
 	import { cn } from '#lib/utils/cn.ts';
 	import { toastStore } from '#lib';
@@ -15,7 +15,7 @@
 
 	async function fetchLogs() {
 		try {
-			logs = await api.getExtensionConnectionLogs(connectionId);
+			logs = await extensionGatewayStore.getMessageLog(connectionId);
 			logs = [...logs].reverse();
 		} catch {
 			// Connection may have dropped

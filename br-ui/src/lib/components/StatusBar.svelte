@@ -4,17 +4,15 @@
 	import { connectionStore } from '#lib/stores/connection.svelte.ts';
 	import { channelsStore } from '#lib/stores/channels.svelte.ts';
 	import { storageStore } from '#lib/stores/storage.svelte.ts';
-	import { extensionsStore } from '#lib/stores/extensions.svelte.ts';
 	import ExtensionStatusBar from './ExtensionStatusBar.svelte';
 
-	// Load storage and extension data when connected, and refresh periodically
+	// Load storage data when connected, and refresh periodically
 	$effect(() => {
 		if (connectionStore.connectionState !== 'connected') return;
 
 		// Initial load
 		untrack(() => {
 			storageStore.load();
-			extensionsStore.load();
 		});
 
 		// Refresh every 60 seconds

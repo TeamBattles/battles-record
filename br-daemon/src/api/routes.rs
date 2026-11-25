@@ -455,7 +455,8 @@ async fn disconnect_client(
             if let Some(tx) = senders.get(&id) {
                 let _ = tx
                     .send(crate::extension::protocol::DaemonMessage::Disconnected {
-                        reason: "Unpaired by user".into(),
+                        code: "unpaired".into(),
+                        detail: None,
                     })
                     .await;
             }

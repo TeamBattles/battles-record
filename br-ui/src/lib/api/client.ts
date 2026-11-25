@@ -32,9 +32,6 @@ import type {
 	Download,
 	DownloadSummary,
 	CreateDownloadRequest,
-	ExtensionConnection,
-	ExtensionConfig,
-	MessageLogEntry,
 	LibraryStatus,
 	DownloadsConfig,
 	DownloadStorageStats,
@@ -730,44 +727,6 @@ export class ApiClient {
 
 	async prioritizeDownload(id: string): Promise<void> {
 		await this.fetch<void>(`/api/downloads/${id}/prioritize`, { method: 'POST' });
-	}
-
-	// ─── Extensions ───
-
-	async getExtensionConnections(): Promise<ExtensionConnection[]> {
-		const res = await this.fetch<ApiResponse<ExtensionConnection[]>>('/api/extensions/connections');
-		return res.data;
-	}
-
-	async disconnectExtension(id: string): Promise<void> {
-		await this.fetch<void>(`/api/extensions/connections/${id}`, { method: 'DELETE' });
-	}
-
-	async getExtensionConnectionLogs(id: string): Promise<MessageLogEntry[]> {
-		const res = await this.fetch<ApiResponse<MessageLogEntry[]>>(
-			`/api/extensions/connections/${id}/logs`
-		);
-		return res.data;
-	}
-
-	async getExtensionConfig(): Promise<ExtensionConfig> {
-		const res = await this.fetch<ApiResponse<ExtensionConfig>>('/api/extensions/config');
-		return res.data;
-	}
-
-	async updateExtensionConfig(config: Partial<ExtensionConfig>): Promise<ExtensionConfig> {
-		const res = await this.fetch<ApiResponse<ExtensionConfig>>('/api/extensions/config', {
-			method: 'PUT',
-			body: JSON.stringify(config)
-		});
-		return res.data;
-	}
-
-	async generatePairCode(): Promise<{ code: string }> {
-		const res = await this.fetch<ApiResponse<{ code: string }>>('/api/extensions/pair-code', {
-			method: 'POST'
-		});
-		return res.data;
 	}
 
 	// ─── Libraries ───

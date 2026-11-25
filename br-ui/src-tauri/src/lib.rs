@@ -1,9 +1,11 @@
 mod daemon;
 mod dependencies;
+mod extension_gateway;
 mod tray;
 mod youtube_bundle;
 
 use daemon::{DaemonState, DaemonStateMutex};
+use extension_gateway::tauri_host::{self, AppGateway, TauriGatewayHost};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager, RunEvent};
 use tauri_plugin_window_state::StateFlags;
@@ -101,6 +103,11 @@ pub fn run() {
             daemon::set_local_daemon_paths,
             dependencies::check_youtube_dependencies,
             dependencies::install_youtube_dependencies,
+            tauri_host::get_extension_gateway_status,
+            tauri_host::get_pending_extension_request,
+            tauri_host::respond_extension_request,
+            tauri_host::remove_extension_browser,
+            tauri_host::get_extension_message_log,
             show_in_folder,
         ])
         .setup(|app| {
@@ -125,6 +132,13 @@ pub fn run() {
 
             // Setup system tray
             tray::setup_tray(app)?;
+
+            let gateway = extension_gateway::Gateway::new(
+                Arc::new(TauriGatewayHost::new(app.handle().clone())),
+                extension_gateway::PROMPT_TIMEOUT,
+            );
+            app.manage(gateway.clone());
+            tauri::async_runtime::spawn(gateway.run(extension_gateway::FRONT_DOOR_PORTS.to_vec()));
 
             // Setup deep link handler for OAuth callbacks
             #[cfg(desktop)]
@@ -168,6 +182,9 @@ pub fn run() {
     // Run with exit handler to ensure daemon cleanup
     app.run(|app_handle, event| {
         if let RunEvent::Exit = event {
+            if let Some(gateway) = app_handle.try_state::<Arc<AppGateway>>() {
+                gateway.shutdown();
+            }
             // Ensure daemon is stopped when app exits for any reason
             let state = app_handle.state::<DaemonStateMutex>();
             let mut daemon = match state.lock() {

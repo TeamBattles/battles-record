@@ -46,6 +46,38 @@ pub enum LibraryError {
     NotFound { library: String },
 }
 
+impl LibraryError {
+    /// Stable code for the extension protocol; the error text travels separately as `detail`.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::DownloadFailed { .. } | Self::HttpStatus { .. } => "download_failed",
+            Self::Extraction { .. } => "extract_failed",
+            Self::Io { .. } | Self::NoBinDir => "storage_error",
+            Self::Unsupported { .. } => "unsupported_platform",
+            Self::NotFound { .. } => "not_found",
+        }
+    }
+
+    /// The library this error is about, in the extension's naming, when the error says.
+    pub fn library(&self) -> Option<&'static str> {
+        let name = match self {
+            Self::DownloadFailed { library, .. }
+            | Self::HttpStatus { library, .. }
+            | Self::Extraction { library, .. }
+            | Self::Unsupported { library, .. }
+            | Self::NotFound { library } => library,
+            Self::Io { .. } | Self::NoBinDir => return None,
+        };
+        if name.starts_with("yt-dlp") {
+            Some("ytdlp")
+        } else if name.starts_with("ffmpeg") {
+            Some("ffmpeg")
+        } else {
+            None
+        }
+    }
+}
+
 // -- Shared helpers used by ytdlp.rs and ffmpeg.rs --
 
 /// Download response body with progress reporting.
@@ -352,6 +384,19 @@ fn parse_ffmpeg_version(output: &str) -> Option<String> {
 mod tests {
     use super::platform::resolve_binary;
     use super::*;
+
+    #[test]
+    fn library_errors_map_to_wire_codes() {
+        let http = LibraryError::HttpStatus { library: "yt-dlp".to_string(), status: 503 };
+        assert_eq!((http.code(), http.library()), ("download_failed", Some("ytdlp")));
+        let extract = LibraryError::Extraction { library: "ffmpeg".to_string(), detail: "bad zip".to_string() };
+        assert_eq!((extract.code(), extract.library()), ("extract_failed", Some("ffmpeg")));
+        let unsupported = LibraryError::Unsupported { library: "ffmpeg".to_string(), detail: "riscv64".to_string() };
+        assert_eq!(unsupported.code(), "unsupported_platform");
+        let io = LibraryError::Io { context: "creating bin dir".to_string(), source: std::io::Error::other("denied") };
+        assert_eq!((io.code(), io.library()), ("storage_error", None));
+        assert_eq!(LibraryError::NoBinDir.code(), "storage_error");
+    }
 
     #[test]
     fn test_resolve_nonexistent_binary() {

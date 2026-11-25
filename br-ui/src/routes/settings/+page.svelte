@@ -49,6 +49,11 @@
 	import { untrack } from 'svelte';
 	import DaemonLogsModal from '#lib/components/DaemonLogsModal.svelte';
 	import MessageLogViewer from '#lib/components/MessageLogViewer.svelte';
+	import ExtensionGatewayStatus from '#lib/components/ExtensionGatewayStatus.svelte';
+	import StatusDot from '#lib/components/ui/StatusDot.svelte';
+	import { extensionGatewayStore } from '#lib/stores/extensionGateway.svelte.ts';
+	import { formatDate } from '#lib/utils/format.ts';
+	import { cn } from '#lib/utils/cn.ts';
 	import { extractErrorMessage } from '#lib/utils/errors.ts';
 
 	// Local daemon paths
@@ -84,6 +89,7 @@
 	let uninstallingLibrary = $state<string | null>(null);
 	let installingLibraries = $state<Set<string>>(new Set());
 	let expandedLogId = $state<string | null>(null);
+	const extensionBrowsers = $derived(extensionGatewayStore.status?.browsers ?? []);
 
 	// Load config when connection is established (handles initial load and tab switches)
 	$effect(() => {
@@ -1464,72 +1470,84 @@
 	<!-- Browser Extension -->
 	<Panel title="Browser Extension" icon={Plug}>
 		<div class="space-y-4">
-			<!-- WebSocket Port -->
-			<div>
-				<label
-					for="settings-ws-port"
-					class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-2"
-				>
-					WebSocket Port
-				</label>
-				<input
-					id="settings-ws-port"
-					type="number"
-					readonly
-					value={extensionsStore.config?.actual_port ?? extensionsStore.config?.port ?? 9849}
-					class="w-full max-w-xs rounded border border-border bg-well px-3 py-2 font-mono text-sm text-foreground opacity-70 cursor-not-allowed"
+			<ExtensionGatewayStatus showHelp />
+
+			<div class="flex items-center justify-between gap-4 border-t border-border pt-4">
+				<div>
+					<span id="settings-extension-autostart-label" class="block font-mono text-sm text-foreground">
+						Start Automatically
+					</span>
+					<p class="font-mono text-[10px] text-muted-foreground">
+						Start the local service without asking when an approved browser connects
+					</p>
+				</div>
+				<Switch
+					checked={settingsStore.settings.autoStartForExtension}
+					labelledby="settings-extension-autostart-label"
+					onCheckedChange={(checked) => {
+						settingsStore.settings.autoStartForExtension = checked;
+						settingsStore.save();
+					}}
 				/>
-				<p class="font-mono text-[9px] text-muted-foreground/70 mt-1">
-					Changing port requires daemon restart
-				</p>
 			</div>
 
-			<!-- Paired Browsers -->
 			<div class="border-t border-border pt-4">
-				<span class="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground mb-3">
-					Paired Browsers
+				<span class="mb-3 block font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+					Approved Browsers
 				</span>
 
-				{#if extensionsStore.connections.length === 0}
-					<p class="font-mono text-xs text-muted-foreground/70 py-2">No paired browsers</p>
+				{#if extensionBrowsers.length === 0}
+					<p class="py-2 font-mono text-xs text-muted-foreground">
+						{extensionGatewayStore.status?.serviceRunning
+							? 'No approved browsers yet'
+							: 'Start the local service to see approved browsers'}
+					</p>
 				{:else}
 					<div class="space-y-2">
-						{#each extensionsStore.connections as conn (conn.client_id)}
-							<div class="rounded border border-border bg-muted/30">
+						{#each extensionBrowsers as browser (browser.clientId)}
+							<div class="rounded border border-border bg-well">
 								<div class="flex items-center justify-between gap-3 px-3 py-2">
-									<div class="flex items-center gap-2 min-w-0">
-										<div class="size-2 rounded-full shrink-0 {conn.connected ? 'bg-green' : 'bg-destructive'}"></div>
+									<div class="flex min-w-0 items-center gap-2">
+										<StatusDot status={browser.connected ? 'success' : 'offline'} size="sm" />
 										<div class="min-w-0">
-											<p class="font-mono text-sm text-foreground truncate">{conn.identifier}</p>
+											<p class="truncate font-mono text-sm text-foreground">{browser.identifier}</p>
 											<p class="font-mono text-[10px] text-muted-foreground">
-												Last connected: {new Date(conn.last_connected).toLocaleDateString()}
+												{browser.connected ? 'Connected' : 'Not connected'}{#if browser.lastConnected}
+													&middot; Last connected {formatDate(browser.lastConnected)}{/if}
 											</p>
 										</div>
 									</div>
-									<div class="flex items-center gap-1.5 shrink-0">
-										{#if conn.connected}
-											<button
-												class="rounded border border-border bg-muted/50 p-1.5 text-muted-foreground hover:text-foreground hover:bg-hover-wash transition-colors"
-												onclick={() => (expandedLogId = expandedLogId === conn.client_id ? null : conn.client_id)}
-												title="Message log"
+									<div class="flex shrink-0 items-center gap-1.5">
+										{#if browser.connected}
+											<Button
+												intent="ghost"
+												size="sm"
+												aria-label="Message log"
+												aria-expanded={expandedLogId === browser.clientId}
+												onclick={() =>
+													(expandedLogId = expandedLogId === browser.clientId ? null : browser.clientId)}
 											>
 												<ChevronDown
 													size={12}
-													class="transition-transform {expandedLogId === conn.client_id ? 'rotate-180' : ''}"
+													class={cn(
+														'transition-transform',
+														expandedLogId === browser.clientId && 'rotate-180'
+													)}
 												/>
-											</button>
+											</Button>
 										{/if}
-										<button
-											class="rounded border border-destructive/30 bg-destructive/10 px-2 py-1 font-mono text-[10px] text-destructive hover:bg-destructive/20 transition-colors"
-											onclick={() => extensionsStore.disconnect(conn.client_id)}
+										<Button
+											intent="danger"
+											size="sm"
+											onclick={() => extensionGatewayStore.removeBrowser(browser.clientId)}
 										>
-											{conn.connected ? 'Disconnect' : 'Remove'}
-										</button>
+											Remove
+										</Button>
 									</div>
 								</div>
-								{#if expandedLogId === conn.client_id && conn.connected}
+								{#if expandedLogId === browser.clientId && browser.connected}
 									<div class="border-t border-border px-3 py-2">
-										<MessageLogViewer connectionId={conn.client_id} />
+										<MessageLogViewer connectionId={browser.clientId} />
 									</div>
 								{/if}
 							</div>
@@ -1537,8 +1555,7 @@
 					</div>
 				{/if}
 			</div>
-
-			</div>
+		</div>
 	</Panel>
 
 

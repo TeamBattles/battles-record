@@ -113,7 +113,8 @@ impl ExtensionServer {
                     if !senders.is_empty() {
                         info!(count = senders.len(), "Disconnecting extension clients");
                         let disconnect_msg = crate::extension::protocol::DaemonMessage::Disconnected {
-                            reason: "Server shutting down".into(),
+                            code: "server_shutdown".into(),
+                            detail: None,
                         };
                         for (_, sender) in senders.iter() {
                             let _ = sender.try_send(disconnect_msg.clone());

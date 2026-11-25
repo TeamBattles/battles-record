@@ -350,6 +350,7 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             channel_name,
             error,
             update_available,
+            ..
         } => Some(WsEvent::DownloadFailed {
             download_id,
             channel_name,
@@ -374,6 +375,9 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             installed,
             version,
         }),
+        // Only extension-initiated installs raise this; the app's own installs report through
+        // their REST response.
+        ManagerEvent::LibraryInstallFailed { .. } => None,
         ManagerEvent::ExtensionConnected {
             client_id,
             identifier,

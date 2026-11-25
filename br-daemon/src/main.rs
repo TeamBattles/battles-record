@@ -87,6 +87,18 @@ async fn main() -> anyhow::Result<()> {
         config.downloads.directory = PathBuf::from(downloads_dir);
     }
 
+    // The desktop app picks a private port and fronts it on 9555 itself, so fallbacks would only
+    // make the daemon land somewhere the app isn't relaying to.
+    if let Some(port_str) = std::env::args().skip_while(|a| a != "--extension-port").nth(1) {
+        if let Ok(port) = port_str.parse::<u16>() {
+            tracing::info!("Extension port override via --extension-port flag: {}", port);
+            config.extension.port = port;
+            config.extension.fallback_ports.clear();
+        } else {
+            tracing::warn!("Invalid --extension-port value '{}', using config value", port_str);
+        }
+    }
+
     // Check for --local-only flag (skips auth for localhost connections)
     let local_only = std::env::args().any(|a| a == "--local-only");
     if local_only {
@@ -886,11 +898,13 @@ fn convert_download_event(event: DownloadEvent) -> ManagerEvent {
             download_id,
             channel_name,
             error,
+            error_code,
             update_available,
         } => ManagerEvent::DownloadFailed {
             download_id,
             channel_name,
             error,
+            error_code,
             update_available,
         },
         DownloadEvent::Paused { download_id } => ManagerEvent::DownloadPaused { download_id },

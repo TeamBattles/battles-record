@@ -146,6 +146,8 @@ pub enum ManagerEvent {
         download_id: Uuid,
         channel_name: String,
         error: String,
+        /// Wire code for the extension (see `DownloadError::code`); `error` stays the readable text.
+        error_code: String,
         update_available: bool,
     },
     DownloadPaused {
@@ -163,6 +165,11 @@ pub enum ManagerEvent {
         library: String,
         installed: bool,
         version: Option<String>,
+    },
+    LibraryInstallFailed {
+        library: String,
+        code: String,
+        detail: Option<String>,
     },
 
     ChannelAdded {

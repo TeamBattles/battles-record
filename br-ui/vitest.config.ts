@@ -18,7 +18,8 @@ export default defineConfig({
 		globals: true,
 		setupFiles: ['./src/tests/setup.ts'],
 		alias: {
-			'$app/env': '/src/tests/mocks/app-env.ts'
+			'$app/env': '/src/tests/mocks/app-env.ts',
+			'$app/paths': '/src/tests/mocks/app-paths.ts'
 		},
 		coverage: {
 			provider: 'v8',

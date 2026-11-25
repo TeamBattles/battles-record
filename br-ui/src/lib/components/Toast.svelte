@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from '@lucide/svelte';
-	import type { ToastType } from '#lib/stores/toast.svelte.ts';
+	import type { ToastAction, ToastType } from '#lib/stores/toast.svelte.ts';
 	import { cn } from '#lib/utils/cn.ts';
 
 	/** Arena toast: popover surface with a status-colored glyph. */
@@ -8,10 +8,11 @@
 		id: string;
 		type: ToastType;
 		message: string;
+		action?: ToastAction;
 		onDismiss: (id: string) => void;
 	}
 
-	let { id, type, message, onDismiss }: Props = $props();
+	let { id, type, message, action, onDismiss }: Props = $props();
 
 	const iconColors = {
 		success: 'text-green',
@@ -39,6 +40,18 @@
 		<Icon size={14} class={cn('mt-0.5 shrink-0', iconColor)} />
 		<p class="font-mono text-xs leading-relaxed break-all text-popover-foreground">{message}</p>
 	</div>
+
+	{#if action}
+		<button
+			class="mt-2 ml-6 rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-primary transition-colors hover:bg-hover-wash focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+			onclick={() => {
+				action.onClick();
+				onDismiss(id);
+			}}
+		>
+			{action.label}
+		</button>
+	{/if}
 
 	<button
 		class="absolute top-2 right-2 rounded p-0.5 transition-colors hover:bg-hover-wash"

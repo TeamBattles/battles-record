@@ -17,6 +17,8 @@ export interface AppSettings {
 	localDaemonDataDir: string | null;
 	localDaemonLibraryDir: string | null;
 	localDaemonDownloadsDir: string | null;
+	/** Start the local service without asking when an approved Battles Replay browser connects. */
+	autoStartForExtension: boolean;
 	// Debug
 	debugConsole: boolean;
 }
@@ -28,6 +30,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
 	localDaemonDownloadsDir: null,
+	autoStartForExtension: false,
 	debugConsole: false
 };
 

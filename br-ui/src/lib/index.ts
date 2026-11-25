@@ -11,6 +11,7 @@ export { connectionStore } from './stores/connection.svelte';
 export { recordingsStore } from './stores/recordings.svelte';
 export { downloadsStore } from './stores/downloads.svelte';
 export { extensionsStore } from './stores/extensions.svelte';
+export { extensionGatewayStore } from './stores/extensionGateway.svelte';
 export { toastStore } from './stores/toast.svelte';
 export { activityStore } from './stores/activity.svelte';
 export { platformAuthStore } from './stores/platformAuth.svelte';
@@ -59,5 +60,5 @@ export { default as DependencyInstaller } from './components/DependencyInstaller
 export { default as UpdateBanner } from './components/UpdateBanner.svelte';
 export { default as ExtensionStatusBar } from './components/ExtensionStatusBar.svelte';
 export { default as ConnectionDropdown } from './components/ConnectionDropdown.svelte';
-export { default as ConnectionPanelContent } from './components/ConnectionPanelContent.svelte';
+export { default as ExtensionRequestDialog } from './components/ExtensionRequestDialog.svelte';
 export { default as MessageLogViewer } from './components/MessageLogViewer.svelte';

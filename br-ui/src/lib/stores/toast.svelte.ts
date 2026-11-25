@@ -1,18 +1,24 @@
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
+export interface ToastAction {
+	label: string;
+	onClick: () => void;
+}
+
 export interface Toast {
 	id: string;
 	type: ToastType;
 	message: string;
 	duration: number;
+	action?: ToastAction;
 }
 
 class ToastStore {
 	toasts = $state<Toast[]>([]);
 
-	add(type: ToastType, message: string, duration = 5000): string {
+	add(type: ToastType, message: string, duration = 5000, action?: ToastAction): string {
 		const id = crypto.randomUUID();
-		this.toasts = [...this.toasts, { id, type, message, duration }];
+		this.toasts = [...this.toasts, { id, type, message, duration, action }];
 
 		if (duration > 0) {
 			setTimeout(() => this.dismiss(id), duration);
@@ -25,8 +31,8 @@ class ToastStore {
 		this.toasts = this.toasts.filter((t) => t.id !== id);
 	}
 
-	success(message: string): string {
-		return this.add('success', message, 5000);
+	success(message: string, action?: ToastAction): string {
+		return this.add('success', message, action ? 8000 : 5000, action);
 	}
 
 	error(message: string): string {

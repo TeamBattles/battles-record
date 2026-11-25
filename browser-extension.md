@@ -8,7 +8,7 @@ This document specifies the changes required in the Battles Replay browser exten
 
 ## 1. Overview
 
-The extension connects to the battles-record daemon via WebSocket on localhost. When a user visits a supported site (YouTube, Instagram, TikTok, etc.), the extension can trigger downloads that are executed by the daemon using yt-dlp. Download progress is streamed back in real-time.
+The extension connects to the Battles Record desktop app via WebSocket on localhost. The app owns the extension port and relays to the daemon's extension server on a private port (see Section 16). When a user visits a supported site (YouTube, Instagram, TikTok, etc.), the extension can trigger downloads that are executed by the daemon using yt-dlp. Download progress is streamed back in real-time.
 
 ---
 
@@ -22,9 +22,9 @@ WebSocket client with auto-reconnect and port fallback.
 
 1. On extension startup, check `chrome.storage.local` for cached port and pairing token
 2. If cached port exists, try that first. Otherwise try ports in order: 9555, 9556, 9557
-3. On WebSocket open, send `hello` with token (if stored)
-4. If `requires_pairing: true` in response, prompt user for pair code + identifier
-5. On successful pair, store token and port in `chrome.storage.local`
+3. On WebSocket open, send `hello` with token (if stored), the browser name as `identifier`, and `interactive: true` when the user clicked Connect or Try again
+4. If `requires_pairing: true` in response and the connection is interactive, send `request_pairing { identifier }` and wait (up to 130s) for the user to approve in the desktop app; a non-interactive connection stops instead of asking
+5. On `paired`, store token and port in `chrome.storage.local`; on `connection_denied` or `pair_failed`, show wording for its `code` and stop reconnecting until the user clicks Try again
 6. Auto-reconnect with exponential backoff (1s, 2s, 4s, 8s, max 30s)
 7. On `port_changed` message, store new port and reconnect to it
 
@@ -237,15 +237,15 @@ If the user sets a custom port in extension settings:
 |----------|-------------------|
 | Desktop app not running | "Connect to Battles Record" prompt, auto-reconnect with exponential backoff (1s, 2s, 4s, 8s, max 30s) |
 | Libraries not installed | "Download Required Libraries" banner |
-| Pair code expired (5-min TTL) | Request new pair code automatically |
-| Pair code wrong 5 times | Code invalidated, new code generated. After 3 invalidated codes, 5-min cooldown. Show appropriate message. |
+| Local service stopped | App asks the user to start it; extension shows "waiting" from `connection_status`, then connects or shows `connection_denied` |
+| User clicks Not now / Deny, or nobody answers in 2 minutes | `connection_denied` with a code; extension stops reconnecting until Try again |
 | Extract info timeout | Show error, offer retry button |
 | Download failed | Show error message from daemon |
 | Download failed + outdated yt-dlp | Show error + "Update yt-dlp" action |
 | Quota exceeded | Show quota warning with usage details |
 | WebSocket disconnected mid-download | Show disconnected state, auto-reconnect, downloads continue on daemon |
 | Port changed | Auto-reconnect to new port (daemon sends 2s before switching) |
-| Daemon shutting down | Receive `disconnected { reason: "Server shutting down" }`, show status, auto-reconnect attempts begin |
+| Daemon shutting down | Receive `disconnected { code: "server_shutdown" }`, show status, auto-reconnect attempts begin |
 
 ---
 
@@ -265,14 +265,14 @@ The extension can add channels to the daemon's live stream recording list. This 
 { "type": "channel_added", "id": "req_010", "channel_id": "uuid", "name": "xqc", "platform": "twitch" }
 ```
 
-**Daemon responds (duplicate):**
+**Daemon responds (duplicate):** `existing_id` is the channel already in the list, so the extension can show it as added and offer Remove.
 ```json
-{ "type": "error", "id": "req_010", "code": "CHANNEL_EXISTS", "message": "Channel 'xqc' already exists for twitch" }
+{ "type": "error", "id": "req_010", "code": "channel_exists", "existing_id": "uuid" }
 ```
 
 **Daemon responds (invalid platform):**
 ```json
-{ "type": "error", "id": "req_010", "code": "INVALID_PLATFORM", "message": "Unsupported platform: tiktok. Use twitch, youtube, or kick." }
+{ "type": "error", "id": "req_010", "code": "invalid_platform" }
 ```
 
 ### Behavior
@@ -313,12 +313,12 @@ The extension can remove channels from the daemon's live stream recording list, 
 
 **Daemon responds (invalid UUID):**
 ```json
-{ "type": "error", "id": "req_011", "code": "INVALID_ID", "message": "Invalid channel ID: not-a-uuid" }
+{ "type": "error", "id": "req_011", "code": "invalid_id" }
 ```
 
 **Daemon responds (not found):**
 ```json
-{ "type": "error", "id": "req_011", "code": "CHANNEL_NOT_FOUND", "message": "No channel found with ID: 550e8400-..." }
+{ "type": "error", "id": "req_011", "code": "channel_not_found" }
 ```
 
 **Daemon broadcasts (channel deleted from app):**
@@ -414,7 +414,7 @@ The daemon has been adjusted to accommodate the extension's actual implementatio
 | Extra `id` fields on all messages | Silently ignored. Serde does not use `deny_unknown_fields`. Extension can send `id` on any message type. |
 | `options` omitted on `download` | Server-side defaults apply: `embed_thumbnail: true`, `embed_metadata: true`. |
 | `libraries_installed` boolean in `hello` | Added as a convenience summary: `true` when both yt-dlp and FFmpeg are installed. Extension should still parse the full `libraries` object for version info. |
-| `pair_failed` reason strings | Standardized to: `"Code expired"`, `"Invalid code"`, `"Code invalidated"`, `"Rate limited"`. |
+| `pair_failed` codes | `code_expired`, `invalid_code`, `code_invalidated`, `rate_limited`, `pairing_unavailable` (see Section 17). |
 | `port_changed` uses `new_port` field | The field name is `new_port` (not `port`). Extension must read `msg.new_port`. |
 
 ### Extension-side bugs to fix (in battles-replay repo)
@@ -429,3 +429,112 @@ These are known issues in the extension that need to be fixed separately:
 6. **Handle unsolicited `error` messages** without matching request `id` - currently falls through unhandled
 7. **Fix `bridgeAutoExtract` setting** - toggle exists but auto-extract fires regardless of value
 8. **No library install progress UI** - event infrastructure exists but no component renders progress bars (future iteration)
+
+---
+
+## 16. Connecting Through the Desktop App
+
+The desktop app listens on `127.0.0.1:9555` (falling back to `9556`, then `9557`) whenever it is open, whatever server its window is viewing. The daemon it runs as a sidecar binds its extension server to a private loopback port (`--extension-port`), and the app relays each approved connection to it. Extension downloads and channel changes therefore always reach **this PC's local service**.
+
+### Who may connect
+
+A WebSocket handshake whose `Origin` header is present but not `chrome-extension://…` or `moz-extension://…` is refused with HTTP 403, so websites cannot reach the bridge or trigger prompts. Requests without an `Origin` (local non-browser processes) are accepted.
+
+### Approval instead of pair codes
+
+There are no pair codes in the app or the extension. When a browser without a valid token connects, the user approves it in the app and the app completes pairing with the daemon itself: it fetches a code from the daemon's local `POST /api/extensions/pair-code` and sends `pair` upstream. The daemon still issues and verifies the tokens. A `pair` sent by an extension is never forwarded; the app answers `pair_failed { code: "extension_outdated" }`.
+
+| Situation | Prompt in the app |
+|-----------|-------------------|
+| Service stopped, browser has a token | "Start the local service?" (skipped when "Start automatically" is on) |
+| Service stopped, browser has no token | One combined "wants to connect" prompt; accepting also approves the browser |
+| Service running, browser has no token | "Allow … to connect?" |
+
+Only one prompt is shown at a time; a reconnect asking the same question joins the open prompt. Prompts time out after 2 minutes. After the user declines, or stops the service themselves, non-interactive reconnects are refused with `service_stopped` and no prompt until an interactive connect or a start of the service.
+
+### Messages
+
+| Direction | Message | Notes |
+|-----------|---------|-------|
+| ext → app | `hello { …, interactive?: bool, identifier?: string }` | Extra fields are ignored by the daemon |
+| ext → app | `request_pairing { id, identifier }` | Handled by the app, never forwarded |
+| app → ext | `connection_status { state }` | `awaiting_start`, `awaiting_approval` or `starting` |
+| app → ext | `connection_denied { code, detail? }`, then close | `service_stopped`, `service_declined`, `service_start_failed`, `pairing_declined` or `approval_timeout` |
+| app → ext | `disconnected { code: "service_stopped" }`, then close | The daemon side of a relayed connection ended |
+
+---
+
+## 17. Error Codes
+
+Every failure carries a stable snake_case code; the extension owns the wording. `detail`, when present, is diagnostic text for logs or a secondary line (what yt-dlp printed, which IO call failed) and must never be matched on.
+
+### `error { id?, code, detail?, existing_id?, used_bytes?, limit_bytes? }`
+
+| Code | When | Extra fields |
+|------|------|--------------|
+| `timeout` | No `hello` within 10 s | |
+| `invalid_message` | Message could not be parsed | `detail`: parser error |
+| `protocol_error` | First message was not `hello`, or something other than `pair` arrived during pairing | `detail` |
+| `invalid_token` | Saved token is invalid or revoked | |
+| `ytdlp_missing` | yt-dlp is not installed | |
+| `ytdlp_failed` | yt-dlp failed or timed out | `detail`: yt-dlp's message |
+| `already_queued` | The URL is already queued or downloading | `existing_id` |
+| `quota_exceeded` | Download quota reached | `used_bytes`, `limit_bytes` |
+| `invalid_channel` | Channel name failed validation | |
+| `not_found` | No download with that id | |
+| `still_active` | Download is active and cannot be removed | |
+| `storage_error` | Index or disk failure | `detail` |
+| `invalid_id` | Download or channel id is not a UUID | |
+| `unknown_library` | Library name not recognised | |
+| `uninstall_failed` | Library could not be removed | `detail` |
+| `not_ready` | Channel merging is not available | |
+| `invalid_platform` | Platform is not twitch, youtube or kick | |
+| `channel_exists` | Channel already in the recording list | `existing_id`: that channel's id |
+| `channel_not_found` | No channel with that id | |
+
+Download request codes (`ytdlp_missing` through `storage_error`) replace the former `EXTRACT_FAILED`, `DOWNLOAD_FAILED`, `PAUSE_FAILED`, `RESUME_FAILED`, `CANCEL_FAILED` and `PRIORITIZE_FAILED`; the request's `id` says which operation failed.
+
+### `pair_failed { code, detail? }`
+
+| Code | From | When |
+|------|------|------|
+| `code_expired` | Daemon | No active code, or it expired |
+| `invalid_code` | Daemon | Wrong code |
+| `code_invalidated` | Daemon | Too many wrong attempts burned the code |
+| `rate_limited` | Daemon | Cooldown after repeated burned codes |
+| `pairing_unavailable` | Daemon or app | Pairing could not be saved, or the app could not get a code (`detail`) |
+| `extension_outdated` | App | The extension sent a pair code; it must use `request_pairing` |
+
+### `disconnected { code, detail? }`
+
+| Code | From | When |
+|------|------|------|
+| `server_shutdown` | Daemon | The daemon is shutting down |
+| `unpaired` | Daemon | The browser was removed in Battles Record; clear the saved token |
+| `service_stopped` | App | The local service behind the relay stopped |
+
+### `download_failed { download_id, error_code, detail?, update_available }`
+
+Download summaries (`queue_state`, `existing_downloads`) carry the same `error_code` and `detail` for failed jobs.
+
+| `error_code` | When |
+|--------------|------|
+| `ytdlp_failed` | yt-dlp exited with an error (`detail`: its last `ERROR:` line, when it printed one) |
+| `ytdlp_missing` | yt-dlp could not be found |
+| `interrupted` | The app restarted while the download was running |
+| `storage_error` | Index or disk failure (`detail`) |
+
+### `library_install_failed { library, code, detail? }`
+
+Sent when an `install_libraries` or `update_library` request fails in the background. `library` is `ytdlp` or `ffmpeg`, or `all` when an install-everything request fails somewhere not tied to one library. `detail` carries the underlying error.
+
+| Code | When |
+|------|------|
+| `download_failed` | The download failed or the server returned an HTTP error |
+| `extract_failed` | The downloaded archive could not be unpacked |
+| `unsupported_platform` | No build exists for this OS or CPU |
+| `storage_error` | The managed bin directory could not be found or written |
+
+### `connection_denied { code, detail? }`
+
+See Section 16. `detail` is present for `service_start_failed` when the start error is known.

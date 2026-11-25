@@ -1,11 +1,45 @@
 use uuid::Uuid;
 
 use crate::downloads::job::{CookieData, DownloadRequest};
+use crate::downloads::DownloadError;
 use crate::extension::connection::SharedState;
+use crate::libraries::LibraryError;
 use crate::extension::protocol::{
-    CookieEntry, DaemonMessage, DownloadJobSummary as ProtoDownloadJobSummary, ExtensionMessage,
-    FormatInfo as ProtoFormatInfo,
+    download_failure_detail, CookieEntry, DaemonMessage, DownloadJobSummary as ProtoDownloadJobSummary,
+    ExtensionMessage, FormatInfo as ProtoFormatInfo,
 };
+
+/// A failed download request as a coded `error`: the cause's fields travel as data (the existing
+/// job id, the quota numbers) rather than inside a sentence.
+fn download_error(id: &str, error: &DownloadError) -> DaemonMessage {
+    let code = error.code();
+    let mut existing = None;
+    let mut quota = None;
+    match error {
+        DownloadError::DuplicateUrl { existing_id, .. } => existing = Some(existing_id.to_string()),
+        DownloadError::QuotaExceeded { used_bytes, limit_bytes } => quota = Some((*used_bytes, *limit_bytes)),
+        _ => {}
+    }
+    DaemonMessage::Error {
+        id: Some(id.to_string()),
+        code: code.to_string(),
+        detail: download_failure_detail(code, &error.to_string()),
+        existing_id: existing,
+        used_bytes: quota.map(|(used, _)| used),
+        limit_bytes: quota.map(|(_, limit)| limit),
+    }
+}
+
+/// Install and update requests run in the background, so their failures are broadcast like
+/// their successes. `library` is `all` when an install-everything request fails somewhere the
+/// error doesn't pin to one library (the managed bin directory, for instance).
+fn library_install_failed(library: &str, error: &LibraryError) -> crate::manager::ManagerEvent {
+    crate::manager::ManagerEvent::LibraryInstallFailed {
+        library: library.to_string(),
+        code: error.code().to_string(),
+        detail: Some(error.to_string()),
+    }
+}
 
 /// Persist current channel list to the config file.
 fn save_channels_to_config(state: &SharedState) {
@@ -96,6 +130,7 @@ pub async fn handle_message(
                 let mut m = manager.lock().await;
                 if let Err(e) = m.install_all(None).await {
                     tracing::error!(error = ?e, "Failed to install libraries");
+                    let _ = event_tx.send(library_install_failed(e.library().unwrap_or("all"), &e));
                     return;
                 }
                 // Emit status for each library after install
@@ -127,6 +162,7 @@ pub async fn handle_message(
                 };
                 if let Err(e) = result {
                     tracing::error!(error = ?e, library = %library, "Failed to update library");
+                    let _ = event_tx.send(library_install_failed(&library, &e));
                     return;
                 }
                 // Emit status after update
@@ -151,21 +187,17 @@ pub async fn handle_message(
                 "ffmpeg" => "ffmpeg",
                 "bun" => "bun",
                 _ => {
-                    return Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "UNKNOWN_LIBRARY".into(),
-                        message: format!("Unknown library: {}", library),
-                    });
+                    return Some(DaemonMessage::error(Some(id.clone()), "unknown_library"));
                 }
             };
 
             let mut mgr = state.library_manager.lock().await;
             if let Err(e) = mgr.uninstall_library(binary_name).await {
-                return Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "UNINSTALL_FAILED".into(),
-                    message: format!("Failed to uninstall {}: {}", library, e),
-                });
+                return Some(DaemonMessage::error_with_detail(
+                    Some(id.clone()),
+                    "uninstall_failed",
+                    e.to_string(),
+                ));
             }
 
             // Use API-style name (e.g. "ytdlp" not "yt-dlp") for consistency with install/update events
@@ -225,7 +257,12 @@ pub async fn handle_message(
                             requested_by_name: j.requested_by_name.clone(),
                             created_at: j.created_at.to_rfc3339(),
                             completed_at: j.completed_at.map(|t| t.to_rfc3339()),
-                            error: j.error,
+                            detail: j
+                                .error_code
+                                .as_deref()
+                                .zip(j.error.as_deref())
+                                .and_then(|(code, text)| download_failure_detail(code, text)),
+                            error_code: j.error_code,
                             update_available: j.update_available,
                         })
                         .collect();
@@ -252,11 +289,7 @@ pub async fn handle_message(
                         existing_downloads: existing,
                     })
                 }
-                Err(e) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "EXTRACT_FAILED".into(),
-                    message: e.to_string(),
-                }),
+                Err(e) => Some(download_error(id, &e)),
             }
         }
 
@@ -319,11 +352,7 @@ pub async fn handle_message(
                     id: id.clone(),
                     download_id: download_id.to_string(),
                 }),
-                Err(e) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "DOWNLOAD_FAILED".into(),
-                    message: e.to_string(),
-                }),
+                Err(e) => Some(download_error(id, &e)),
             }
         }
 
@@ -334,17 +363,9 @@ pub async fn handle_message(
                         id: id.clone(),
                         download_id: download_id.clone(),
                     }),
-                    Err(e) => Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "PAUSE_FAILED".into(),
-                        message: e.to_string(),
-                    }),
+                    Err(e) => Some(download_error(id, &e)),
                 },
-                Err(_) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "INVALID_ID".into(),
-                    message: format!("Invalid download ID: {}", download_id),
-                }),
+                Err(_) => Some(DaemonMessage::error(Some(id.clone()), "invalid_id")),
             }
         }
 
@@ -355,17 +376,9 @@ pub async fn handle_message(
                         id: id.clone(),
                         download_id: download_id.clone(),
                     }),
-                    Err(e) => Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "RESUME_FAILED".into(),
-                        message: e.to_string(),
-                    }),
+                    Err(e) => Some(download_error(id, &e)),
                 },
-                Err(_) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "INVALID_ID".into(),
-                    message: format!("Invalid download ID: {}", download_id),
-                }),
+                Err(_) => Some(DaemonMessage::error(Some(id.clone()), "invalid_id")),
             }
         }
 
@@ -376,17 +389,9 @@ pub async fn handle_message(
                         id: id.clone(),
                         download_id: download_id.clone(),
                     }),
-                    Err(e) => Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "CANCEL_FAILED".into(),
-                        message: e.to_string(),
-                    }),
+                    Err(e) => Some(download_error(id, &e)),
                 },
-                Err(_) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "INVALID_ID".into(),
-                    message: format!("Invalid download ID: {}", download_id),
-                }),
+                Err(_) => Some(DaemonMessage::error(Some(id.clone()), "invalid_id")),
             }
         }
 
@@ -397,17 +402,9 @@ pub async fn handle_message(
                         id: id.clone(),
                         download_id: download_id.clone(),
                     }),
-                    Err(e) => Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "PRIORITIZE_FAILED".into(),
-                        message: e.to_string(),
-                    }),
+                    Err(e) => Some(download_error(id, &e)),
                 },
-                Err(_) => Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "INVALID_ID".into(),
-                    message: format!("Invalid download ID: {}", download_id),
-                }),
+                Err(_) => Some(DaemonMessage::error(Some(id.clone()), "invalid_id")),
             }
         }
 
@@ -438,18 +435,21 @@ pub async fn handle_message(
                     requested_by_name: j.requested_by_name.clone(),
                     created_at: j.created_at.to_rfc3339(),
                     completed_at: j.completed_at.map(|t| t.to_rfc3339()),
-                    error: j.error.clone(),
+                    error_code: j.error_code.clone(),
+                    detail: j
+                        .error_code
+                        .as_deref()
+                        .zip(j.error.as_deref())
+                        .and_then(|(code, text)| download_failure_detail(code, text)),
                     update_available: j.update_available,
                 })
                 .collect();
             Some(DaemonMessage::QueueState { downloads })
         }
 
-        ExtensionMessage::MergeChannels { id, .. } => Some(DaemonMessage::Error {
-            id: Some(id.clone()),
-            code: "NOT_READY".into(),
-            message: "Merge system not initialized".into(),
-        }),
+        ExtensionMessage::MergeChannels { id, .. } => {
+            Some(DaemonMessage::error(Some(id.clone()), "not_ready"))
+        }
 
         ExtensionMessage::AddChannel { id, name, platform } => {
             // Parse platform string
@@ -458,24 +458,23 @@ pub async fn handle_message(
                 "youtube" => crate::types::Platform::YouTube,
                 "kick" => crate::types::Platform::Kick,
                 _ => {
-                    return Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "INVALID_PLATFORM".into(),
-                        message: format!("Unsupported platform: {}. Use twitch, youtube, or kick.", platform),
-                    });
+                    return Some(DaemonMessage::error(Some(id.clone()), "invalid_platform"));
                 }
             };
 
-            // Check for duplicates
+            // The existing channel's id lets the extension treat the channel as added (and offer
+            // Remove) instead of being stuck with a channel it has no id for.
             let existing = state.channel_manager.get_channels();
-            let duplicate = existing.iter().any(|ch| {
+            if let Some(duplicate) = existing.iter().find(|ch| {
                 ch.name.eq_ignore_ascii_case(&name) && ch.platform == parsed_platform
-            });
-            if duplicate {
+            }) {
                 return Some(DaemonMessage::Error {
                     id: Some(id.clone()),
-                    code: "CHANNEL_EXISTS".into(),
-                    message: format!("Channel '{}' already exists for {}", name, platform),
+                    code: "channel_exists".to_string(),
+                    detail: None,
+                    existing_id: Some(duplicate.id.to_string()),
+                    used_bytes: None,
+                    limit_bytes: None,
                 });
             }
 
@@ -529,21 +528,13 @@ pub async fn handle_message(
             let uuid = match Uuid::parse_str(&channel_id) {
                 Ok(u) => u,
                 Err(_) => {
-                    return Some(DaemonMessage::Error {
-                        id: Some(id.clone()),
-                        code: "INVALID_ID".into(),
-                        message: format!("Invalid channel ID: {}", channel_id),
-                    });
+                    return Some(DaemonMessage::error(Some(id.clone()), "invalid_id"));
                 }
             };
 
             let result = state.channel_manager.remove_channel(uuid);
             let Some((channel, shutdown_tx)) = result else {
-                return Some(DaemonMessage::Error {
-                    id: Some(id.clone()),
-                    code: "CHANNEL_NOT_FOUND".into(),
-                    message: format!("No channel found with ID: {}", channel_id),
-                });
+                return Some(DaemonMessage::error(Some(id.clone()), "channel_not_found"));
             };
 
             // Persist to config file
@@ -603,6 +594,28 @@ mod tests {
 
     fn test_client_id() -> Uuid {
         Uuid::nil()
+    }
+
+    #[test]
+    fn download_errors_carry_their_structured_fields() {
+        let existing = Uuid::new_v4();
+        let duplicate = DownloadError::DuplicateUrl { url: "https://x".to_string(), existing_id: existing };
+        let json = serde_json::to_value(download_error("r1", &duplicate)).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({"type": "error", "id": "r1", "code": "already_queued", "existing_id": existing.to_string()})
+        );
+
+        let quota = DownloadError::QuotaExceeded { used_bytes: 10, limit_bytes: 20 };
+        let json = serde_json::to_value(download_error("r2", &quota)).unwrap();
+        assert_eq!(json["code"], "quota_exceeded");
+        assert_eq!(json["used_bytes"], 10);
+        assert_eq!(json["limit_bytes"], 20);
+
+        let io = DownloadError::Io(std::io::Error::other("disk full"));
+        let json = serde_json::to_value(download_error("r3", &io)).unwrap();
+        assert_eq!(json["code"], "storage_error");
+        assert_eq!(json["detail"], "IO error: disk full");
     }
 
     async fn make_state() -> (SharedState, TempDir) {
@@ -712,7 +725,7 @@ mod tests {
         match resp {
             Some(DaemonMessage::Error { id, code, .. }) => {
                 assert_eq!(id, Some("req-1".to_string()));
-                assert_eq!(code, "EXTRACT_FAILED");
+                assert_eq!(code, "ytdlp_missing");
             }
             other => panic!("expected Error, got {:?}", other),
         }
@@ -758,7 +771,7 @@ mod tests {
         let resp = handle_message(&msg, &state, test_client_id()).await;
         match resp {
             Some(DaemonMessage::Error { code, .. }) => {
-                assert_eq!(code, "INVALID_ID");
+                assert_eq!(code, "invalid_id");
             }
             other => panic!("expected Error, got {:?}", other),
         }
@@ -774,7 +787,7 @@ mod tests {
         let resp = handle_message(&msg, &state, test_client_id()).await;
         match resp {
             Some(DaemonMessage::Error { code, .. }) => {
-                assert_eq!(code, "PAUSE_FAILED");
+                assert_eq!(code, "not_found");
             }
             other => panic!("expected Error, got {:?}", other),
         }
@@ -800,7 +813,7 @@ mod tests {
         ] {
             let resp = handle_message(&msg, &state, test_client_id()).await;
             assert!(
-                matches!(resp, Some(DaemonMessage::Error { code, .. }) if code == "INVALID_ID")
+                matches!(resp, Some(DaemonMessage::Error { code, .. }) if code == "invalid_id")
             );
         }
     }
@@ -829,10 +842,10 @@ mod tests {
         };
         let resp = handle_message(&msg, &state, test_client_id()).await;
         match resp {
-            Some(DaemonMessage::Error { id, code, message }) => {
+            Some(DaemonMessage::Error { id, code, detail, .. }) => {
                 assert_eq!(id, Some("req-5".to_string()));
-                assert_eq!(code, "NOT_READY");
-                assert!(message.contains("Merge"));
+                assert_eq!(code, "not_ready");
+                assert!(detail.is_none());
             }
             other => panic!("expected Error, got {:?}", other),
         }
@@ -854,6 +867,25 @@ mod tests {
         };
         let resp = handle_message(&msg, &state, test_client_id()).await;
         assert!(resp.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_add_channel_duplicate_carries_existing_id() {
+        let (state, _tmp) = make_state().await;
+        let config: crate::config::ChannelConfig =
+            serde_json::from_value(serde_json::json!({"name": "Shroud", "platform": "twitch"})).unwrap();
+        let existing = state.channel_manager.add_channel(config);
+
+        let msg = ExtensionMessage::AddChannel {
+            id: "req-1".to_string(),
+            name: "shroud".to_string(),
+            platform: "Twitch".to_string(),
+        };
+        let resp = handle_message(&msg, &state, test_client_id()).await;
+        assert_eq!(
+            serde_json::to_value(resp).unwrap(),
+            serde_json::json!({"type": "error", "id": "req-1", "code": "channel_exists", "existing_id": existing.to_string()})
+        );
     }
 
     #[tokio::test]

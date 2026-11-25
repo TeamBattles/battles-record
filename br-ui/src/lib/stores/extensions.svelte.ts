@@ -1,11 +1,10 @@
 import { api } from '#lib/api/client.ts';
 import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
-import type { ExtensionConnection, ExtensionConfig, LibraryStatus } from '#lib/api/types.ts';
+import type { LibraryStatus } from '#lib/api/types.ts';
 import { extractErrorMessage } from '#lib/utils/errors.ts';
 
+/** Library status on the active server. Browser connections live in extensionGatewayStore. */
 class ExtensionsStore {
-	connections = $state<ExtensionConnection[]>([]);
-	config = $state<ExtensionConfig | null>(null);
 	libraryStatus = $state<LibraryStatus | null>(null);
 	isLoading = $state(false);
 	error = $state<string | null>(null);
@@ -18,33 +17,6 @@ class ExtensionsStore {
 
 	private handleWebSocketEvent(event: WebSocketEvent) {
 		switch (event.type) {
-			case 'extension_connected': {
-				const existing = this.connections.find((c) => c.client_id === event.client_id);
-				if (existing) {
-					this.connections = this.connections.map((c) =>
-						c.client_id === event.client_id ? { ...c, connected: true } : c
-					);
-				} else {
-					// New connection not yet in our list - add it
-					this.connections = [
-						...this.connections,
-						{
-							client_id: event.client_id,
-							identifier: event.identifier,
-							paired_at: new Date().toISOString(),
-							last_connected: new Date().toISOString(),
-							connected: true
-						}
-					];
-				}
-				break;
-			}
-			case 'extension_disconnected': {
-				this.connections = this.connections.map((c) =>
-					c.client_id === event.client_id ? { ...c, connected: false } : c
-				);
-				break;
-			}
 			case 'library_status_changed': {
 				if (this.libraryStatus) {
 					const key = event.library as keyof LibraryStatus;
@@ -72,34 +44,19 @@ class ExtensionsStore {
 
 	async load(serverId?: string) {
 		const isServerSwitch = serverId != null && serverId !== this._loadedServerId;
-		if (!this.connections.length || isServerSwitch) {
+		if (!this.libraryStatus || isServerSwitch) {
 			this.isLoading = true;
 		}
 		this.error = null;
 
 		try {
-			const [connections, config, libraryStatus] = await Promise.all([
-				api.getExtensionConnections(),
-				api.getExtensionConfig(),
-				api.getLibraryStatus()
-			]);
-			this.connections = connections;
-			this.config = config;
-			this.libraryStatus = libraryStatus;
+			this.libraryStatus = await api.getLibraryStatus();
 			if (serverId) this._loadedServerId = serverId;
 		} catch (e) {
-			this.error = extractErrorMessage(e, 'Failed to load extension data');
+			this.error = extractErrorMessage(e, 'Failed to load library status');
 		} finally {
 			this.isLoading = false;
 		}
-	}
-
-	get connectedCount(): number {
-		return this.connections.filter((c) => c.connected).length;
-	}
-
-	get totalPaired(): number {
-		return this.connections.length;
 	}
 
 	async loadLibraryStatus() {
@@ -107,15 +64,6 @@ class ExtensionsStore {
 			this.libraryStatus = await api.getLibraryStatus();
 		} catch {
 			// Best-effort refresh
-		}
-	}
-
-	async disconnect(clientId: string) {
-		try {
-			await api.disconnectExtension(clientId);
-			this.connections = this.connections.filter((c) => c.client_id !== clientId);
-		} catch (e) {
-			this.error = extractErrorMessage(e, 'Failed to disconnect extension');
 		}
 	}
 

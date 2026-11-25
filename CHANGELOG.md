@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rounded app window corners on Windows and Linux, following the Rounding setting and squaring off when maximized
 - Appearance settings shared with teambattles.gg and Battles Replay: background (Onyx, Navy, Graphite, Bone, System), accent (red, amber, cyan, lime), rounding (sharp, soft, round), density (comfortable, compact), high contrast and reduced motion
 - Honeycomb (hex mesh) pattern on page headers, panel headers and dialog headers, with an accent ripple on page headers
+- Battles Replay connects by approval: click Connect in the extension and allow it in Battles Record, with no pair code to copy
+- Battles Record offers to start the local service when Battles Replay connects, with an option to always start it
 
 ### Changed
 
@@ -30,18 +32,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropdowns (page filters, Settings, cleanup tools, channel settings) use the app's own menu instead of the system dropdown, fixing their doubled border and the focus outline that reappeared after picking an option
 - New Battles Record icon (scroll and quill) for the app window, taskbar, tray, installers, Store tiles, favicon and README
 - Default window size raised to 900x800 so the Welcome Screen fits without scrolling; a window that would open larger than the screen is shrunk to fit
+- The app listens for Battles Replay on 127.0.0.1:9555 (falling back to 9556 and 9557) whichever server it is viewing; extension downloads and channels go to this PC's local service, whose extension server now runs on a private port
+- Settings > Browser Extension shows the extension port, the local service state, an option to start the service automatically and the approved browsers; the status bar's extension menu shows the same
+- Messages to Battles Replay carry snake_case error codes instead of English sentences: `error`, `pair_failed`, `disconnected` and `connection_denied` have a `code`, download failures and summaries an `error_code`, and optional `detail` text is diagnostic only; `already_queued` carries `existing_id` and `quota_exceeded` its byte counts. The former `EXTRACT_FAILED`/`DOWNLOAD_FAILED`/`*_FAILED` codes are replaced by codes for the actual cause
 
 ### Removed
 
 - "Show Corner Brackets" setting, replaced by the new appearance settings
 - Unused `notify` and `@sveltejs/adapter-auto` dependencies
+- Pair codes for the browser extension, and the library and downloads summary in the status bar's extension menu
 
 ### Fixed
 
 - Cleanup Tools and Manual Token Entry cards no longer show square corners behind their rounded edges
+- Battles Replay could not connect while the app was viewing a remote server, and the only way to pair it was a hard-to-find button in the status bar
 - "Enter token manually" on a platform card now opens the manual token form for that platform instead of only changing its selection
 - An empty `jwt_secret` now falls back to a generated temporary secret instead of signing tokens with an empty key
 - Treat explicit empty extension cookie lists as anonymous for previews and downloads; explicit cookies bypass automatic yt-dlp account configuration, while omitted cookies retain daemon-local fallback.
+- Adding a channel from Battles Replay that is already in the recording list now returns that channel's id (`existing_id` on `channel_exists`), so the extension can offer Remove for it
+- Library installs and updates requested by Battles Replay that fail now send `library_install_failed` with a code (`download_failed`, `extract_failed`, `unsupported_platform`, `storage_error`) instead of only being logged
 
 ## [1.4.0] - 2026-03-26
 

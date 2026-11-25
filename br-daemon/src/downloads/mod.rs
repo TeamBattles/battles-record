@@ -45,6 +45,29 @@ pub enum DownloadError {
     Io(#[from] std::io::Error),
 }
 
+impl DownloadError {
+    /// Wire code the extension receives instead of the Display text.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::YtdlpNotAvailable => "ytdlp_missing",
+            Self::Ytdlp(e) => ytdlp_error_code(e),
+            Self::InvalidChannelName(_) => "invalid_channel",
+            Self::NotFound(_) => "not_found",
+            Self::StillActive(_) => "still_active",
+            Self::QuotaExceeded { .. } => "quota_exceeded",
+            Self::DuplicateUrl { .. } => "already_queued",
+            Self::Index(_) | Self::Io(_) => "storage_error",
+        }
+    }
+}
+
+fn ytdlp_error_code(error: &ytdlp::YtdlpDownloadError) -> &'static str {
+    match error {
+        ytdlp::YtdlpDownloadError::NotFound(_) => "ytdlp_missing",
+        _ => "ytdlp_failed",
+    }
+}
+
 enum JobCommand {
     Pause,
     Cancel,
@@ -231,6 +254,7 @@ impl DownloadManager {
                     index.update(&id, |j| {
                         j.status = DownloadStatus::Failed;
                         j.error = Some("Interrupted by app restart".to_string());
+                        j.error_code = Some("interrupted".to_string());
                         j.completed_at = Some(Utc::now());
                     });
                     failed += 1;
@@ -395,6 +419,7 @@ impl DownloadManager {
             created_at: now,
             completed_at: None,
             error: None,
+            error_code: None,
         };
 
         // Add to index
@@ -904,10 +929,12 @@ async fn run_download_task(
                 }
             }
             let err_msg = e.to_string();
+            let error_code = ytdlp_error_code(&e);
             let mut idx = index.write().await;
             idx.update(&job_id, |j| {
                 j.status = DownloadStatus::Failed;
                 j.error = Some(err_msg.clone());
+                j.error_code = Some(error_code.to_string());
                 j.completed_at = Some(Utc::now());
             });
             let _ = idx.force_save().await;
@@ -915,6 +942,7 @@ async fn run_download_task(
                 download_id: job_id,
                 channel_name: job.channel_name.clone(),
                 error: err_msg,
+                error_code: error_code.to_string(),
                 update_available: false,
             });
             return Err(e.into());
@@ -1014,6 +1042,7 @@ async fn run_download_task(
                         idx.update(&job_id, |j| {
                             j.status = DownloadStatus::Failed;
                             j.error = Some(err_msg.clone());
+                            j.error_code = Some("ytdlp_failed".to_string());
                             j.completed_at = Some(Utc::now());
                         });
                         let _ = idx.force_save().await;
@@ -1021,16 +1050,19 @@ async fn run_download_task(
                             download_id: job_id,
                             channel_name: job.channel_name.clone(),
                             error: err_msg,
+                            error_code: "ytdlp_failed".to_string(),
                             update_available: false,
                         });
                         return Ok(());
                     }
                     Err(e) => {
                         let err_msg = e.to_string();
+                        let error_code = ytdlp_error_code(&e);
                         let mut idx = index.write().await;
                         idx.update(&job_id, |j| {
                             j.status = DownloadStatus::Failed;
                             j.error = Some(err_msg.clone());
+                            j.error_code = Some(error_code.to_string());
                             j.completed_at = Some(Utc::now());
                         });
                         let _ = idx.force_save().await;
@@ -1038,6 +1070,7 @@ async fn run_download_task(
                             download_id: job_id,
                             channel_name: job.channel_name.clone(),
                             error: err_msg,
+                            error_code: error_code.to_string(),
                             update_available: false,
                         });
                         return Ok(());
@@ -1111,6 +1144,26 @@ async fn find_output_file(dir: &std::path::Path) -> (Option<PathBuf>, u64) {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn download_errors_map_to_wire_codes() {
+        let id = Uuid::nil();
+        let cases: Vec<(DownloadError, &str)> = vec![
+            (DownloadError::YtdlpNotAvailable, "ytdlp_missing"),
+            (DownloadError::Ytdlp(ytdlp::YtdlpDownloadError::NotFound(PathBuf::from("yt-dlp"))), "ytdlp_missing"),
+            (DownloadError::Ytdlp(ytdlp::YtdlpDownloadError::DownloadFailed("ERROR: x".into())), "ytdlp_failed"),
+            (DownloadError::Ytdlp(ytdlp::YtdlpDownloadError::Timeout(30)), "ytdlp_failed"),
+            (DownloadError::InvalidChannelName("..".into()), "invalid_channel"),
+            (DownloadError::NotFound(id), "not_found"),
+            (DownloadError::StillActive(id), "still_active"),
+            (DownloadError::QuotaExceeded { used_bytes: 1, limit_bytes: 2 }, "quota_exceeded"),
+            (DownloadError::DuplicateUrl { url: "u".into(), existing_id: id }, "already_queued"),
+            (DownloadError::Io(std::io::Error::other("disk")), "storage_error"),
+        ];
+        for (error, code) in cases {
+            assert_eq!(error.code(), code, "{error}");
+        }
+    }
 
     // --- validate_channel_name tests ---
 

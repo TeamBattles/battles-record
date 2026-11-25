@@ -89,6 +89,10 @@ pub enum ExtensionMessage {
 }
 
 /// Messages sent from the daemon to the browser extension.
+///
+/// Failures carry a stable snake_case `code` (`error_code` on downloads) that the extension maps to
+/// its own wording. `detail` is optional diagnostic text (a yt-dlp `ERROR:` line, an IO error) for
+/// logs and secondary display; it is never meant to be matched on.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum DaemonMessage {
@@ -105,7 +109,9 @@ pub enum DaemonMessage {
         identifier: String,
     },
     PairFailed {
-        reason: String,
+        code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
     },
     InfoResult {
         id: String,
@@ -145,7 +151,9 @@ pub enum DaemonMessage {
     },
     DownloadFailed {
         download_id: String,
-        error: String,
+        error_code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
         #[serde(default)]
         update_available: bool,
     },
@@ -195,7 +203,9 @@ pub enum DaemonMessage {
     },
     LibraryInstallFailed {
         library: String,
-        error: String,
+        code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
     },
     LibraryUninstalled {
         id: String,
@@ -210,7 +220,9 @@ pub enum DaemonMessage {
         new_port: u16,
     },
     Disconnected {
-        reason: String,
+        code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
     },
     ChannelsMerged {
         platform: String,
@@ -236,8 +248,50 @@ pub enum DaemonMessage {
         #[serde(skip_serializing_if = "Option::is_none")]
         id: Option<String>,
         code: String,
-        message: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        /// With `already_queued`: the job that already has this URL.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        existing_id: Option<String>,
+        /// With `quota_exceeded`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        used_bytes: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        limit_bytes: Option<u64>,
     },
+}
+
+impl DaemonMessage {
+    pub fn error(id: Option<String>, code: &str) -> Self {
+        Self::Error {
+            id,
+            code: code.to_string(),
+            detail: None,
+            existing_id: None,
+            used_bytes: None,
+            limit_bytes: None,
+        }
+    }
+
+    pub fn error_with_detail(id: Option<String>, code: &str, detail: impl Into<String>) -> Self {
+        Self::Error {
+            id,
+            code: code.to_string(),
+            detail: Some(detail.into()),
+            existing_id: None,
+            used_bytes: None,
+            limit_bytes: None,
+        }
+    }
+}
+
+/// Download failure text worth passing on as `detail`: only for codes whose cause the code alone
+/// cannot describe (what yt-dlp printed, which IO call failed).
+pub fn download_failure_detail(error_code: &str, text: &str) -> Option<String> {
+    match error_code {
+        "ytdlp_failed" | "storage_error" if !text.is_empty() => Some(text.to_string()),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -321,7 +375,9 @@ pub struct DownloadJobSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
+    pub error_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
     #[serde(default)]
     pub update_available: bool,
 }
@@ -329,7 +385,7 @@ pub struct DownloadJobSummary {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     #[test]
     fn test_extension_hello_with_token() {
@@ -529,32 +585,57 @@ mod tests {
 
     #[test]
     fn test_daemon_error_serialization() {
-        let msg = DaemonMessage::Error {
-            id: Some("req-5".to_string()),
-            code: "not_found".to_string(),
-            message: "Download not found".to_string(),
-        };
+        let msg = DaemonMessage::error_with_detail(Some("req-5".to_string()), "storage_error", "IO error: disk full");
 
         let json: Value = serde_json::to_value(&msg).unwrap();
-        assert_eq!(json["type"], "error");
-        assert_eq!(json["id"], "req-5");
-        assert_eq!(json["code"], "not_found");
-        assert_eq!(json["message"], "Download not found");
+        assert_eq!(
+            json,
+            json!({"type": "error", "id": "req-5", "code": "storage_error", "detail": "IO error: disk full"})
+        );
     }
 
     #[test]
-    fn test_daemon_error_without_id() {
-        let msg = DaemonMessage::Error {
-            id: None,
-            code: "internal".to_string(),
-            message: "Something went wrong".to_string(),
-        };
+    fn test_daemon_error_without_id_or_detail() {
+        let json: Value = serde_json::to_value(DaemonMessage::error(None, "invalid_token")).unwrap();
+        assert_eq!(json, json!({"type": "error", "code": "invalid_token"}));
+    }
 
-        let json_str = serde_json::to_string(&msg).unwrap();
-        // id should be omitted when None
-        let json: Value = serde_json::from_str(&json_str).unwrap();
-        assert!(json.get("id").is_none());
-        assert_eq!(json["code"], "internal");
+    #[test]
+    fn test_pair_failed_and_disconnected_carry_codes_not_text() {
+        let failed = DaemonMessage::PairFailed { code: "invalid_code".to_string(), detail: None };
+        assert_eq!(serde_json::to_value(failed).unwrap(), json!({"type": "pair_failed", "code": "invalid_code"}));
+        let gone = DaemonMessage::Disconnected { code: "unpaired".to_string(), detail: None };
+        assert_eq!(serde_json::to_value(gone).unwrap(), json!({"type": "disconnected", "code": "unpaired"}));
+    }
+
+    #[test]
+    fn test_library_install_failed_carries_code_not_text() {
+        let msg = DaemonMessage::LibraryInstallFailed {
+            library: "ytdlp".to_string(),
+            code: "download_failed".to_string(),
+            detail: None,
+        };
+        assert_eq!(
+            serde_json::to_value(msg).unwrap(),
+            json!({"type": "library_install_failed", "library": "ytdlp", "code": "download_failed"})
+        );
+    }
+
+    #[test]
+    fn test_download_failed_carries_code_and_optional_detail() {
+        let msg = DaemonMessage::DownloadFailed {
+            download_id: "d1".to_string(),
+            error_code: "ytdlp_failed".to_string(),
+            detail: Some("ERROR: Video unavailable".to_string()),
+            update_available: false,
+        };
+        assert_eq!(
+            serde_json::to_value(msg).unwrap(),
+            json!({
+                "type": "download_failed", "download_id": "d1", "error_code": "ytdlp_failed",
+                "detail": "ERROR: Video unavailable", "update_available": false
+            })
+        );
     }
 
     #[test]

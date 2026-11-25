@@ -41,6 +41,19 @@ pub enum PairingError {
     Io(#[from] std::io::Error),
 }
 
+impl PairingError {
+    /// Wire code sent in `pair_failed`.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::NoActiveCode | Self::CodeExpired => "code_expired",
+            Self::InvalidCode => "invalid_code",
+            Self::CodeInvalidated => "code_invalidated",
+            Self::CooldownActive => "rate_limited",
+            Self::Io(_) => "pairing_unavailable",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PairedClient {
     pub id: Uuid,
@@ -253,6 +266,16 @@ mod tests {
 
     fn create_manager(dir: &Path) -> PairingManager {
         PairingManager::new(dir).unwrap()
+    }
+
+    #[test]
+    fn pairing_errors_map_to_wire_codes() {
+        assert_eq!(PairingError::NoActiveCode.code(), "code_expired");
+        assert_eq!(PairingError::CodeExpired.code(), "code_expired");
+        assert_eq!(PairingError::InvalidCode.code(), "invalid_code");
+        assert_eq!(PairingError::CodeInvalidated.code(), "code_invalidated");
+        assert_eq!(PairingError::CooldownActive.code(), "rate_limited");
+        assert_eq!(PairingError::Io(std::io::Error::other("disk")).code(), "pairing_unavailable");
     }
 
     #[test]

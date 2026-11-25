@@ -163,6 +163,7 @@ mod tests {
             created_at: Utc::now() - Duration::hours(2),
             completed_at,
             error: None,
+            error_code: None,
         }
     }
 

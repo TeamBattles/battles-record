@@ -499,27 +499,36 @@ export interface CreateDownloadRequest {
 
 // ─── Extensions ───
 
-export interface ExtensionConnection {
-	client_id: string;
-	identifier: string;
-	paired_at: string;
-	last_connected: string;
-	connected: boolean;
-	connected_at?: string;
-}
-
-export interface ExtensionConfig {
-	enabled: boolean;
-	port: number;
-	actual_port?: number;
-	fallback_ports: number[];
-}
-
 export interface MessageLogEntry {
 	timestamp: string;
 	direction: 'sent' | 'received';
 	message_type: string;
 	payload?: string;
+}
+
+// ─── Extension gateway (the desktop app's front door for Battles Replay) ───
+
+export interface GatewayBrowser {
+	clientId: string;
+	identifier: string;
+	connected: boolean;
+	lastConnected: string;
+}
+
+export interface GatewayStatus {
+	listening: boolean;
+	port: number | null;
+	serviceRunning: boolean;
+	browsers: GatewayBrowser[];
+}
+
+export type GatewayPromptKind = 'start' | 'allow' | 'start_and_allow';
+
+export interface GatewayPromptEvent {
+	requestId: string;
+	kind: GatewayPromptKind;
+	identifier: string | null;
+	origin: string | null;
 }
 
 // ─── Libraries ───

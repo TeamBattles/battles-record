@@ -19,6 +19,8 @@ pub enum DaemonStatus {
 pub struct DaemonState {
     pub status: DaemonStatus,
     pub port: Option<u16>,
+    /// Private port of the daemon's extension server; the gateway relays 9555 to it.
+    pub extension_port: Option<u16>,
     pub process: Option<CommandChild>,
     pub logs: VecDeque<String>,
     pub config_path: Option<PathBuf>,
@@ -32,6 +34,7 @@ impl Default for DaemonState {
         Self {
             status: DaemonStatus::Stopped,
             port: None,
+            extension_port: None,
             process: None,
             logs: VecDeque::new(),
             config_path: None,
@@ -85,6 +88,16 @@ fn find_available_port(base_port: u16) -> Option<u16> {
     None
 }
 
+/// Lets the OS choose a free loopback port. The listener is dropped before the daemon binds it,
+/// which leaves a small race, but the daemon logs a bind failure and the gateway then reports the
+/// service as unreachable rather than hanging.
+fn pick_private_port() -> Option<u16> {
+    TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|listener| listener.local_addr())
+        .map(|addr| addr.port())
+        .ok()
+}
+
 /// Check if daemon is responding on the given port
 async fn health_check(port: u16) -> bool {
     let url = format!("http://127.0.0.1:{}/health", port);
@@ -94,6 +107,11 @@ async fn health_check(port: u16) -> bool {
     }
 }
 
+/// How long a second caller waits for a start already in flight (the health check alone allows ~6 s).
+const START_WAIT_ATTEMPTS: u32 = 75;
+
+/// Starting is claimed under the lock, so the app's own startup and an extension prompt answered at
+/// the same moment share one daemon instead of spawning two and orphaning the first.
 #[tauri::command]
 pub async fn start_local_daemon(
     app: tauri::AppHandle,
@@ -102,16 +120,49 @@ pub async fn start_local_daemon(
     library_dir: Option<String>,
     downloads_dir: Option<String>,
 ) -> Result<u16, String> {
-    // Check if already running
-    {
-        let daemon = state.lock().map_err(|e| e.to_string())?;
-        if let DaemonStatus::Running = daemon.status {
-            if let Some(port) = daemon.port {
-                return Ok(port);
+    let mut attempts = 0;
+    loop {
+        {
+            let mut daemon = state.lock().map_err(|e| e.to_string())?;
+            match daemon.status {
+                DaemonStatus::Running if daemon.port.is_some() => {
+                    return daemon.port.ok_or_else(|| "Daemon has no port".to_string());
+                }
+                DaemonStatus::Starting | DaemonStatus::Stopping => {
+                    if attempts >= START_WAIT_ATTEMPTS {
+                        return Err("The local service is still starting".to_string());
+                    }
+                }
+                _ => {
+                    daemon.status = DaemonStatus::Starting;
+                    break;
+                }
+            }
+        }
+        attempts += 1;
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+
+    let result = spawn_daemon(app, state.clone(), data_dir, library_dir, downloads_dir).await;
+    if result.is_err() {
+        if let Ok(mut daemon) = state.lock() {
+            if !matches!(daemon.status, DaemonStatus::Running) {
+                daemon.status = DaemonStatus::Stopped;
+                daemon.port = None;
+                daemon.extension_port = None;
             }
         }
     }
+    result
+}
 
+async fn spawn_daemon(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, DaemonStateMutex>,
+    data_dir: Option<String>,
+    library_dir: Option<String>,
+    downloads_dir: Option<String>,
+) -> Result<u16, String> {
     // Get app data directory for config and recordings
     let app_data_dir = app
         .path()
@@ -160,12 +211,14 @@ pub async fn start_local_daemon(
 
     // Find available port
     let port = find_available_port(8080).ok_or("No available port found")?;
+    let extension_port = pick_private_port().ok_or("No free port for the extension service")?;
 
     // Update status to starting
     {
         let mut daemon = state.lock().map_err(|e| e.to_string())?;
         daemon.status = DaemonStatus::Starting;
         daemon.port = Some(port);
+        daemon.extension_port = Some(extension_port);
         daemon.config_path = Some(config_path.clone());
         daemon.data_dir = Some(resolved_data_dir.clone());
         daemon.library_dir = resolved_library_dir.clone();
@@ -178,6 +231,7 @@ pub async fn start_local_daemon(
         "--config".to_string(), config_path.to_string_lossy().to_string(),
         "--data-dir".to_string(), resolved_data_dir.to_string_lossy().to_string(),
         "--local-only".to_string(),
+        "--extension-port".to_string(), extension_port.to_string(),
     ];
 
     // Add library-dir if specified and different from data_dir
@@ -262,6 +316,7 @@ pub async fn start_local_daemon(
             }
             // Update tray status
             crate::tray::update_tray_status(&app);
+            crate::extension_gateway::tauri_host::service_started(&app);
             return Ok(port);
         }
         log::debug!("Health check attempt {}/{}", attempt + 1, max_attempts);
@@ -275,6 +330,7 @@ pub async fn start_local_daemon(
         }
         daemon.status = DaemonStatus::Stopped;
         daemon.port = None;
+        daemon.extension_port = None;
     }
 
     Err("Daemon failed to start within timeout".to_string())
@@ -324,11 +380,13 @@ pub async fn stop_local_daemon(
 
         daemon.status = DaemonStatus::Stopped;
         daemon.port = None;
+        daemon.extension_port = None;
         log::info!("br-daemon stopped");
     }
 
     // Update tray status
     crate::tray::update_tray_status(&app);
+    crate::extension_gateway::tauri_host::service_stopped(&app);
 
     Ok(())
 }

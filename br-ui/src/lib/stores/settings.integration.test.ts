@@ -57,6 +57,7 @@ const mockSettings: AppSettings = {
 	localDaemonDataDir: null,
 	localDaemonLibraryDir: null,
 	localDaemonDownloadsDir: null,
+	autoStartForExtension: false,
 	debugConsole: false
 };
 
@@ -70,6 +71,7 @@ function resetStore() {
 			localDaemonDataDir: null,
 			localDaemonLibraryDir: null,
 			localDaemonDownloadsDir: null,
+			autoStartForExtension: false,
 			debugConsole: false
 		};
 		settingsStore.isLoaded = false;

@@ -205,6 +205,7 @@ mod tests {
             created_at: Utc::now(),
             completed_at: None,
             error: None,
+            error_code: None,
         }
     }
 

@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::downloads::DownloadManager;
 use crate::extension::handler;
 use crate::extension::pairing::PairingManager;
-use crate::extension::protocol::{DaemonMessage, ExtensionMessage};
+use crate::extension::protocol::{download_failure_detail, DaemonMessage, ExtensionMessage};
 use crate::libraries::LibraryManager;
 use crate::manager::ManagerEvent;
 
@@ -106,11 +106,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
             warn!(addr = %addr, "Timed out waiting for Hello");
             let _ = send_message(
                 &mut sink,
-                &DaemonMessage::Error {
-                    id: None,
-                    code: "timeout".to_string(),
-                    message: "Timed out waiting for Hello message".to_string(),
-                },
+                &DaemonMessage::error(None, "timeout"),
                 &mut log,
             )
             .await;
@@ -126,11 +122,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
             warn!(addr = %addr, error = %e, "Invalid Hello message");
             let _ = send_message(
                 &mut sink,
-                &DaemonMessage::Error {
-                    id: None,
-                    code: "invalid_message".to_string(),
-                    message: format!("Invalid Hello message: {e}"),
-                },
+                &DaemonMessage::error_with_detail(None, "invalid_message", format!("Invalid Hello message: {e}")),
                 &mut log,
             )
             .await;
@@ -147,11 +139,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
             warn!(addr = %addr, "First message was not Hello");
             let _ = send_message(
                 &mut sink,
-                &DaemonMessage::Error {
-                    id: None,
-                    code: "protocol_error".to_string(),
-                    message: "First message must be Hello".to_string(),
-                },
+                &DaemonMessage::error_with_detail(None, "protocol_error", "First message must be Hello".to_string()),
                 &mut log,
             )
             .await;
@@ -199,11 +187,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
                 warn!(addr = %addr, "Invalid token");
                 let _ = send_message(
                     &mut sink,
-                    &DaemonMessage::Error {
-                        id: None,
-                        code: "invalid_token".to_string(),
-                        message: "Token is invalid or revoked".to_string(),
-                    },
+                    &DaemonMessage::error(None, "invalid_token"),
                     &mut log,
                 )
                 .await;
@@ -348,11 +332,7 @@ pub async fn handle_connection(stream: TcpStream, state: Arc<SharedState>) {
                                 warn!(client_id = %client_id, error = %e, "Invalid message from extension");
                                 if send_message(
                                     &mut sink,
-                                    &DaemonMessage::Error {
-                                        id: None,
-                                        code: "invalid_message".to_string(),
-                                        message: format!("Failed to parse message: {e}"),
-                                    },
+                                    &DaemonMessage::error_with_detail(None, "invalid_message", format!("Failed to parse message: {e}")),
                                     &mut log,
                                 ).await.is_err() {
                                     break;
@@ -443,11 +423,7 @@ where
                         warn!(addr = %addr, error = %e, "Invalid message while awaiting Pair");
                         let _ = send_message(
                             sink,
-                            &DaemonMessage::Error {
-                                id: None,
-                                code: "invalid_message".to_string(),
-                                message: format!("Failed to parse message: {e}"),
-                            },
+                            &DaemonMessage::error_with_detail(None, "invalid_message", format!("Failed to parse message: {e}")),
                             log,
                         )
                         .await;
@@ -482,7 +458,9 @@ where
                                 let _ = send_message(
                                     sink,
                                     &DaemonMessage::PairFailed {
-                                        reason: e.to_string(),
+                                        code: e.code().to_string(),
+                                        detail: matches!(e, crate::extension::pairing::PairingError::Io(_))
+                                            .then(|| e.to_string()),
                                     },
                                     log,
                                 )
@@ -509,11 +487,7 @@ where
                         warn!(addr = %addr, "Expected Pair message during pairing phase");
                         let _ = send_message(
                             sink,
-                            &DaemonMessage::Error {
-                                id: None,
-                                code: "protocol_error".to_string(),
-                                message: "Expected Pair message during pairing".to_string(),
-                            },
+                            &DaemonMessage::error_with_detail(None, "protocol_error", "Expected Pair message during pairing".to_string()),
                             log,
                         )
                         .await;
@@ -648,11 +622,13 @@ fn convert_event_to_daemon_message(event: &ManagerEvent) -> Option<DaemonMessage
         ManagerEvent::DownloadFailed {
             download_id,
             error,
+            error_code,
             update_available,
             ..
         } => Some(DaemonMessage::DownloadFailed {
             download_id: download_id.to_string(),
-            error: error.clone(),
+            error_code: error_code.clone(),
+            detail: download_failure_detail(error_code, error),
             update_available: *update_available,
         }),
         ManagerEvent::DownloadPaused { download_id } => Some(DaemonMessage::DownloadPaused {
@@ -686,6 +662,13 @@ fn convert_event_to_daemon_message(event: &ManagerEvent) -> Option<DaemonMessage
                     library: library.clone(),
                 })
             }
+        }
+        ManagerEvent::LibraryInstallFailed { library, code, detail } => {
+            Some(DaemonMessage::LibraryInstallFailed {
+                library: library.clone(),
+                code: code.clone(),
+                detail: detail.clone(),
+            })
         }
         ManagerEvent::ChannelAdded {
             channel_id,
@@ -739,7 +722,12 @@ fn job_summary_to_proto(
         requested_by_name: summary.requested_by_name.clone(),
         created_at: summary.created_at.to_rfc3339(),
         completed_at: summary.completed_at.map(|t| t.to_rfc3339()),
-        error: summary.error.clone(),
+        error_code: summary.error_code.clone(),
+        detail: summary
+            .error_code
+            .as_deref()
+            .zip(summary.error.as_deref())
+            .and_then(|(code, text)| download_failure_detail(code, text)),
         update_available: summary.update_available,
     }
 }

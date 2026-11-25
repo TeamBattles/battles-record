@@ -55,6 +55,9 @@ pub struct DownloadJob {
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
     pub error: Option<String>,
+    /// Stable code for `error`, sent to the extension (see `DownloadError::code`).
+    #[serde(default)]
+    pub error_code: Option<String>,
 }
 
 /// Lightweight summary excluding `available_formats` and cookies.
@@ -82,6 +85,8 @@ pub struct DownloadJobSummary {
     pub completed_at: Option<DateTime<Utc>>,
     pub error: Option<String>,
     #[serde(default)]
+    pub error_code: Option<String>,
+    #[serde(default)]
     pub update_available: bool,
 }
 
@@ -108,6 +113,7 @@ impl From<&DownloadJob> for DownloadJobSummary {
             created_at: job.created_at,
             completed_at: job.completed_at,
             error: job.error.clone(),
+            error_code: job.error_code.clone(),
             update_available: false,
         }
     }
@@ -266,6 +272,7 @@ mod tests {
             created_at: Utc::now(),
             completed_at: None,
             error: None,
+            error_code: None,
         };
 
         let summary = DownloadJobSummary::from(&job);

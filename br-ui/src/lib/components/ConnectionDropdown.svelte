@@ -1,122 +1,74 @@
 <script lang="ts">
 	import { Popover } from 'bits-ui';
 	import { Drawer } from 'vaul-svelte';
-	import { Plug } from '@lucide/svelte';
-	import { breakpointStore, extensionsStore } from '#lib';
-	import { connectionStore } from '#lib/stores/connection.svelte.ts';
+	import { Plug, Settings } from '@lucide/svelte';
+	import { resolve } from '$app/paths';
+	import { breakpointStore } from '#lib';
+	import { extensionGatewayStore } from '#lib/stores/extensionGateway.svelte.ts';
 	import StatusDot from './ui/StatusDot.svelte';
-	import Button from './ui/Button.svelte';
-	import ConnectionPanelContent from './ConnectionPanelContent.svelte';
+	import ExtensionGatewayStatus from './ExtensionGatewayStatus.svelte';
 
 	let open = $state(false);
-	let pairCode = $state<string | null>(null);
-	let isGeneratingCode = $state(false);
 
-	const connections = $derived(extensionsStore.connections);
-	const connectedCount = $derived(extensionsStore.connectedCount);
-	const totalPaired = $derived(extensionsStore.totalPaired);
-
-	const hasConnections = $derived(totalPaired > 0);
-	const isLoaded = $derived(extensionsStore.config !== null);
-	const isConnected = $derived(connectionStore.isConnected);
-	const isSingle = $derived(totalPaired === 1);
-	const singleConnection = $derived(isSingle ? connections[0] : null);
+	const status = $derived(extensionGatewayStore.status);
+	const browsers = $derived(status?.browsers ?? []);
+	const connectedCount = $derived(browsers.filter((b) => b.connected).length);
 
 	const displayText = $derived.by(() => {
-		if (!hasConnections) return 'No Extensions';
-		if (isSingle && singleConnection) {
-			return singleConnection.identifier;
-		}
-		return `${totalPaired} Connection${totalPaired !== 1 ? 's' : ''}`;
+		if (browsers.length === 0) return 'No Extensions';
+		if (browsers.length === 1) return browsers[0].identifier;
+		return `${browsers.length} Browsers`;
 	});
 
-	const dotStatus = $derived.by<'success' | 'warning' | 'error'>(() => {
-		if (!hasConnections) return 'warning';
-		if (isSingle && singleConnection) {
-			return singleConnection.connected ? 'success' : 'error';
-		}
-		if (connectedCount === totalPaired) return 'success';
-		if (connectedCount > 0) return 'warning';
-		return 'error';
+	const dotStatus = $derived.by<'success' | 'warning' | 'offline'>(() => {
+		if (connectedCount === 0) return 'offline';
+		return connectedCount === browsers.length ? 'success' : 'warning';
 	});
-
-	function close() {
-		open = false;
-		pairCode = null;
-	}
-
-	async function generatePairCode() {
-		if (isGeneratingCode) return;
-		isGeneratingCode = true;
-		try {
-			const { api } = await import('#lib/api/client.ts');
-			const result = await api.generatePairCode();
-			pairCode = result.code;
-		} catch (e) {
-			console.error('Failed to generate pair code:', e);
-		} finally {
-			isGeneratingCode = false;
-		}
-	}
 </script>
 
 {#snippet triggerContent()}
-	{#if hasConnections}
+	{#if browsers.length > 0}
 		<StatusDot status={dotStatus} size="sm" />
 	{:else}
 		<Plug size={12} class="text-muted-foreground" />
 	{/if}
 	<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-		{#if hasConnections}
-			<span class="hidden sm:inline">{displayText}</span>
-			<span class="sm:hidden">{totalPaired > 1 ? `${totalPaired} Ext` : 'Ext'}</span>
-		{:else}
-			<span class="hidden sm:inline">No Extensions</span>
-			<span class="sm:hidden">Ext</span>
-		{/if}
+		<span class="hidden sm:inline">{displayText}</span>
+		<span class="sm:hidden">{browsers.length > 1 ? `${browsers.length} Ext` : 'Ext'}</span>
 	</span>
 {/snippet}
 
-{#snippet noPairedContent()}
-	<div class="p-3 space-y-3">
-		<p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Pair Browser Extension</p>
-		<p class="text-xs text-muted-foreground">No browser extensions paired. Generate a code to pair one.</p>
-		{#if pairCode}
-			<div class="rounded border border-line-2 bg-chip px-3 py-2 text-center">
-				<p class="font-mono text-[10px] text-muted-foreground mb-1">PAIR CODE</p>
-				<p class="font-mono text-lg tracking-widest text-green">{pairCode}</p>
-				<p class="font-mono text-[9px] text-muted-foreground mt-1">Enter this code in the browser extension</p>
-			</div>
-			<Button
-				intent="secondary"
-				size="sm"
-				fullWidth={true}
-				class="font-mono"
-				disabled={isGeneratingCode}
-				onclick={generatePairCode}
-			>
-				{#snippet children()}
-					{isGeneratingCode ? 'Generating...' : 'Regenerate Code'}
-				{/snippet}
-			</Button>
-		{:else}
-			<Button
-				intent="primary"
-				size="sm"
-				fullWidth={true}
-				class="font-mono"
-				disabled={isGeneratingCode}
-				onclick={generatePairCode}
-			>
-				{#snippet children()}
-					{isGeneratingCode ? 'Generating...' : 'Generate Pair Code'}
-				{/snippet}
-			</Button>
+{#snippet panelContent()}
+	<div class="space-y-3 p-3">
+		<p class="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Battles Replay</p>
+		<ExtensionGatewayStatus showHelp={browsers.length === 0} />
+		{#if browsers.length > 0}
+			<ul class="space-y-1.5 border-t border-border pt-3">
+				{#each browsers as browser (browser.clientId)}
+					<li class="flex items-center gap-2">
+						<StatusDot status={browser.connected ? 'success' : 'offline'} size="sm" />
+						<span class="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+							{browser.identifier}
+						</span>
+						<span class="font-mono text-[10px] text-muted-foreground">
+							{browser.connected ? 'Connected' : 'Offline'}
+						</span>
+					</li>
+				{/each}
+			</ul>
 		{/if}
+		<a
+			href={resolve('/settings')}
+			class="flex items-center gap-1.5 rounded px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-primary transition-colors hover:bg-hover-wash focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+			onclick={() => (open = false)}
+		>
+			<Settings size={12} />
+			Browser extension settings
+		</a>
 	</div>
 {/snippet}
 
-{#if isConnected && isLoaded}
+{#if status}
 	{#if breakpointStore.isMobile}
 		<button
 			class="flex items-center gap-1.5 hover:bg-hover-wash px-2 py-1 rounded transition-colors"
@@ -134,16 +86,8 @@
 					<div class="flex justify-center py-3">
 						<div class="w-10 h-1 bg-faint rounded-full"></div>
 					</div>
-					<div class="px-4 pb-2">
-						<Drawer.Title class="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-							Extensions
-						</Drawer.Title>
-					</div>
-					{#if hasConnections}
-						<ConnectionPanelContent onClose={close} {pairCode} {isGeneratingCode} onGeneratePairCode={generatePairCode} />
-					{:else}
-						{@render noPairedContent()}
-					{/if}
+					<Drawer.Title class="sr-only">Extensions</Drawer.Title>
+					{@render panelContent()}
 					<div class="h-4"></div>
 				</Drawer.Content>
 			</Drawer.Portal>
@@ -166,11 +110,7 @@
 				align="end"
 				class="z-50 w-72 max-h-96 overflow-y-auto rounded border border-line-2 bg-well shadow-lg"
 			>
-				{#if hasConnections}
-					<ConnectionPanelContent onClose={close} {pairCode} {isGeneratingCode} onGeneratePairCode={generatePairCode} />
-				{:else}
-					{@render noPairedContent()}
-				{/if}
+				{@render panelContent()}
 			</Popover.Content>
 		</Popover.Root>
 	{/if}
