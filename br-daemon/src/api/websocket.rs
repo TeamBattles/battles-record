@@ -311,6 +311,7 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             platform_name: job.platform_name,
             channel_name: job.channel_name,
             source_platform: job.source_platform,
+            output_dir: job.output_dir.to_string_lossy().into_owned(),
             status: serde_json::to_value(job.status)
                 .ok()
                 .and_then(|v| v.as_str().map(String::from))
@@ -326,6 +327,7 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             eta,
             downloaded_bytes,
             total_bytes,
+            live,
         } => Some(WsEvent::DownloadProgress {
             download_id,
             percent,
@@ -333,6 +335,7 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             eta,
             downloaded_bytes,
             total_bytes,
+            live,
         }),
         ManagerEvent::DownloadComplete {
             download_id,

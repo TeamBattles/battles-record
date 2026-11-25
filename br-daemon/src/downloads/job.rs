@@ -71,6 +71,10 @@ pub struct DownloadJobSummary {
     pub platform_name: Option<String>,
     pub channel_name: String,
     pub source_platform: String,
+    #[serde(default)]
+    pub output_dir: PathBuf,
+    #[serde(default)]
+    pub output_file: Option<PathBuf>,
     pub status: DownloadStatus,
     pub percent: f64,
     pub speed: Option<String>,
@@ -100,6 +104,8 @@ impl From<&DownloadJob> for DownloadJobSummary {
             platform_name: job.platform_name.clone(),
             channel_name: job.channel_name.clone(),
             source_platform: job.source_platform.clone(),
+            output_dir: job.output_dir.clone(),
+            output_file: job.output_file.clone(),
             status: job.status,
             percent: job.percent,
             speed: job.speed.clone(),
@@ -247,7 +253,7 @@ mod tests {
             channel_name: "test_channel".to_string(),
             source_platform: "youtube".to_string(),
             output_dir: PathBuf::from("/downloads/youtube/test_channel"),
-            output_file: None,
+            output_file: Some(PathBuf::from("/downloads/youtube/test_channel/video.mp4")),
             format: Some("bestvideo+bestaudio".to_string()),
             quality: Some("1080p".to_string()),
             available_formats: Some(vec![FormatInfo {
@@ -284,6 +290,8 @@ mod tests {
         assert_eq!(summary.platform_name, job.platform_name);
         assert_eq!(summary.channel_name, job.channel_name);
         assert_eq!(summary.source_platform, job.source_platform);
+        assert_eq!(summary.output_dir, job.output_dir);
+        assert_eq!(summary.output_file, job.output_file);
         assert_eq!(summary.status, DownloadStatus::Downloading);
         assert!((summary.percent - 45.5).abs() < f64::EPSILON);
         assert_eq!(summary.speed, job.speed);

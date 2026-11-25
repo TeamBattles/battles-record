@@ -2,10 +2,12 @@
 	import PageHeader from '#lib/components/ui/PageHeader.svelte';
 	import { Search, Download, Pause, Play, X } from '@lucide/svelte';
 	import { untrack } from 'svelte';
-	import { connectionStore, downloadsStore, breakpointStore } from '#lib';
+	import { connectionStore, downloadsStore, breakpointStore, toastStore } from '#lib';
 	import DownloadCard from '#lib/components/DownloadCard.svelte';
 	import MergeDialog from '#lib/components/MergeDialog.svelte';
-	import type { DownloadStatus } from '#lib/api/types.ts';
+	import type { DownloadStatus, DownloadSummary } from '#lib/api/types.ts';
+	import { openPath, showInFolder } from '#lib/utils/desktop.ts';
+	import { extractErrorMessage } from '#lib/utils/errors.ts';
 	import Select from '#lib/components/ui/Select.svelte';
 
 	const STATUS_FILTER_OPTIONS: { value: DownloadStatus | 'all'; label: string }[] = [
@@ -61,6 +63,38 @@
 		);
 		for (const d of cancellable) {
 			await downloadsStore.cancel(d.id);
+		}
+	}
+
+	// Download paths are on the daemon's machine, so file actions only make sense for this PC
+	const isLocalConnection = $derived(connectionStore.activeServer?.type === 'local');
+
+	async function openFile(path: string) {
+		try {
+			await openPath(path);
+		} catch (e) {
+			toastStore.error(extractErrorMessage(e, 'Could not open the file'));
+		}
+	}
+
+	/** Selects the file when it still exists, otherwise opens the download's folder. */
+	async function openFolder(download: DownloadSummary) {
+		try {
+			if (download.output_file) {
+				try {
+					await showInFolder(download.output_file);
+					return;
+				} catch (e) {
+					if (!download.output_dir) throw e;
+				}
+			}
+			if (!download.output_dir) {
+				toastStore.error('This download has no folder yet');
+				return;
+			}
+			await openPath(download.output_dir);
+		} catch (e) {
+			toastStore.error(extractErrorMessage(e, 'Could not open the folder'));
 		}
 	}
 
@@ -230,6 +264,8 @@
 					onPrioritize={(id) => downloadsStore.prioritize(id)}
 					onRemove={(id) => downloadsStore.remove(id)}
 					onMerge={openMergeDialog}
+					onOpenFile={isLocalConnection ? openFile : undefined}
+					onOpenFolder={isLocalConnection ? openFolder : undefined}
 				/>
 			{/each}
 		</div>

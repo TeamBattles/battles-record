@@ -1,5 +1,16 @@
 <script lang="ts">
-	import { Pause, Play, X, ArrowUp, Trash2, AlertTriangle, RefreshCw, GitMerge } from '@lucide/svelte';
+	import {
+		Pause,
+		Play,
+		X,
+		ArrowUp,
+		Trash2,
+		AlertTriangle,
+		RefreshCw,
+		GitMerge,
+		FileVideo,
+		FolderOpen
+	} from '@lucide/svelte';
 	import { Tween } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
 	import type { DownloadSummary } from '#lib/api/types.ts';
@@ -18,9 +29,22 @@
 		onPrioritize?: (id: string) => void;
 		onRemove?: (id: string) => void;
 		onMerge?: (platform: string, channel: string) => void;
+		/** Omit (with onOpenFolder) when the files are on another machine. */
+		onOpenFile?: (path: string) => void;
+		onOpenFolder?: (download: DownloadSummary) => void;
 	}
 
-	let { download, onPause, onResume, onCancel, onPrioritize, onRemove, onMerge }: Props = $props();
+	let {
+		download,
+		onPause,
+		onResume,
+		onCancel,
+		onPrioritize,
+		onRemove,
+		onMerge,
+		onOpenFile,
+		onOpenFolder
+	}: Props = $props();
 
 	const statusColor = $derived(
 		(DOWNLOAD_STATUS_COLORS[download.status] ?? 'offline') as
@@ -38,6 +62,8 @@
 			download.status === 'extracting_info' ||
 			download.status === 'processing'
 	);
+	// A broadcast still running has no total, so there is no percent until it ends.
+	const isLive = $derived(download.live === true && download.status === 'downloading');
 	const isTerminal = $derived(
 		download.status === 'complete' ||
 			download.status === 'cancelled' ||
@@ -50,7 +76,7 @@
 	});
 </script>
 
-<div class="group relative rounded border border-border bg-card p-3">
+<div class="group relative flex flex-col rounded border border-border bg-card p-3">
 	<LuxuryCornerSlivers corners="tl" length="md" hoverFadeIn />
 
 	<!-- Header: status + platform badge -->
@@ -60,6 +86,14 @@
 			<span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
 				{statusLabel}
 			</span>
+			{#if isLive}
+				<span
+					class="rounded bg-green/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-green"
+					title="Recording the broadcast from its start; finishes when the stream ends"
+				>
+					Live
+				</span>
+			{/if}
 		</div>
 		<span
 			class="shrink-0 rounded bg-chip px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
@@ -89,13 +123,16 @@
 				<div
 					class={cn(
 						'h-full rounded-full',
-						download.status === 'processing' ? 'bg-blue' : 'bg-green'
+						download.status === 'processing' ? 'bg-blue' : 'bg-green',
+						isLive && 'bg-green/40 motion-safe:animate-pulse'
 					)}
-					style="width: {Math.min(progress.current, 100)}%"
+					style="width: {isLive ? 100 : Math.min(progress.current, 100)}%"
 				></div>
 			</div>
-			<div class="flex items-center gap-3 text-muted-foreground">
-				<span class="font-mono text-[10px]">{progress.current.toFixed(1)}%</span>
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+				{#if !isLive}
+					<span class="font-mono text-[10px]">{progress.current.toFixed(1)}%</span>
+				{/if}
 				{#if download.speed}
 					<span class="font-mono text-[10px]">{download.speed}</span>
 				{/if}
@@ -151,12 +188,13 @@
 	{/if}
 
 	<!-- Date -->
-	<div class="flex items-center gap-3 mt-2 text-muted-foreground">
+	<div class="flex items-center gap-3 mt-2 mb-3 text-muted-foreground">
 		<span class="font-mono text-[10px]">{formatDate(download.created_at)}</span>
 	</div>
 
 	<!-- Action buttons -->
-	<div class="flex items-center gap-1 mt-3 pt-3 border-t border-line">
+	<!-- Grid rows stretch every card to the tallest; mt-auto pins the actions to the bottom -->
+	<div class="flex items-center gap-1 mt-auto pt-3 border-t border-line">
 		{#if download.status === 'downloading' || download.status === 'extracting_info' || download.status === 'processing'}
 			{#if onPause}
 				<Button
@@ -221,6 +259,14 @@
 			{/if}
 		{/if}
 
+		{#if download.status === 'complete' && download.output_file && onOpenFile}
+			{@const outputFile = download.output_file}
+			<Button intent="ghost" size="sm" class="flex-1" onclick={() => onOpenFile(outputFile)}>
+				<FileVideo size={12} />
+				Open file
+			</Button>
+		{/if}
+
 		{#if isTerminal}
 			{#if onRemove}
 				<Button
@@ -235,6 +281,18 @@
 					{/snippet}
 				</Button>
 			{/if}
+		{/if}
+
+		{#if onOpenFolder}
+			<Button
+				intent="ghost"
+				size="sm"
+				title="Open folder"
+				aria-label="Open folder"
+				onclick={() => onOpenFolder(download)}
+			>
+				<FolderOpen size={12} />
+			</Button>
 		{/if}
 
 		{#if onMerge}

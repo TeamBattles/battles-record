@@ -457,6 +457,11 @@ export interface DownloadSummary {
 	eta?: number;
 	downloaded_bytes: number;
 	total_bytes?: number;
+	/** Following a broadcast that is still running; only known from progress events. */
+	live?: boolean;
+	/** Paths on the daemon's machine. Older daemons omit them. */
+	output_dir?: string;
+	output_file?: string;
 	format?: string;
 	requested_by: string;
 	created_at: string;

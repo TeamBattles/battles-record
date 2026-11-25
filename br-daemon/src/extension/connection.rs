@@ -600,6 +600,7 @@ fn convert_event_to_daemon_message(event: &ManagerEvent) -> Option<DaemonMessage
             eta,
             downloaded_bytes,
             total_bytes,
+            live,
         } => Some(DaemonMessage::DownloadProgress {
             download_id: download_id.to_string(),
             status: "downloading".to_string(),
@@ -608,6 +609,7 @@ fn convert_event_to_daemon_message(event: &ManagerEvent) -> Option<DaemonMessage
             eta: *eta,
             downloaded_bytes: *downloaded_bytes,
             total_bytes: *total_bytes,
+            live: *live,
         }),
         ManagerEvent::DownloadComplete {
             download_id,

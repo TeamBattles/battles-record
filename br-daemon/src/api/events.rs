@@ -143,6 +143,7 @@ pub enum WsEvent {
         platform_name: Option<String>,
         channel_name: String,
         source_platform: String,
+        output_dir: String,
         status: String,
         format: Option<String>,
         requested_by: Uuid,
@@ -155,6 +156,7 @@ pub enum WsEvent {
         eta: Option<u64>,
         downloaded_bytes: u64,
         total_bytes: Option<u64>,
+        live: bool,
     },
     DownloadComplete {
         download_id: Uuid,

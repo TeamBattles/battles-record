@@ -36,6 +36,7 @@ class DownloadsStore {
 						platform_name: event.platform_name,
 						channel_name: event.channel_name,
 						source_platform: event.source_platform,
+						output_dir: event.output_dir,
 						status: (event.status as DownloadStatus) || 'queued',
 						percent: 0,
 						downloaded_bytes: 0,
@@ -56,7 +57,8 @@ class DownloadsStore {
 								speed: event.speed,
 								eta: event.eta,
 								downloaded_bytes: event.downloaded_bytes,
-								total_bytes: event.total_bytes
+								total_bytes: event.total_bytes,
+								live: event.live ?? false
 							}
 						: d
 				);
@@ -64,7 +66,12 @@ class DownloadsStore {
 			case 'download_complete':
 				this.downloads = this.downloads.map((d) =>
 					d.id === event.download_id
-						? { ...d, status: 'complete' as DownloadStatus, percent: 100 }
+						? {
+								...d,
+								status: 'complete' as DownloadStatus,
+								percent: 100,
+								output_file: event.filepath
+							}
 						: d
 				);
 				break;

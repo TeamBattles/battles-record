@@ -143,6 +143,7 @@ pub enum DaemonMessage {
         downloaded_bytes: u64,
         #[serde(skip_serializing_if = "Option::is_none")]
         total_bytes: Option<u64>,
+        live: bool,
     },
     DownloadComplete {
         download_id: String,
@@ -552,6 +553,7 @@ mod tests {
             eta: Some(120),
             downloaded_bytes: 50_000_000,
             total_bytes: Some(110_000_000),
+            live: false,
         };
 
         let json: Value = serde_json::to_value(&msg).unwrap();
@@ -563,6 +565,7 @@ mod tests {
         assert_eq!(json["eta"], 120);
         assert_eq!(json["downloaded_bytes"], 50_000_000);
         assert_eq!(json["total_bytes"], 110_000_000);
+        assert_eq!(json["live"], false);
     }
 
     #[test]
@@ -575,6 +578,7 @@ mod tests {
             eta: None,
             downloaded_bytes: 1000,
             total_bytes: None,
+            live: true,
         };
 
         let json_str = serde_json::to_string(&msg).unwrap();

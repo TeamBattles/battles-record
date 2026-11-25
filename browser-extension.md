@@ -145,6 +145,10 @@ Remote (yt-dlp) downloads appear alongside existing local (HLS) downloads in the
 
 **`channel_name` can be null:** If no channel name is available, the extension sends `channel_name: null`. The daemon derives a fallback from the URL domain (e.g., `"youtube.com"`). The `options` field is optional - when omitted, the daemon uses defaults (embed_thumbnail: true, embed_metadata: true).
 
+**`title` names the file:** When `title` is present, the daemon has yt-dlp use it in place of its own title (`--replace-in-metadata`, before the output template is applied), so it names the file and the embedded metadata. This matters for a source yt-dlp cannot name. Battles Replay sends an unpublished Twitch recording as its CDN playlist (`.../chunked/index-dvr.m3u8`) with format `best`, and yt-dlp would otherwise call every such recording `index-dvr`.
+
+**Recordings of streams still live:** While the stream is running, that playlist has no end, so the daemon records it from the first segment until the broadcast ends rather than finishing now. Its `download_progress` messages carry `live: true`, `percent: 0`, the bytes written so far and a `speed`, with no `eta` or `total_bytes`; show size and speed rather than a percentage. `live` is `false` for every other download.
+
 **Format selection timeout:** If the user doesn't select a format within 10 minutes of `extract_info` completing, the daemon auto-starts the download with the configured default format. The extension should show a countdown or warning as the timeout approaches.
 
 ### Completed downloads

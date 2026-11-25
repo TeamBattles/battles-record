@@ -875,6 +875,7 @@ fn convert_download_event(event: DownloadEvent) -> ManagerEvent {
             eta,
             downloaded_bytes,
             total_bytes,
+            live,
         } => ManagerEvent::DownloadProgress {
             download_id,
             percent,
@@ -882,6 +883,7 @@ fn convert_download_event(event: DownloadEvent) -> ManagerEvent {
             eta,
             downloaded_bytes,
             total_bytes,
+            live,
         },
         DownloadEvent::Complete {
             download_id,

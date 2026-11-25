@@ -135,6 +135,7 @@ pub enum ManagerEvent {
         eta: Option<u64>,
         downloaded_bytes: u64,
         total_bytes: Option<u64>,
+        live: bool,
     },
     DownloadComplete {
         download_id: Uuid,

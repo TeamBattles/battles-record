@@ -194,7 +194,119 @@ pub struct YtdlpDownload {
     child: tokio::process::Child,
     #[allow(dead_code)]
     download_id: Uuid,
+    stdout_handle: Option<tokio::task::JoinHandle<Option<PathBuf>>>,
     stderr_handle: Option<tokio::task::JoinHandle<String>>,
+}
+
+/// yt-dlp names files from its own title, which for a bare HLS playlist (a Twitch recording sent
+/// by Battles Replay) is just "index-dvr". A client's title replaces it at pre_process, before the
+/// output template is evaluated. The replacement goes to Python's `re.sub`, so backslashes are
+/// doubled to stay literal.
+fn title_override_args(title: Option<&str>) -> Option<[String; 4]> {
+    let title = title.map(str::trim).filter(|t| !t.is_empty())?;
+    Some([
+        "--replace-in-metadata".to_string(),
+        "title".to_string(),
+        "(?s)^.*$".to_string(),
+        title.replace('\\', r"\\"),
+    ])
+}
+
+/// yt-dlp prints the final path (after merging and moving) on stdout behind this marker, so the
+/// daemon records the file this download wrote instead of guessing from its folder, which other
+/// downloads for the same channel share.
+const OUTPUT_FILE_MARKER: &str = "BR_OUTPUT_FILE ";
+
+/// `--print` implies `--quiet`, which also hides the progress template unless `--progress` is set.
+fn output_file_args() -> [&'static str; 3] {
+    [
+        "--progress",
+        "--print",
+        "after_move:BR_OUTPUT_FILE %(filepath)s",
+    ]
+}
+
+fn parse_output_file_line(line: &str) -> Option<PathBuf> {
+    let path = line.strip_prefix(OUTPUT_FILE_MARKER)?;
+    (!path.is_empty()).then(|| PathBuf::from(path))
+}
+
+/// Twitch's recording playlist (`.../index-dvr.m3u8`) has no `#EXT-X-ENDLIST` while the stream is
+/// still running, so yt-dlp treats it as live and hands it to ffmpeg. Left alone, ffmpeg joins three
+/// segments from the live edge (everything earlier is lost) and yt-dlp reports no progress until the
+/// broadcast ends. These args start at segment 0, as yt-dlp's own `--live-from-start` does for
+/// Twitch, and have ffmpeg write key=value progress to stdout (yt-dlp runs it with stdout inherited).
+/// `-nostats` stops ffmpeg's status line piling up in the stderr we keep for error reporting. A
+/// finished recording has ENDLIST and goes through yt-dlp's native HLS downloader, which ignores them.
+fn live_twitch_recording_args(url: &str) -> Option<[&'static str; 2]> {
+    let path = url.split(['?', '#']).next().unwrap_or(url);
+    path.ends_with("/index-dvr.m3u8").then_some([
+        "--downloader-args",
+        "ffmpeg_i:-live_start_index 0 -progress pipe:1 -nostats",
+    ])
+}
+
+/// Accumulates the key=value blocks ffmpeg writes for `-progress`. Each block ends with a
+/// `progress=continue` (or `progress=end`) line.
+#[derive(Default)]
+struct FfmpegProgress {
+    total_size: u64,
+}
+
+impl FfmpegProgress {
+    /// Returns the bytes written so far once per completed block.
+    fn feed(&mut self, line: &str) -> Option<u64> {
+        let (key, value) = line.split_once('=')?;
+        match key {
+            // `N/A` until the muxer has written something.
+            "total_size" => {
+                if let Ok(bytes) = value.trim().parse() {
+                    self.total_size = bytes;
+                }
+                None
+            }
+            "progress" => Some(self.total_size),
+            _ => None,
+        }
+    }
+}
+
+/// Download rate over a trailing window. ffmpeg following a live playlist fetches each segment
+/// (about 10s of video) in a burst and then idles until the next is published, so the rate between
+/// two adjacent samples flips between zero and full network speed.
+#[derive(Default)]
+struct RateWindow {
+    samples: std::collections::VecDeque<(Instant, u64)>,
+}
+
+impl RateWindow {
+    const SPAN: Duration = Duration::from_secs(30);
+
+    fn push(&mut self, now: Instant, bytes: u64) -> Option<f64> {
+        self.samples.push_back((now, bytes));
+        while self
+            .samples
+            .get(1)
+            .is_some_and(|(t, _)| now.duration_since(*t) >= Self::SPAN)
+        {
+            self.samples.pop_front();
+        }
+        let (start, start_bytes) = *self.samples.front()?;
+        let secs = now.duration_since(start).as_secs_f64();
+        (secs > 0.0).then(|| bytes.saturating_sub(start_bytes) as f64 / secs)
+    }
+}
+
+/// Formats a rate the way yt-dlp's `_speed_str` does, e.g. `30.52MiB/s`.
+fn format_speed(bytes_per_sec: f64) -> String {
+    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
+    let mut value = bytes_per_sec;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+    format!("{value:.2}{}/s", UNITS[unit])
 }
 
 /// Start a yt-dlp download with progress reporting.
@@ -203,6 +315,7 @@ pub async fn start_download(
     ytdlp_path: &Path,
     ffmpeg_path: Option<&Path>,
     url: &str,
+    title: Option<&str>,
     format: &str,
     output_dir: &Path,
     output_template: &str,
@@ -228,8 +341,16 @@ pub async fn start_download(
         .arg("download:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s")
         .arg("--newline")
         .arg("--no-warnings")
+        .args(output_file_args())
         .arg("-f")
         .arg(format);
+
+    if let Some(args) = title_override_args(title) {
+        cmd.args(args);
+    }
+    if let Some(args) = live_twitch_recording_args(url) {
+        cmd.args(args);
+    }
 
     // Only force mp4 merge for video downloads, not audio-only
     let is_audio_only = format.starts_with("bestaudio")
@@ -272,34 +393,57 @@ pub async fn start_download(
 
     let mut child = cmd.spawn().map_err(YtdlpDownloadError::Process)?;
 
-    // Take stdout for progress reading
-    if let Some(stdout) = child.stdout.take() {
+    // Take stdout for progress reading and the reported output file
+    let stdout_handle = child.stdout.take().map(|stdout| {
         let tx = progress_tx;
         let id = download_id;
         tokio::spawn(async move {
             let reader = BufReader::new(stdout);
             let mut lines = reader.lines();
             let mut last_emit = Instant::now() - Duration::from_secs(2);
+            let mut ffmpeg = FfmpegProgress::default();
+            let mut rate = RateWindow::default();
+            let mut output_file = None;
 
             while let Ok(Some(line)) = lines.next_line().await {
-                if let Some(progress) = parse_progress_line(&line) {
-                    // Throttle to 1 event per second
-                    let now = Instant::now();
+                if let Some(path) = parse_output_file_line(&line) {
+                    output_file = Some(path);
+                    continue;
+                }
+                let now = Instant::now();
+                let event = if let Some(bytes) = ffmpeg.feed(&line) {
+                    // Only a live recording reaches ffmpeg with `-progress`; it has no total.
+                    Some(DownloadEvent::Progress {
+                        download_id: id,
+                        percent: 0.0,
+                        speed: rate.push(now, bytes).map(format_speed),
+                        eta: None,
+                        downloaded_bytes: bytes,
+                        total_bytes: None,
+                        live: true,
+                    })
+                } else {
+                    parse_progress_line(&line).map(|progress| DownloadEvent::Progress {
+                        download_id: id,
+                        percent: progress.percent.unwrap_or(0.0),
+                        speed: progress.speed,
+                        eta: progress.eta,
+                        downloaded_bytes: progress.downloaded_bytes.unwrap_or(0),
+                        total_bytes: progress.total_bytes,
+                        live: false,
+                    })
+                };
+                // Throttle to 1 event per second
+                if let Some(event) = event {
                     if now.duration_since(last_emit) >= Duration::from_secs(1) {
                         last_emit = now;
-                        let _ = tx.send(DownloadEvent::Progress {
-                            download_id: id,
-                            percent: progress.percent.unwrap_or(0.0),
-                            speed: progress.speed,
-                            eta: progress.eta,
-                            downloaded_bytes: progress.downloaded_bytes.unwrap_or(0),
-                            total_bytes: progress.total_bytes,
-                        });
+                        let _ = tx.send(event);
                     }
                 }
             }
-        });
-    }
+            output_file
+        })
+    });
 
     // Capture stderr for error reporting
     let stderr_handle = child.stderr.take().map(|stderr| {
@@ -317,7 +461,12 @@ pub async fn start_download(
         })
     });
 
-    Ok(YtdlpDownload { child, download_id, stderr_handle })
+    Ok(YtdlpDownload {
+        child,
+        download_id,
+        stdout_handle,
+        stderr_handle,
+    })
 }
 
 impl YtdlpDownload {
@@ -364,6 +513,11 @@ impl YtdlpDownload {
     /// Wait for the process to complete.
     pub async fn wait(&mut self) -> Result<std::process::ExitStatus, YtdlpDownloadError> {
         self.child.wait().await.map_err(YtdlpDownloadError::Process)
+    }
+
+    /// The file yt-dlp reported writing, available once the process has exited.
+    pub async fn output_file(&mut self) -> Option<PathBuf> {
+        self.stdout_handle.take()?.await.ok().flatten()
     }
 
     /// Collect captured stderr output after process exits.
@@ -526,6 +680,110 @@ pub fn get_persistent_cookie_path(domain: &str) -> Option<PathBuf> {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn title_override_keeps_backslashes_literal() {
+        let args = title_override_args(Some(r" SN1 \1 TILL ITS DONE ")).expect("title given");
+        assert_eq!(
+            args,
+            ["--replace-in-metadata", "title", "(?s)^.*$", r"SN1 \\1 TILL ITS DONE"]
+        );
+    }
+
+    #[test]
+    fn title_override_skipped_without_title() {
+        assert!(title_override_args(None).is_none());
+        assert!(title_override_args(Some("  ")).is_none());
+    }
+
+    #[test]
+    fn output_file_marker_keeps_whole_path() {
+        assert_eq!(
+            parse_output_file_line("BR_OUTPUT_FILE /d/My = Title [1080p].mp4"),
+            Some(PathBuf::from("/d/My = Title [1080p].mp4"))
+        );
+        assert_eq!(parse_output_file_line("100.0%|NA|NA|1|1"), None);
+        assert_eq!(parse_output_file_line("total_size=5"), None);
+        assert_eq!(parse_output_file_line("BR_OUTPUT_FILE "), None);
+    }
+
+    #[test]
+    fn output_file_args_keep_progress() {
+        // --print implies --quiet, which hides the progress template unless --progress is given.
+        let args = output_file_args();
+        assert!(args.contains(&"--progress"));
+        assert!(args.contains(&"--print"));
+        assert!(args.contains(&"after_move:BR_OUTPUT_FILE %(filepath)s"));
+    }
+
+    #[test]
+    fn live_start_args_only_for_twitch_recording_playlists() {
+        for url in [
+            "https://d1m7jfoe9zdc1j.cloudfront.net/abc_quikkk_xo_322461668698_1795584189/chunked/index-dvr.m3u8",
+            "https://vod-secure.twitch.tv/abc/720p60/index-dvr.m3u8?token=x",
+        ] {
+            assert!(live_twitch_recording_args(url).is_some(), "{url}");
+        }
+        for url in [
+            "https://www.youtube.com/watch?v=abc",
+            "https://example.com/live/index.m3u8",
+            "https://example.com/watch?next=/index-dvr.m3u8",
+        ] {
+            assert!(live_twitch_recording_args(url).is_none(), "{url}");
+        }
+    }
+
+    #[test]
+    fn ffmpeg_progress_reports_bytes_once_per_block() {
+        let mut progress = FfmpegProgress::default();
+        let block = |p: &mut FfmpegProgress, size: &str| {
+            [
+                "frame=10",
+                &format!("total_size={size}"),
+                "out_time=00:00:01.000000",
+                "speed=27.9x",
+            ]
+            .into_iter()
+            .for_each(|line| assert_eq!(p.feed(line), None));
+            p.feed("progress=continue")
+        };
+        assert_eq!(block(&mut progress, "N/A"), Some(0));
+        assert_eq!(block(&mut progress, "8126464"), Some(8_126_464));
+        assert_eq!(block(&mut progress, "N/A"), Some(8_126_464));
+        assert_eq!(progress.feed("[download] Destination: a=b.mp4"), None);
+        assert_eq!(
+            progress.feed("100.0%|39.40MiB/s|NA|296224456|296224456"),
+            None
+        );
+    }
+
+    #[test]
+    fn rate_window_smooths_segment_bursts() {
+        // Following live: an 8 MiB segment lands every 10s, sampled every 0.5s.
+        let start = Instant::now();
+        let mut rate = RateWindow::default();
+        let mut last = None;
+        for tick in 0..240u64 {
+            let bytes = (tick / 20 + 1) * 8 * 1024 * 1024;
+            last = rate.push(start + Duration::from_millis(tick * 500), bytes);
+            if tick >= 60 {
+                let mib_per_sec = last.expect("rate after first sample") / (1024.0 * 1024.0);
+                assert!(
+                    (0.5..=1.2).contains(&mib_per_sec),
+                    "tick {tick}: {mib_per_sec}"
+                );
+            }
+        }
+        assert!(last.is_some());
+        assert_eq!(RateWindow::default().push(start, 100), None);
+    }
+
+    #[test]
+    fn format_speed_matches_ytdlp_units() {
+        assert_eq!(format_speed(512.0), "512.00B/s");
+        assert_eq!(format_speed(800.0 * 1024.0), "800.00KiB/s");
+        assert_eq!(format_speed(30.52 * 1024.0 * 1024.0), "30.52MiB/s");
+    }
 
     // --- Progress line parsing ---
 

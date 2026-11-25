@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Honeycomb (hex mesh) pattern on page headers, panel headers and dialog headers, with an accent ripple on page headers
 - Battles Replay connects by approval: click Connect in the extension and allow it in Battles Record, with no pair code to copy
 - Battles Record offers to start the local service when Battles Replay connects, with an option to always start it
+- Download cards have an Open folder button, and an Open file button once the download is complete, which plays the file in your default app (local service only)
 
 ### Changed
 
@@ -54,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Library installs and updates requested by Battles Replay that fail now send `library_install_failed` with a code (`download_failed`, `extract_failed`, `unsupported_platform`, `storage_error`) instead of only being logged
 - After switching servers the app kept receiving live updates from the previous server, so pages showed stale status until they were reopened
 - Settings > Library Management shows "Installing..." or "Updating..." while Battles Replay installs or updates a library, and updates when it finishes
+- Downloads from Battles Replay are named with the title the extension sends rather than yt-dlp's. A Twitch recording sent as its bare playlist used to save as `index-dvr`, and the next one was skipped as already downloaded
+- Downloading the Twitch recording of a stream that is still live started near the live edge, losing everything broadcast before it, and sat at 0% until the stream ended. It now starts from the beginning and follows the broadcast until it ends, and the download shows a Live badge with the size and speed so far instead of a percentage (`live: true` on `download_progress`)
+- A finished download records the exact file yt-dlp wrote instead of the newest file in its channel folder, which could belong to another download of that channel
 
 ## [1.4.0] - 2026-03-26
 

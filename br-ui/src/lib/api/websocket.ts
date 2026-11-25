@@ -85,6 +85,7 @@ export type WebSocketEvent =
 			title?: string;
 			channel_name: string;
 			source_platform: string;
+			output_dir?: string;
 			thumbnail?: string;
 			platform_name?: string;
 			status: string;
@@ -100,6 +101,8 @@ export type WebSocketEvent =
 			eta?: number;
 			downloaded_bytes: number;
 			total_bytes?: number;
+			/** Older daemons (e.g. a remote server not yet updated) omit it. */
+			live?: boolean;
 	  }
 	| {
 			type: 'download_complete';

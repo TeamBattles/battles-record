@@ -16,6 +16,8 @@ pub enum DownloadEvent {
         eta: Option<u64>,
         downloaded_bytes: u64,
         total_bytes: Option<u64>,
+        /// Following a broadcast that is still running: no percent or total until it ends.
+        live: bool,
     },
     Complete {
         download_id: Uuid,
@@ -57,6 +59,8 @@ mod tests {
             platform_name: Some("youtube".to_string()),
             channel_name: "test_channel".to_string(),
             source_platform: "youtube".to_string(),
+            output_dir: PathBuf::from("/downloads/youtube/test_channel"),
+            output_file: None,
             status: DownloadStatus::Queued,
             percent: 0.0,
             speed: None,
@@ -91,6 +95,7 @@ mod tests {
             eta: Some(60),
             downloaded_bytes: 1_000_000,
             total_bytes: Some(10_000_000),
+            live: false,
         };
         let _ = progress.clone();
 
@@ -127,6 +132,7 @@ mod tests {
             eta: Some(30),
             downloaded_bytes: 7_500_000,
             total_bytes: Some(10_000_000),
+            live: false,
         };
         let s = format!("{:?}", event);
         assert!(s.contains("Progress"));

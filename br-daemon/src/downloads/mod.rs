@@ -908,6 +908,7 @@ async fn run_download_task(
         &ytdlp_path,
         ffmpeg_path.as_deref(),
         &job.url,
+        job.title.as_deref(),
         format,
         &job.output_dir,
         &output_template,
@@ -997,9 +998,19 @@ async fn run_download_task(
 
                 match status {
                     Ok(exit_status) if exit_status.success() => {
-                        // Find the actual output file and its size by scanning the output dir
-                        // for the most recently modified non-.part file
-                        let (output_file, filesize) = find_output_file(&job.output_dir).await;
+                        let reported = match ytdlp_handle.output_file().await {
+                            Some(path) => tokio::fs::metadata(&path)
+                                .await
+                                .ok()
+                                .map(|meta| (Some(path), meta.len())),
+                            None => None,
+                        };
+                        // The folder scan can pick another download's file in the same channel
+                        // folder, so it is only a fallback for when yt-dlp printed no path.
+                        let (output_file, filesize) = match reported {
+                            Some(found) => found,
+                            None => find_output_file(&job.output_dir).await,
+                        };
 
                         let mut idx = index.write().await;
                         idx.update(&job_id, |j| {

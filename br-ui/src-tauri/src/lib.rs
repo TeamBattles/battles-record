@@ -12,8 +12,36 @@ use tauri_plugin_window_state::StateFlags;
 #[cfg(desktop)]
 use tauri_plugin_deep_link::DeepLinkExt;
 
+/// The OS openers spawned below report nothing back for a missing path, so check it here and let
+/// the UI say the file is gone instead of the click silently doing nothing.
+fn ensure_exists(path: &str) -> Result<(), String> {
+    if std::path::Path::new(path).exists() {
+        Ok(())
+    } else {
+        Err(format!("Not found: {path}"))
+    }
+}
+
+/// Opens a file with its default app, or a folder in the file manager.
+#[tauri::command]
+fn open_path(path: String) -> Result<(), String> {
+    ensure_exists(&path)?;
+    #[cfg(target_os = "windows")]
+    let opener = "explorer";
+    #[cfg(target_os = "macos")]
+    let opener = "open";
+    #[cfg(target_os = "linux")]
+    let opener = "xdg-open";
+    std::process::Command::new(opener)
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 fn show_in_folder(path: String) -> Result<(), String> {
+    ensure_exists(&path)?;
     #[cfg(target_os = "windows")]
     {
         std::process::Command::new("explorer")
@@ -109,6 +137,7 @@ pub fn run() {
             tauri_host::remove_extension_browser,
             tauri_host::get_extension_message_log,
             show_in_folder,
+            open_path,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
