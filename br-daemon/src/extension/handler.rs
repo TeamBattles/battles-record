@@ -506,11 +506,15 @@ pub async fn handle_message(
                 }
             };
 
+            let name = &crate::types::normalize_channel_name(name, parsed_platform);
+
             // The existing channel's id lets the extension treat the channel as added (and offer
-            // Remove) instead of being stuck with a channel it has no id for.
+            // Remove) instead of being stuck with a channel it has no id for. Stored names may
+            // predate normalization, so both sides are normalized.
             let existing = state.channel_manager.get_channels();
             if let Some(duplicate) = existing.iter().find(|ch| {
-                ch.name.eq_ignore_ascii_case(&name) && ch.platform == parsed_platform
+                ch.platform == parsed_platform
+                    && crate::types::normalize_channel_name(&ch.name, ch.platform) == *name
             }) {
                 return Some(DaemonMessage::Error {
                     id: Some(id.clone()),
@@ -994,6 +998,36 @@ mod tests {
                 "https://d1m7jfoe9zdc1j.cloudfront.net/x/index-dvr.m3u8"
             ),
             "twitch"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_add_channel_normalizes_the_name_like_the_app() {
+        let (state, _tmp) = make_state().await;
+        let msg = ExtensionMessage::AddChannel {
+            id: "req-1".to_string(),
+            name: "@THATSGOODSPORTS".to_string(),
+            platform: "youtube".to_string(),
+        };
+        handle_message(&msg, &state, test_client_id()).await;
+        let names: Vec<String> = state
+            .channel_manager
+            .get_channels()
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
+        assert_eq!(names, vec!["@thatsgoodsports".to_string()]);
+
+        // The app's form sends YouTube handles without the @.
+        let again = ExtensionMessage::AddChannel {
+            id: "req-2".to_string(),
+            name: "ThatsGoodSports".to_string(),
+            platform: "youtube".to_string(),
+        };
+        let resp = handle_message(&again, &state, test_client_id()).await;
+        assert!(
+            matches!(resp, Some(DaemonMessage::Error { ref code, .. }) if code == "channel_exists"),
+            "expected channel_exists, got {resp:?}"
         );
     }
 }

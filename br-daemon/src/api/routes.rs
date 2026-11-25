@@ -34,30 +34,8 @@ use crate::manager::{ChannelUpdate, ManagerEvent};
 use crate::platforms::traits::StreamPlatform;
 use crate::platforms::twitch::TwitchPlatform;
 use crate::platforms::{is_bun_available, is_ytdlp_available};
-use crate::types::{Channel, Platform};
+use crate::types::{normalize_channel_name, Channel, Platform};
 
-/**
- * Normalize channel name for a platform to ensure consistent duplicate detection.
- * For YouTube, ensures the name starts with '@' (unless it's a full URL).
- */
-fn normalize_channel_name(name: &str, platform: Platform) -> String {
-    match platform {
-        Platform::YouTube => {
-            // Don't modify full URLs
-            if name.starts_with("http://") || name.starts_with("https://") {
-                return name.to_string();
-            }
-            // Ensure YouTube handles start with @
-            if name.starts_with('@') {
-                name.to_string()
-            } else {
-                format!("@{}", name)
-            }
-        }
-        // Other platforms: return as-is
-        _ => name.to_string(),
-    }
-}
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -1769,13 +1747,13 @@ mod tests {
     #[test]
     fn test_normalize_channel_name_youtube_without_at() {
         let normalized = normalize_channel_name("BaianotTV1", Platform::YouTube);
-        assert_eq!(normalized, "@BaianotTV1");
+        assert_eq!(normalized, "@baianottv1");
     }
 
     #[test]
     fn test_normalize_channel_name_youtube_with_at() {
         let normalized = normalize_channel_name("@BaianotTV1", Platform::YouTube);
-        assert_eq!(normalized, "@BaianotTV1");
+        assert_eq!(normalized, "@baianottv1");
     }
 
     #[test]
@@ -1786,14 +1764,14 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_channel_name_twitch_unchanged() {
-        let normalized = normalize_channel_name("shroud", Platform::Twitch);
+    fn test_normalize_channel_name_twitch_lowercased() {
+        let normalized = normalize_channel_name(" Shroud ", Platform::Twitch);
         assert_eq!(normalized, "shroud");
     }
 
     #[test]
-    fn test_normalize_channel_name_kick_unchanged() {
-        let normalized = normalize_channel_name("xqc", Platform::Kick);
+    fn test_normalize_channel_name_kick_lowercased() {
+        let normalized = normalize_channel_name("xQc", Platform::Kick);
         assert_eq!(normalized, "xqc");
     }
 

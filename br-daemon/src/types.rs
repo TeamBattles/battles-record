@@ -23,6 +23,22 @@ impl std::fmt::Display for Platform {
     }
 }
 
+/// Canonical form of a channel name, so every way of adding a channel stores the same string
+/// (it names the recordings folder and drives duplicate checks). Twitch logins, Kick slugs and
+/// YouTube handles are all case-insensitive, so names are lowercased; YouTube handles also get
+/// their `@`. Full URLs are left alone because their paths can be case-sensitive.
+pub fn normalize_channel_name(name: &str, platform: Platform) -> String {
+    let name = name.trim();
+    if name.starts_with("http://") || name.starts_with("https://") {
+        return name.to_string();
+    }
+    let name = name.to_lowercase();
+    match platform {
+        Platform::YouTube if !name.starts_with('@') => format!("@{name}"),
+        _ => name,
+    }
+}
+
 /** Maximum allowed length for channel names. */
 pub const CHANNEL_NAME_MAX_LENGTH: usize = 64;
 

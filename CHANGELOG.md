@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Notifications, download errors and Activity event details split words across lines (for example "B" / "attles Replay"); text now wraps between words and only breaks a word too long for the line
+- Channels added from Battles Replay kept the capitalisation they were sent with (for example `@THATSGOODSPORTS`) and YouTube handles could miss their `@`, so the same channel could be added twice; every channel name is now stored lowercase with YouTube's `@`, however it is added. Existing channels keep their names
 - Twitch and Kick VODs sent from Battles Replay were labelled "other" on their download card and saved under `downloads/other/`; the platform now comes from the address when the extension doesn't name one, and clips are filed under Twitch or Kick instead of `twitch_clip` / `kick_clip`
 - YouTube channels that are offline showed "API error: yt-dlp failed: ... The channel is not currently live" in the Activity log on every check instead of simply reading as offline
 - The dashboard's Recent Activity and the Activity log filled with "Unknown event: download_progress" during downloads, pushing real events out of the log
