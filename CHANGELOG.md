@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- YouTube channels that are offline showed "API error: yt-dlp failed: ... The channel is not currently live" in the Activity log on every check instead of simply reading as offline
 - The dashboard's Recent Activity and the Activity log filled with "Unknown event: download_progress" during downloads, pushing real events out of the log
 - Adding a channel could replace the Channels page with "500 Internal Error" when the server's channel-added notice arrived before its reply, listing the channel twice
 

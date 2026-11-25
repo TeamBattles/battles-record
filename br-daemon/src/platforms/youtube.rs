@@ -164,26 +164,9 @@ impl YoutubePlatform {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let stderr_lower = stderr.to_lowercase();
-
-            // Log full stderr at debug level for troubleshooting
             debug!("yt-dlp stderr for {}: {}", url, stderr);
 
-            // Check for common error patterns (case-insensitive)
-            if stderr_lower.contains("video unavailable")
-                || stderr_lower.contains("not found")
-                || stderr_lower.contains("does not exist")
-            {
-                return Err(YtdlpError::ChannelNotFound(url.to_string()));
-            }
-            if stderr_lower.contains("not a live stream")
-                || stderr_lower.contains("is not live")
-                || stderr_lower.contains("offline")
-            {
-                return Err(YtdlpError::NotLive);
-            }
-
-            return Err(YtdlpError::CommandFailed(stderr.to_string()));
+            return Err(classify_failure(url, &stderr));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -221,6 +204,27 @@ impl YoutubePlatform {
         let stdout = String::from_utf8_lossy(&output.stdout);
         Ok(stdout.trim().to_string())
     }
+}
+
+/// Classifies a failed yt-dlp run from its stderr. yt-dlp has no machine-readable error
+/// codes, so this matches its English messages; an offline channel's /live URL fails with
+/// "The channel is not currently live", which must map to `NotLive` rather than an error.
+fn classify_failure(url: &str, stderr: &str) -> YtdlpError {
+    let stderr_lower = stderr.to_lowercase();
+    if stderr_lower.contains("video unavailable")
+        || stderr_lower.contains("not found")
+        || stderr_lower.contains("does not exist")
+    {
+        return YtdlpError::ChannelNotFound(url.to_string());
+    }
+    if stderr_lower.contains("not a live stream")
+        || stderr_lower.contains("is not live")
+        || stderr_lower.contains("not currently live")
+        || stderr_lower.contains("offline")
+    {
+        return YtdlpError::NotLive;
+    }
+    YtdlpError::CommandFailed(stderr.to_string())
 }
 
 /** Map quality preset names to yt-dlp format selectors. */
@@ -543,5 +547,22 @@ mod tests {
         assert_eq!(info.id, "abc123");
         assert!(info.title.is_none());
         assert!(info.is_live.is_none());
+    }
+
+    /// An offline channel's /live URL must read as offline, not as a failed check that
+    /// surfaces as an error in the app on every poll.
+    #[test]
+    fn classify_failure_treats_not_currently_live_as_offline() {
+        let url = "https://www.youtube.com/@ikeacpvp/live";
+        let stderr = "ERROR: [youtube:tab] @ikeacpvp: The channel is not currently live\n";
+        assert!(matches!(classify_failure(url, stderr), YtdlpError::NotLive));
+        assert!(matches!(
+            classify_failure(url, "ERROR: [youtube] abc: Video unavailable"),
+            YtdlpError::ChannelNotFound(_)
+        ));
+        assert!(matches!(
+            classify_failure(url, "ERROR: HTTP Error 429: Too Many Requests"),
+            YtdlpError::CommandFailed(_)
+        ));
     }
 }
