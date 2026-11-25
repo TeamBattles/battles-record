@@ -71,16 +71,23 @@ Battles Record monitors your favorite streamers and automatically captures their
 </details>
 
 <details>
-<summary><strong>Channels</strong> - Manage channels with detail panel</summary>
+<summary><strong>Channels</strong> - Watched channels with live status and stream titles</summary>
 
-![Channels](assets/preview/preview_03.png)
+![Channels](assets/preview/preview_02.png)
 
 </details>
 
 <details>
 <summary><strong>Recordings</strong> - Browse and manage all recordings</summary>
 
-![Recordings](assets/preview/preview_02.png)
+![Recordings](assets/preview/preview_03.png)
+
+</details>
+
+<details>
+<summary><strong>Downloads</strong> - VODs and clips downloading with live progress</summary>
+
+![Downloads](assets/preview/preview_04.png)
 
 </details>
 
@@ -92,16 +99,16 @@ Battles Record monitors your favorite streamers and automatically captures their
 </details>
 
 <details>
-<summary><strong>Storage</strong> - Monitor disk usage and quotas</summary>
+<summary><strong>Activity Log</strong> - Real-time event stream</summary>
 
-![Storage](assets/preview/preview_06.png)
+![Activity](assets/preview/preview_06.png)
 
 </details>
 
 <details>
-<summary><strong>Activity Log</strong> - Real-time event stream</summary>
+<summary><strong>Storage</strong> - Monitor disk usage and quotas</summary>
 
-![Activity](assets/preview/preview_07.png)
+![Storage](assets/preview/preview_07.png)
 
 </details>
 
@@ -113,7 +120,7 @@ Battles Record monitors your favorite streamers and automatically captures their
 </details>
 
 <details>
-<summary><strong>Settings</strong> - Configure post-processing and notifications</summary>
+<summary><strong>Settings</strong> - Servers, startup behavior and appearance</summary>
 
 ![Settings](assets/preview/preview_09.png)
 
@@ -124,15 +131,15 @@ Battles Record monitors your favorite streamers and automatically captures their
 
 |             Dashboard              |              Channels              |             Recordings             |
 | :--------------------------------: | :--------------------------------: | :--------------------------------: |
-| ![](assets/preview/preview_01.png) | ![](assets/preview/preview_03.png) | ![](assets/preview/preview_02.png) |
+| ![](assets/preview/preview_01.png) | ![](assets/preview/preview_02.png) | ![](assets/preview/preview_03.png) |
 
-|             Schedules              |              Storage               |              Activity              |
+|             Downloads              |             Schedules              |              Activity              |
 | :--------------------------------: | :--------------------------------: | :--------------------------------: |
-| ![](assets/preview/preview_05.png) | ![](assets/preview/preview_06.png) | ![](assets/preview/preview_07.png) |
+| ![](assets/preview/preview_04.png) | ![](assets/preview/preview_05.png) | ![](assets/preview/preview_06.png) |
 
-|           Platform Auth            |              Settings              |               Users                |
+|              Storage               |           Platform Auth            |              Settings              |
 | :--------------------------------: | :--------------------------------: | :--------------------------------: |
-| ![](assets/preview/preview_08.png) | ![](assets/preview/preview_09.png) | ![](assets/preview/preview_10.png) |
+| ![](assets/preview/preview_07.png) | ![](assets/preview/preview_08.png) | ![](assets/preview/preview_09.png) |
 
 </details>
 
