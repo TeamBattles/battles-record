@@ -123,6 +123,8 @@ export type WebSocketEvent =
 	| { type: 'extension_connected'; client_id: string; identifier: string }
 	| { type: 'extension_disconnected'; client_id: string; identifier: string }
 	| { type: 'library_status_changed'; library: string; installed: boolean; version?: string }
+	| { type: 'library_install_started'; library: string }
+	| { type: 'library_install_failed'; library: string; code: string; detail?: string }
 	| {
 			type: 'connected';
 			channels: BackendChannel[];

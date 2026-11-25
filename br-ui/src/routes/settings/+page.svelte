@@ -1377,7 +1377,9 @@
 					{ key: 'bun' as const, label: 'Bun', description: 'JavaScript runtime' }
 				] as lib}
 					{@const info = extensionsStore.libraryStatus[lib.key]}
-					{@const isBusy = updatingLibrary === lib.key || uninstallingLibrary === lib.key}
+					{@const isInstalling = installingLibraries.has(lib.key) || extensionsStore.installing.has(lib.key)}
+					{@const isUpdating = updatingLibrary === lib.key || (info.installed && extensionsStore.installing.has(lib.key))}
+					{@const isBusy = isUpdating || uninstallingLibrary === lib.key}
 					<div class="flex items-center justify-between gap-3 rounded border border-border bg-muted/30 px-3 py-2">
 						<div class="min-w-0">
 							<p class="font-mono text-sm text-foreground">
@@ -1396,14 +1398,14 @@
 							</p>
 						</div>
 						<div class="flex items-center gap-2 shrink-0">
-							{#if !info.installed && !installingLibraries.has(lib.key)}
+							{#if !info.installed && !isInstalling}
 								<button
 									class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green hover:bg-green/20 transition-colors disabled:opacity-50"
 									onclick={() => handleInstallLibrary(lib.key)}
 								>
 									Install
 								</button>
-							{:else if !info.installed && installingLibraries.has(lib.key)}
+							{:else if !info.installed}
 								<button
 									class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green opacity-50 cursor-not-allowed"
 									disabled
@@ -1411,13 +1413,13 @@
 									Installing...
 								</button>
 							{:else if info.installed}
-								{#if info.update_available}
+								{#if info.update_available || isUpdating}
 									<button
 										class="rounded border border-green/30 bg-green/10 px-2 py-1 font-mono text-[10px] text-green hover:bg-green/20 transition-colors disabled:opacity-50"
 										disabled={isBusy}
 										onclick={() => handleUpdateLibrary(lib.key)}
 									>
-										{updatingLibrary === lib.key ? 'Updating...' : `Update to ${info.update_available}`}
+										{isUpdating ? 'Updating...' : `Update to ${info.update_available}`}
 									</button>
 								{/if}
 								{#if info.path?.includes('com.battles.record')}

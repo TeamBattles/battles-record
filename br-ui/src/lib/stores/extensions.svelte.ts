@@ -3,9 +3,14 @@ import { wsClient, type WebSocketEvent } from '#lib/api/websocket.ts';
 import type { LibraryStatus } from '#lib/api/types.ts';
 import { extractErrorMessage } from '#lib/utils/errors.ts';
 
-/** Library status on the active server. Browser connections live in extensionGatewayStore. */
+/**
+ * Library status on the active server. Browser connections live in extensionGatewayStore.
+ * `installing` covers installs Battles Replay asked for; installs clicked in the app are tracked
+ * by the page that started them.
+ */
 class ExtensionsStore {
 	libraryStatus = $state<LibraryStatus | null>(null);
+	installing = $state<ReadonlySet<string>>(new Set());
 	isLoading = $state(false);
 	error = $state<string | null>(null);
 
@@ -17,7 +22,23 @@ class ExtensionsStore {
 
 	private handleWebSocketEvent(event: WebSocketEvent) {
 		switch (event.type) {
+			case 'library_install_started': {
+				this.installing = new Set([...this.installing, event.library]);
+				break;
+			}
+			case 'library_install_failed': {
+				// A failed install-everything request stops before reporting the libraries it
+				// did finish, so clear them all and let the reload show what actually landed.
+				this.installing = new Set();
+				void this.loadLibraryStatus();
+				break;
+			}
 			case 'library_status_changed': {
+				if (this.installing.has(event.library)) {
+					const next = new Set(this.installing);
+					next.delete(event.library);
+					this.installing = next;
+				}
 				if (this.libraryStatus) {
 					const key = event.library as keyof LibraryStatus;
 					if (key in this.libraryStatus) {
@@ -47,6 +68,7 @@ class ExtensionsStore {
 		if (!this.libraryStatus || isServerSwitch) {
 			this.isLoading = true;
 		}
+		if (isServerSwitch) this.installing = new Set();
 		this.error = null;
 
 		try {

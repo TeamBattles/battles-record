@@ -166,6 +166,9 @@ pub enum ManagerEvent {
         installed: bool,
         version: Option<String>,
     },
+    LibraryInstallStarted {
+        library: String,
+    },
     LibraryInstallFailed {
         library: String,
         code: String,

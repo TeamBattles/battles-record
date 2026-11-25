@@ -375,9 +375,19 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             installed,
             version,
         }),
-        // Only extension-initiated installs raise this; the app's own installs report through
-        // their REST response.
-        ManagerEvent::LibraryInstallFailed { .. } => None,
+        // Only installs Battles Replay asks for raise these; the app tracks its own clicks.
+        ManagerEvent::LibraryInstallStarted { library } => {
+            Some(WsEvent::LibraryInstallStarted { library })
+        }
+        ManagerEvent::LibraryInstallFailed {
+            library,
+            code,
+            detail,
+        } => Some(WsEvent::LibraryInstallFailed {
+            library,
+            code,
+            detail,
+        }),
         ManagerEvent::ExtensionConnected {
             client_id,
             identifier,
@@ -427,5 +437,32 @@ fn convert_manager_event(event: ManagerEvent) -> Option<WsEvent> {
             name: channel_name,
             platform,
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn library_install_events_reach_the_app() {
+        let started = convert_manager_event(ManagerEvent::LibraryInstallStarted {
+            library: "ytdlp".to_string(),
+        });
+        assert_eq!(
+            serde_json::to_value(started).unwrap(),
+            json!({"type": "library_install_started", "library": "ytdlp"})
+        );
+
+        let failed = convert_manager_event(ManagerEvent::LibraryInstallFailed {
+            library: "ffmpeg".to_string(),
+            code: "download_failed".to_string(),
+            detail: None,
+        });
+        assert_eq!(
+            serde_json::to_value(failed).unwrap(),
+            json!({"type": "library_install_failed", "library": "ffmpeg", "code": "download_failed"})
+        );
     }
 }

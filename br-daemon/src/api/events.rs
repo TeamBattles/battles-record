@@ -194,6 +194,15 @@ pub enum WsEvent {
         installed: bool,
         version: Option<String>,
     },
+    LibraryInstallStarted {
+        library: String,
+    },
+    LibraryInstallFailed {
+        library: String,
+        code: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+    },
 }
 
 /** Stream info for WebSocket events. */

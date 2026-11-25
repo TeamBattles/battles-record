@@ -128,6 +128,15 @@ pub async fn handle_message(
             let event_tx = state.event_tx.clone();
             tokio::spawn(async move {
                 let mut m = manager.lock().await;
+                let missing = [
+                    ("ytdlp", m.resolve_ytdlp().is_none()),
+                    ("ffmpeg", m.resolve_ffmpeg().is_none()),
+                ];
+                for (library, _) in missing.iter().filter(|(_, missing)| *missing) {
+                    let _ = event_tx.send(crate::manager::ManagerEvent::LibraryInstallStarted {
+                        library: library.to_string(),
+                    });
+                }
                 if let Err(e) = m.install_all(None).await {
                     tracing::error!(error = ?e, "Failed to install libraries");
                     let _ = event_tx.send(library_install_failed(e.library().unwrap_or("all"), &e));
@@ -155,10 +164,16 @@ pub async fn handle_message(
             let event_tx = state.event_tx.clone();
             tokio::spawn(async move {
                 let mut m = manager.lock().await;
-                let result = match library.as_str() {
-                    "ytdlp" => m.update_ytdlp(None).await,
-                    "ffmpeg" => m.update_ffmpeg(None).await,
-                    _ => return,
+                if !matches!(library.as_str(), "ytdlp" | "ffmpeg") {
+                    return;
+                }
+                let _ = event_tx.send(crate::manager::ManagerEvent::LibraryInstallStarted {
+                    library: library.clone(),
+                });
+                let result = if library == "ytdlp" {
+                    m.update_ytdlp(None).await
+                } else {
+                    m.update_ffmpeg(None).await
                 };
                 if let Err(e) = result {
                     tracing::error!(error = ?e, library = %library, "Failed to update library");
@@ -885,6 +900,25 @@ mod tests {
         assert_eq!(
             serde_json::to_value(resp).unwrap(),
             serde_json::json!({"type": "error", "id": "req-1", "code": "channel_exists", "existing_id": existing.to_string()})
+        );
+    }
+
+    #[tokio::test]
+    async fn test_update_library_announces_install_start() {
+        let (state, _tmp) = make_state().await;
+        let mut events = state.event_tx.subscribe();
+        let msg = ExtensionMessage::UpdateLibrary {
+            library: "ytdlp".to_string(),
+        };
+        handle_message(&msg, &state, test_client_id()).await;
+
+        let event = tokio::time::timeout(std::time::Duration::from_secs(2), events.recv())
+            .await
+            .expect("no event within 2s")
+            .expect("event channel closed");
+        assert!(
+            matches!(event, ManagerEvent::LibraryInstallStarted { ref library } if library == "ytdlp"),
+            "expected LibraryInstallStarted for ytdlp, got {event:?}"
         );
     }
 
