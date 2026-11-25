@@ -149,7 +149,14 @@ class ChannelsStore {
 	): Promise<{ success: true } | { success: false; error: string }> {
 		try {
 			const channel = await api.createChannel(data);
-			this.channels = [...this.channels, channel];
+			// The channel_added event usually beats this response and inserts a placeholder.
+			// Replace it rather than append: a duplicate id crashes the keyed {#each}.
+			const existing = this.channels.findIndex((c) => c.id === channel.id);
+			if (existing !== -1) {
+				this.channels[existing] = channel;
+			} else {
+				this.channels = [...this.channels, channel];
+			}
 
 			// Immediately check the channel to get updated live status
 			// This runs in background - don't await to keep UI responsive

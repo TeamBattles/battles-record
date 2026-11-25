@@ -871,4 +871,43 @@ describe('ChannelsStore WebSocket Events', () => {
 			});
 		});
 	});
+
+	describe('channel_added event', () => {
+		// The daemon broadcasts channel_added before answering the POST, so the event usually
+		// lands first. A duplicate id makes the keyed {#each} on the Channels page throw.
+		it('keeps a single entry when the event arrives before createChannel resolves', async () => {
+			const created: Channel = {
+				id: 'ch-new',
+				name: 'new_streamer',
+				platform: 'twitch',
+				enabled: true,
+				quality: '720p',
+				status: { is_live: false, is_recording: false }
+			};
+			let resolveCreate!: (channel: Channel) => void;
+			(api.createChannel as ReturnType<typeof vi.fn>).mockReturnValue(
+				new Promise<Channel>((resolve) => (resolveCreate = resolve))
+			);
+			(api.checkChannel as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+
+			channelsStore.subscribe();
+			const pending = channelsStore.createChannel({ name: 'new_streamer', platform: 'twitch' });
+			emitEvent({
+				type: 'channel_added',
+				channel: {
+					id: 'ch-new',
+					name: 'new_streamer',
+					platform: 'twitch',
+					enabled: true,
+					quality: 'best',
+					status: 'offline'
+				} as BackendChannel
+			});
+			resolveCreate(created);
+			await pending;
+
+			expect(channelsStore.channels.map((c) => c.id)).toEqual(['ch-new']);
+			expect(channelsStore.channels[0].quality).toBe('720p');
+		});
+	});
 });
