@@ -83,17 +83,48 @@ pub fn format_to_quality(format: Option<&str>) -> Option<String> {
 
 /// Extract the domain from a URL to use as a fallback channel name.
 fn extract_channel_from_url(url: &str) -> String {
-    let without_scheme = url
-        .strip_prefix("https://")
-        .or_else(|| url.strip_prefix("http://"))
-        .unwrap_or(url);
-    let host = without_scheme.split('/').next().unwrap_or("unknown");
-    let host = host.split(':').next().unwrap_or(host);
-    let host = host.split('@').last().unwrap_or(host);
+    let host = url_host(url);
     if host.is_empty() {
         "unknown".to_string()
     } else {
         host.to_string()
+    }
+}
+
+fn url_host(url: &str) -> &str {
+    let without_scheme = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+        .unwrap_or(url);
+    let host = without_scheme.split('/').next().unwrap_or("");
+    let host = host.split('@').next_back().unwrap_or(host);
+    host.split(':').next().unwrap_or(host)
+}
+
+/// Picks the platform a download is badged and filed under (it names the download folder).
+/// Battles Replay sends its site detector's id, which has no pattern for Twitch or Kick VOD
+/// pages (they arrive as "other") and names clips `twitch_clip` / `kick_clip`. Installed
+/// extension builds keep doing that, so the URL decides whenever the value is not a platform.
+fn resolve_source_platform(given: Option<&str>, url: &str) -> String {
+    match given {
+        Some("twitch_clip") => return "twitch".to_string(),
+        Some("kick_clip") => return "kick".to_string(),
+        Some(p) if !p.is_empty() && p != "other" && p != "unknown" => return p.to_string(),
+        _ => {}
+    }
+    let host = url_host(url).to_ascii_lowercase();
+    let on = |domain: &str| host == domain || host.ends_with(&format!(".{domain}"));
+    if on("twitch.tv") {
+        "twitch".to_string()
+    } else if on("kick.com") {
+        "kick".to_string()
+    } else if on("youtube.com") || on("youtu.be") {
+        "youtube".to_string()
+    } else {
+        given
+            .filter(|p| !p.is_empty())
+            .unwrap_or("unknown")
+            .to_string()
     }
 }
 
@@ -350,9 +381,7 @@ pub async fn handle_message(
                 url: url.clone(),
                 title: title.clone(),
                 channel_name: resolved_channel,
-                source_platform: source_platform
-                    .clone()
-                    .unwrap_or_else(|| "unknown".to_string()),
+                source_platform: resolve_source_platform(source_platform.as_deref(), url),
                 format: format.clone(),
                 quality: quality.clone(),
                 options: dl_options,
@@ -931,5 +960,40 @@ mod tests {
         };
         let resp = handle_message(&msg, &state, test_client_id()).await;
         assert!(resp.is_none());
+    }
+
+    #[test]
+    fn resolve_source_platform_reads_the_url_when_the_extension_cannot_tell() {
+        let vod = "https://twitch.tv/videos/2938643974";
+        assert_eq!(resolve_source_platform(Some("other"), vod), "twitch");
+        assert_eq!(resolve_source_platform(None, vod), "twitch");
+        assert_eq!(
+            resolve_source_platform(Some("other"), "https://kick.com/xqc/videos/abc"),
+            "kick"
+        );
+        assert_eq!(
+            resolve_source_platform(Some("twitch_clip"), "https://clips.twitch.tv/Abc"),
+            "twitch"
+        );
+        assert_eq!(
+            resolve_source_platform(Some("youtube"), "https://youtu.be/x"),
+            "youtube"
+        );
+        assert_eq!(
+            resolve_source_platform(Some("other"), "https://example.com/v.mp4"),
+            "other"
+        );
+        assert_eq!(
+            resolve_source_platform(None, "https://example.com/v.mp4"),
+            "unknown"
+        );
+        // A CDN playlist carries no platform in its host; the extension's value stands.
+        assert_eq!(
+            resolve_source_platform(
+                Some("twitch"),
+                "https://d1m7jfoe9zdc1j.cloudfront.net/x/index-dvr.m3u8"
+            ),
+            "twitch"
+        );
     }
 }
