@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The Activity log records downloads (queued, complete, failed) under a new Download filter, plus channels added or removed, channel errors, platform logins updated or expired, browser extension connections and failed library installs
+
 ### Fixed
 
+- The dashboard's Recent Activity and the Activity log filled with "Unknown event: download_progress" during downloads, pushing real events out of the log
 - Adding a channel could replace the Channels page with "500 Internal Error" when the server's channel-added notice arrived before its reply, listing the channel twice
 
 ## [2.0.1] - 2026-11-25

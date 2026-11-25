@@ -1,7 +1,7 @@
 import type { WebSocketEvent } from '#lib/api/websocket.ts';
 import { formatDuration, formatBytes, MAX_ACTIVITY_EVENTS } from '#lib/utils/index.ts';
 
-export type EventCategory = 'recording' | 'channel' | 'processing' | 'system';
+export type EventCategory = 'recording' | 'channel' | 'processing' | 'download' | 'system';
 
 export interface ActivityEvent {
 	id: string;
@@ -250,20 +250,146 @@ class ActivityStore {
 					data: { ...wsEvent }
 				};
 
-			case 'segment_downloaded':
-				// Skip segment events to avoid spam
-				return null;
+			case 'channel_added': {
+				const channel = wsEvent.channel as { name: string; platform: string };
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'channel',
+					channelName: channel.name,
+					platform: channel.platform,
+					message: `Channel added: ${channel.name}`,
+					data: { ...wsEvent }
+				};
+			}
 
-			default:
-				// Log unknown event types for debugging
+			case 'channel_removed':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'channel',
+					channelName: wsEvent.name as string,
+					platform: wsEvent.platform as string,
+					message: `Channel removed: ${wsEvent.name}`,
+					data: { ...wsEvent }
+				};
+
+			case 'channel_error':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'channel',
+					channelName: wsEvent.name as string,
+					message: `${wsEvent.name}: ${wsEvent.error}`,
+					data: { ...wsEvent }
+				};
+
+			case 'download_queued':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'download',
+					channelName: wsEvent.channel_name as string,
+					message: `Download queued: ${(wsEvent.title as string | undefined) || wsEvent.url}`,
+					data: { ...wsEvent }
+				};
+
+			case 'download_complete':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'download',
+					channelName: wsEvent.channel_name as string,
+					message: `Download complete (${formatBytes(wsEvent.filesize as number)})`,
+					data: { ...wsEvent }
+				};
+
+			case 'download_failed':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'download',
+					channelName: wsEvent.channel_name as string,
+					message: `Download failed: ${wsEvent.error}`,
+					data: { ...wsEvent }
+				};
+
+			case 'platform_auth_updated':
 				return {
 					id,
 					timestamp,
 					type,
 					category: 'system',
-					message: `Unknown event: ${type}`,
+					platform: wsEvent.platform as string,
+					message: `${wsEvent.platform} account ${wsEvent.status}${wsEvent.username ? ` (${wsEvent.username})` : ''}`,
 					data: { ...wsEvent }
 				};
+
+			case 'platform_auth_expired':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'system',
+					platform: wsEvent.platform as string,
+					message: `${wsEvent.platform} login expired: ${wsEvent.reason}`,
+					data: { ...wsEvent }
+				};
+
+			case 'extension_connected':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'system',
+					message: `Browser extension connected (${wsEvent.identifier})`,
+					data: { ...wsEvent }
+				};
+
+			case 'extension_disconnected':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'system',
+					message: `Browser extension disconnected (${wsEvent.identifier})`,
+					data: { ...wsEvent }
+				};
+
+			case 'library_install_failed':
+				return {
+					id,
+					timestamp,
+					type,
+					category: 'system',
+					message: `${wsEvent.library} install failed (${wsEvent.code})`,
+					data: { ...wsEvent }
+				};
+
+			// High-frequency progress and state-sync events: the pages that care track these
+			// themselves, and logging them evicts real history from the capped log.
+			case 'segment_downloaded':
+			case 'download_progress':
+			case 'download_paused':
+			case 'download_resumed':
+			case 'download_cancelled':
+			case 'library_status_changed':
+			case 'library_install_started':
+				return null;
+
+			default: {
+				// Fails to compile when a WebSocketEvent type is added without a decision here.
+				// At runtime a newer daemon can still send types this build doesn't know.
+				const unmapped: never = type;
+				void unmapped;
+				return null;
+			}
 		}
 	}
 

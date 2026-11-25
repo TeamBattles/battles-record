@@ -170,17 +170,29 @@ describe('ActivityStore', () => {
 			expect(event.message).toContain('95%');
 		});
 
-		it('maps unknown event type to system category', () => {
-			// Force an unknown event type by using type assertion
+		it('ignores event types it has no entry for', () => {
+			// A newer daemon can send types this build does not know about.
 			processEvent({
 				type: 'unknown_event_type',
 				message: 'test message'
 			} as unknown as WebSocketEvent & Record<string, unknown>);
 
+			expect(activityStore.events).toHaveLength(0);
+		});
+
+		it('maps download_complete to download category', () => {
+			processEvent({
+				type: 'download_complete',
+				download_id: 'dl-1',
+				channel_name: 'shroud',
+				filepath: '/downloads/shroud/vod.mp4',
+				filesize: 1048576
+			});
+
 			const event = activityStore.events[0];
-			expect(event.type).toBe('unknown_event_type');
-			expect(event.category).toBe('system');
-			expect(event.message).toContain('Unknown event');
+			expect(event.category).toBe('download');
+			expect(event.channelName).toBe('shroud');
+			expect(event.message).toBe('Download complete (1.0 MB)');
 		});
 
 		it('handles missing optional fields gracefully', () => {
@@ -205,6 +217,18 @@ describe('ActivityStore', () => {
 			});
 
 			// Should not add event
+			expect(activityStore.events).toHaveLength(0);
+		});
+
+		// Each download sends several of these a second; logging them pushed real events out.
+		it('skips download_progress events to avoid spam', () => {
+			processEvent({
+				type: 'download_progress',
+				download_id: 'dl-1',
+				percent: 20,
+				downloaded_bytes: 1000
+			});
+
 			expect(activityStore.events).toHaveLength(0);
 		});
 

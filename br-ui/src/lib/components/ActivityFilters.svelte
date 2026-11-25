@@ -33,6 +33,7 @@
 		{ value: 'recording', label: 'Recording' },
 		{ value: 'channel', label: 'Channel' },
 		{ value: 'processing', label: 'Processing' },
+		{ value: 'download', label: 'Download' },
 		{ value: 'system', label: 'System' }
 	];
 </script>
