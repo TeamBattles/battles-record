@@ -140,6 +140,7 @@ export class WebSocketClient {
 	private baseUrl: string;
 	private token: string | null = null;
 	private handlers: Set<EventHandler> = new Set();
+	private socketBaseUrl: string | null = null;
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	// Cache the last 'connected' event to replay to new subscribers
 	private lastConnectedEvent: WebSocketEvent | null = null;
@@ -161,10 +162,13 @@ export class WebSocketClient {
 
 	connect() {
 		console.log('[WS] connect() called', { readyState: this.ws?.readyState, time: Date.now() });
-		if (this.ws?.readyState === WebSocket.OPEN) {
+		if (this.ws?.readyState === WebSocket.OPEN && this.socketBaseUrl === this.baseUrl) {
 			console.log('[WS] already connected, skipping');
 			return;
 		}
+		// After a server switch the open socket still belongs to the old server; keeping it would
+		// deliver that server's events while the app shows the new one's data.
+		this.dropSocket();
 
 		const url = this.token
 			? `${this.baseUrl}/api/events?token=${this.token}`
@@ -172,6 +176,7 @@ export class WebSocketClient {
 
 		console.log('[WS] creating WebSocket to', url);
 		this.ws = new WebSocket(url);
+		this.socketBaseUrl = this.baseUrl;
 
 		this.ws.onopen = () => {
 			console.log('[WS] onopen fired', { time: Date.now() });
@@ -237,6 +242,20 @@ export class WebSocketClient {
 		this.ws = null;
 		// Clear cached event on disconnect to avoid stale data
 		this.lastConnectedEvent = null;
+	}
+
+	/** Closes the current socket without letting its close event schedule a reconnect. */
+	private dropSocket() {
+		const ws = this.ws;
+		if (!ws) return;
+		this.ws = null;
+		this.socketBaseUrl = null;
+		this.lastConnectedEvent = null;
+		ws.onopen = null;
+		ws.onmessage = null;
+		ws.onclose = null;
+		ws.onerror = null;
+		ws.close();
 	}
 
 	private scheduleReconnect() {

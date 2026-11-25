@@ -125,6 +125,30 @@ describe('WebSocketClient', () => {
 			expect(mockWebSocketInstance).toBe(firstInstance);
 		});
 
+		it('replaces an open socket when the server changes', () => {
+			vi.useFakeTimers();
+			const handler = vi.fn();
+			client.subscribe(handler);
+			client.connect();
+			const previous = mockWebSocketInstance as MockWebSocket & { simulateOpen: () => void };
+			previous.simulateOpen();
+
+			client.setBaseUrl('ws://127.0.0.1:9999');
+			client.connect();
+			const current = mockWebSocketInstance;
+
+			expect(current).not.toBe(previous);
+			expect(current?.url).toBe('ws://127.0.0.1:9999/api/events');
+			expect(previous.close).toHaveBeenCalled();
+			// The old server's events must not reach subscribers, and closing it must not
+			// schedule a reconnect that replaces the new socket.
+			previous.simulateMessage({ type: 'library_status_changed', library: 'ytdlp', installed: true });
+			expect(handler).not.toHaveBeenCalled();
+			vi.advanceTimersByTime(10000);
+			expect(mockWebSocketInstance).toBe(current);
+			vi.useRealTimers();
+		});
+
 		it('isConnected returns false initially', () => {
 			expect(client.isConnected).toBe(false);
 		});

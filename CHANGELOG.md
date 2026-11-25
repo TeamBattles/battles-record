@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Treat explicit empty extension cookie lists as anonymous for previews and downloads; explicit cookies bypass automatic yt-dlp account configuration, while omitted cookies retain daemon-local fallback.
 - Adding a channel from Battles Replay that is already in the recording list now returns that channel's id (`existing_id` on `channel_exists`), so the extension can offer Remove for it
 - Library installs and updates requested by Battles Replay that fail now send `library_install_failed` with a code (`download_failed`, `extract_failed`, `unsupported_platform`, `storage_error`) instead of only being logged
+- After switching servers the app kept receiving live updates from the previous server, so pages showed stale status until they were reopened
 - Settings > Library Management shows "Installing..." or "Updating..." while Battles Replay installs or updates a library, and updates when it finishes
 
 ## [1.4.0] - 2026-03-26
