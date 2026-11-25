@@ -135,7 +135,7 @@
 	}
 </script>
 
-<div class="relative rounded-lg border border-border bg-card">
+<div class="relative overflow-clip rounded-lg border border-border bg-card">
 
 	<!-- Toggle header -->
 	<button

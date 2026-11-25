@@ -136,7 +136,7 @@
 	}
 </script>
 
-<div class="relative rounded-lg border border-border bg-card">
+<div class="relative overflow-clip rounded-lg border border-border bg-card">
 
 	<!-- Header with tabs -->
 	<div class="flex items-center border-b border-border/60 bg-muted/30">

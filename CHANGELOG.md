@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cleanup Tools and Manual Token Entry cards no longer show square corners behind their rounded edges
 - "Enter token manually" on a platform card now opens the manual token form for that platform instead of only changing its selection
 - An empty `jwt_secret` now falls back to a generated temporary secret instead of signing tokens with an empty key
 - Treat explicit empty extension cookie lists as anonymous for previews and downloads; explicit cookies bypass automatic yt-dlp account configuration, while omitted cookies retain daemon-local fallback.
