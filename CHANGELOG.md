@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Number fields have larger − / + buttons in place of the tiny native up/down arrows
 - Dropdowns (page filters, Settings, cleanup tools, channel settings) use the app's own menu instead of the system dropdown, fixing their doubled border and the focus outline that reappeared after picking an option
 - New Battles Record icon (scroll and quill) for the app window, taskbar, tray, installers, Store tiles, favicon and README
+- The window, dock, taskbar and tray icons show the scroll and quill without its black background, filling more of the icon, and Linux uses the 256px image for the window icon instead of scaling up the 32px one
 - Default window size raised to 900x800 so the Welcome Screen fits without scrolling; a window that would open larger than the screen is shrunk to fit
 - The app listens for Battles Replay on 127.0.0.1:9555 (falling back to 9556 and 9557) whichever server it is viewing; extension downloads and channels go to this PC's local service, whose extension server now runs on a private port
 - Settings > Browser Extension shows the extension port, the local service state, an option to start the service automatically and the approved browsers; the status bar's extension menu shows the same
