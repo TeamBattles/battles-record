@@ -3,7 +3,7 @@ members = ["br-daemon"]
 resolver = "2"
 
 [workspace.package]
-version = "1.4.0"
+version = "2.0.0"
 edition = "2021"
 license = "MIT"
 authors = ["TeamBattles"]
